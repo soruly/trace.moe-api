@@ -4,7 +4,7 @@ const child_process = require("child_process");
 const path = require("path");
 const fs = require("fs-extra");
 
-module.exports = async ctx => {
+module.exports = async (ctx) => {
   const file = path.join(
     "/mnt/data/anilist/",
     ctx.params.anilistID,
@@ -43,7 +43,7 @@ module.exports = async ctx => {
       "faster",
       "-f",
       "mp4",
-      tempPath
+      tempPath,
     ],
     { encoding: "utf-8" }
   );

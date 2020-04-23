@@ -2,10 +2,10 @@ require("dotenv").config();
 const fetch = require("node-fetch");
 const { SOLA_SOLR_URL } = process.env;
 
-module.exports = async ctx => {
-  const result = await fetch(`${SOLA_SOLR_URL}admin/cores?wt=json`).then(res =>
-    res.json()
-  );
+module.exports = async (ctx) => {
+  const result = await fetch(
+    `${SOLA_SOLR_URL}admin/cores?wt=json`
+  ).then((res) => res.json());
 
   let lastModified = 0;
   let sizeInBytes = 0;
@@ -21,6 +21,6 @@ module.exports = async ctx => {
   ctx.body = {
     lastModified,
     sizeInBytes,
-    numDocs
+    numDocs,
   };
 };

@@ -1,13 +1,24 @@
 {
-  "name": "trace.moe-www",
+  "name": "trace.moe-api",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prettier": "prettier",
+    "format": "prettier --write \"**/*.js\"",
+    "lint": "prettier --check \"**/*.js\"",
+    "test": "prettier --check \"**/*.js\""
   },
-  "author": "",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soruly/trace.moe-api.git"
+  },
+  "author": "soruly",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/soruly/trace.moe-api/issues"
+  },
+  "homepage": "https://github.com/soruly/trace.moe-api#readme",
   "devDependencies": {
     "prettier": "^2.0.5"
   },

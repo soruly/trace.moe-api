@@ -16,10 +16,10 @@ const {
   SOLA_DB_PORT,
   SOLA_DB_USER,
   SOLA_DB_PWD,
-  SOLA_DB_NAME
+  SOLA_DB_NAME,
 } = process.env;
 
-module.exports = async ctx => {
+module.exports = async (ctx) => {
   let searchImage = ctx.file.buffer;
   if (true) {
     // crop image or not
@@ -52,23 +52,25 @@ module.exports = async ctx => {
     searchImage = cv.imencode(".jpg", croppedImage);
   }
 
-  const solrResult = (await Promise.all(
-    ctx.coreNameList.map(coreName =>
-      fetch(
-        `${SOLA_SOLR_URL}${coreName}/lireq?${[
-          "field=cl_ha",
-          "ms=false",
-          `accuracy=${Number(ctx.query.trial || 0)}`,
-          "candidates=1000000",
-          "rows=10"
-        ].join("&")}`,
-        {
-          method: "POST",
-          body: searchImage
-        }
-      ).then(res => res.json())
+  const solrResult = (
+    await Promise.all(
+      ctx.coreNameList.map((coreName) =>
+        fetch(
+          `${SOLA_SOLR_URL}${coreName}/lireq?${[
+            "field=cl_ha",
+            "ms=false",
+            `accuracy=${Number(ctx.query.trial || 0)}`,
+            "candidates=1000000",
+            "rows=10",
+          ].join("&")}`,
+          {
+            method: "POST",
+            body: searchImage,
+          }
+        ).then((res) => res.json())
+      )
     )
-  )).reduce(
+  ).reduce(
     (
       list,
       { RawDocsCount, RawDocsSearchTime, ReRankSearchTime, response }
@@ -76,7 +78,7 @@ module.exports = async ctx => {
       RawDocsCount: list.RawDocsCount + Number(RawDocsCount),
       RawDocsSearchTime: list.RawDocsSearchTime + Number(RawDocsSearchTime),
       ReRankSearchTime: list.ReRankSearchTime + Number(ReRankSearchTime),
-      docs: list.docs.concat(response.docs)
+      docs: list.docs.concat(response.docs),
     }),
     { RawDocsCount: 0, RawDocsSearchTime: 0, ReRankSearchTime: 0, docs: [] }
   );
@@ -88,7 +90,7 @@ module.exports = async ctx => {
       const file = id.split("/")[1];
       const t = Number(id.split("/")[2]);
       const index = list.findIndex(
-        e =>
+        (e) =>
           e.anilist_id === anilist_id &&
           e.file === file &&
           (Math.abs(e.from - t) < 2 || Math.abs(e.to - t) < 2)
@@ -100,7 +102,7 @@ module.exports = async ctx => {
           t,
           from: t,
           to: t,
-          d
+          d,
         });
       } else {
         list[index].from = list[index].from < t ? list[index].from : t;
@@ -139,13 +141,12 @@ module.exports = async ctx => {
           .digest("base64")
           .replace(/\+/g, "-")
           .replace(/\//g, "_")
-          .replace(/=/g, "")}`
+          .replace(/=/g, "")}`,
       };
     });
 
-  const anilistDB = (await fetch(
-    "http://127.0.0.1:9200/anilist/anime/_search",
-    {
+  const anilistDB = (
+    await fetch("http://127.0.0.1:9200/anilist/anime/_search", {
       method: "post",
       body: JSON.stringify({
         _source: ["title", "isAdult"],
@@ -153,17 +154,17 @@ module.exports = async ctx => {
           ids: {
             values: solrResult.docs.reduce(
               (idList, { anilist_id }) =>
-                idList.find(e => e === anilist_id)
+                idList.find((e) => e === anilist_id)
                   ? idList
                   : idList.concat(anilist_id),
               []
-            )
-          }
-        }
+            ),
+          },
+        },
       }),
-      headers: { "Content-Type": "application/json" }
-    }
-  ).then(res => res.json())).hits.hits;
+      headers: { "Content-Type": "application/json" },
+    }).then((res) => res.json())
+  ).hits.hits;
 
   ctx.body = {
     limit: 1,
@@ -173,8 +174,8 @@ module.exports = async ctx => {
     RawDocsCount: solrResult.RawDocsCount,
     RawDocsSearchTime: solrResult.RawDocsSearchTime,
     ReRankSearchTime: solrResult.ReRankSearchTime,
-    docs: solrResult.docs.map(result => {
-      const anilist = anilistDB.find(e => e._id === `${result.anilist_id}`)
+    docs: solrResult.docs.map((result) => {
+      const anilist = anilistDB.find((e) => e._id === `${result.anilist_id}`)
         ._source;
       return {
         anilist_id: result.anilist_id,
@@ -192,8 +193,8 @@ module.exports = async ctx => {
         title_native: anilist.title.native,
         title_english: anilist.title.english,
         title_chinese: anilist.title.chinese,
-        is_adult: anilist.isAdult
+        is_adult: anilist.isAdult,
       };
-    })
+    }),
   };
 };

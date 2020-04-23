@@ -15,7 +15,7 @@ const {
   SOLA_DB_PORT,
   SOLA_DB_USER,
   SOLA_DB_PWD,
-  SOLA_DB_NAME
+  SOLA_DB_NAME,
 } = process.env;
 
 (async () => {
@@ -26,20 +26,23 @@ const {
     .get("/video/:anilistID/:file", require("./src/video.js"))
     .get("/thumb/:anilistID/:file", require("./src/thumb.js"))
     .get("/duration/:anilistID/:file", require("./src/duration.js"))
-    .all("/", ctx => {
+    .all("/", (ctx) => {
       ctx.body = "ok";
     });
 
   app.context.coreNameList = Object.keys(
-    (await fetch(`${SOLA_SOLR_URL}admin/cores?wt=json`).then(res => res.json()))
-      .status
-  ).filter(coreName => coreName.startsWith(`${SOLA_SOLR_CORE}_`));
+    (
+      await fetch(`${SOLA_SOLR_URL}admin/cores?wt=json`).then((res) =>
+        res.json()
+      )
+    ).status
+  ).filter((coreName) => coreName.startsWith(`${SOLA_SOLR_CORE}_`));
 
   app
     .use(require("koa-logger")())
     .use(
       cors({
-        origin: "*"
+        origin: "*",
       })
     )
     .use(require("koa-bodyparser")())

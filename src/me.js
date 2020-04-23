@@ -10,7 +10,7 @@ const {
   SOLA_DB_PORT,
   SOLA_DB_USER,
   SOLA_DB_PWD,
-  SOLA_DB_NAME
+  SOLA_DB_NAME,
 } = process.env;
 
 const knex = require("knex")({
@@ -20,18 +20,18 @@ const knex = require("knex")({
     port: SOLA_DB_PORT,
     user: SOLA_DB_USER,
     password: SOLA_DB_PWD,
-    database: SOLA_DB_NAME
-  }
+    database: SOLA_DB_NAME,
+  },
 });
 
-module.exports = async ctx => {
+module.exports = async (ctx) => {
   let user = {
     user_id: null,
     user_email: ctx.request.ip,
     user_limit: 10,
     user_limit_ttl: 60,
     user_quota: 150,
-    user_quota_ttl: 86400
+    user_quota_ttl: 86400,
   };
 
   if (ctx.request.query.token) {
@@ -81,6 +81,6 @@ module.exports = async ctx => {
     user_limit: user.user_limit,
     user_limit_ttl: user.user_limit_ttl,
     user_quota: user.user_quota,
-    user_quota_ttl: user.user_quota_ttl
+    user_quota_ttl: user.user_quota_ttl,
   };
 };
