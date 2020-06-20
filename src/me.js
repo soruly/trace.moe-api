@@ -5,13 +5,7 @@ const util = require("util");
 const getAsync = util.promisify(client.get).bind(client);
 const ttlAsync = util.promisify(client.ttl).bind(client);
 
-const {
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-} = process.env;
+const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
 
 const knex = require("knex")({
   client: "mysql",
@@ -36,14 +30,7 @@ module.exports = async (ctx) => {
 
   if (ctx.request.query.token) {
     const result = await knex("users")
-      .select(
-        "user_id",
-        "email",
-        "user_limit",
-        "user_limit_ttl",
-        "user_quota",
-        "user_quota_ttl"
-      )
+      .select("user_id", "email", "user_limit", "user_limit_ttl", "user_quota", "user_quota_ttl")
       .where("api_key", ctx.request.query.token);
 
     if (result.length === 0) {

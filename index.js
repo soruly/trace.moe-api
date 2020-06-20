@@ -31,11 +31,7 @@ const {
     });
 
   app.context.coreNameList = Object.keys(
-    (
-      await fetch(`${SOLA_SOLR_URL}admin/cores?wt=json`).then((res) =>
-        res.json()
-      )
-    ).status
+    (await fetch(`${SOLA_SOLR_URL}admin/cores?wt=json`).then((res) => res.json())).status
   ).filter((coreName) => coreName.startsWith(`${SOLA_SOLR_CORE}_`));
 
   app

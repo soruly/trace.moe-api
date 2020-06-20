@@ -71,10 +71,7 @@ module.exports = async (ctx) => {
       )
     )
   ).reduce(
-    (
-      list,
-      { RawDocsCount, RawDocsSearchTime, ReRankSearchTime, response }
-    ) => ({
+    (list, { RawDocsCount, RawDocsSearchTime, ReRankSearchTime, response }) => ({
       RawDocsCount: list.RawDocsCount + Number(RawDocsCount),
       RawDocsSearchTime: list.RawDocsSearchTime + Number(RawDocsSearchTime),
       ReRankSearchTime: list.ReRankSearchTime + Number(ReRankSearchTime),
@@ -154,9 +151,7 @@ module.exports = async (ctx) => {
           ids: {
             values: solrResult.docs.reduce(
               (idList, { anilist_id }) =>
-                idList.find((e) => e === anilist_id)
-                  ? idList
-                  : idList.concat(anilist_id),
+                idList.find((e) => e === anilist_id) ? idList : idList.concat(anilist_id),
               []
             ),
           },
@@ -175,8 +170,7 @@ module.exports = async (ctx) => {
     RawDocsSearchTime: solrResult.RawDocsSearchTime,
     ReRankSearchTime: solrResult.ReRankSearchTime,
     docs: solrResult.docs.map((result) => {
-      const anilist = anilistDB.find((e) => e._id === `${result.anilist_id}`)
-        ._source;
+      const anilist = anilistDB.find((e) => e._id === `${result.anilist_id}`)._source;
       return {
         anilist_id: result.anilist_id,
         file: result.file,

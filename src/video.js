@@ -5,19 +5,12 @@ const path = require("path");
 const fs = require("fs-extra");
 
 module.exports = async (ctx) => {
-  const file = path.join(
-    "/mnt/data/anilist/",
-    ctx.params.anilistID,
-    ctx.params.file
-  );
+  const file = path.join("/mnt/data/anilist/", ctx.params.anilistID, ctx.params.file);
   if (!fs.existsSync(file)) {
     ctx.body = "404 Not Found";
     return;
   }
-  const tempPath = path.join(
-    os.tmpdir(),
-    `videoPreview${process.hrtime().join("")}.mp4`
-  );
+  const tempPath = path.join(os.tmpdir(), `videoPreview${process.hrtime().join("")}.mp4`);
   const start = Number(ctx.query.t) - 0.1;
   const end = Number(ctx.query.t) + 0.1;
   const a = child_process.spawnSync(
