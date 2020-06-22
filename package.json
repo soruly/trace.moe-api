@@ -23,20 +23,20 @@
     "prettier": "^2.0.5"
   },
   "dependencies": {
-    "@koa/cors": "^3.0.0",
-    "@koa/multer": "^2.0.2",
-    "@koa/router": "^8.0.8",
+    "@koa/cors": "^3.1.0",
+    "@koa/multer": "^3.0.0",
+    "@koa/router": "^9.0.1",
     "aniep": "^0.2.0",
     "dotenv": "^8.2.0",
-    "fs-extra": "^9.0.0",
-    "knex": "^0.21.0",
-    "koa": "^2.11.0",
+    "fs-extra": "^9.0.1",
+    "knex": "^0.21.1",
+    "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
     "koa-logger": "^3.2.1",
     "multer": "^1.4.2",
     "mysql": "^2.18.1",
     "node-fetch": "^2.6.0",
-    "opencv4nodejs": "^5.5.0",
+    "opencv4nodejs": "^5.6.0",
     "redis": "^3.0.2"
   }
 }
