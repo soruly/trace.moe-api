@@ -17,10 +17,30 @@ const {
   SOLA_DB_USER,
   SOLA_DB_PWD,
   SOLA_DB_NAME,
+  ANIME_DB_HOST,
+  ANIME_DB_PORT,
+  ANIME_DB_USER,
+  ANIME_DB_PWD,
+  ANIME_DB_NAME,
 } = process.env;
 
+const knex = require("knex")({
+  client: "mysql",
+  connection: {
+    host: ANIME_DB_HOST,
+    port: ANIME_DB_PORT,
+    user: ANIME_DB_USER,
+    password: ANIME_DB_PWD,
+    database: ANIME_DB_NAME,
+  },
+});
+
 module.exports = async (ctx) => {
-  let searchImage = ctx.file.buffer;
+  let searchImage = ctx.request.query.url
+    ? await fetch(
+        `https://trace-moe-image-proxy.now.sh/api/image-proxy?url=${ctx.request.query.url}`
+      ).then((res) => res.buffer())
+    : ctx.file.buffer;
   if (true) {
     // crop image or not
     const image = cv.imdecode(searchImage);
@@ -142,24 +162,12 @@ module.exports = async (ctx) => {
       };
     });
 
-  const anilistDB = (
-    await fetch("http://127.0.0.1:9200/anilist/anime/_search", {
-      method: "post",
-      body: JSON.stringify({
-        _source: ["title", "isAdult"],
-        query: {
-          ids: {
-            values: solrResult.docs.reduce(
-              (idList, { anilist_id }) =>
-                idList.find((e) => e === anilist_id) ? idList : idList.concat(anilist_id),
-              []
-            ),
-          },
-        },
-      }),
-      headers: { "Content-Type": "application/json" },
-    }).then((res) => res.json())
-  ).hits.hits;
+  const anilistDB = await knex("anilist_view")
+    .select("id", "json")
+    .havingIn(
+      "id",
+      solrResult.docs.map((result) => result.anilist_id)
+    );
 
   ctx.body = {
     limit: 1,
@@ -170,7 +178,7 @@ module.exports = async (ctx) => {
     RawDocsSearchTime: solrResult.RawDocsSearchTime,
     ReRankSearchTime: solrResult.ReRankSearchTime,
     docs: solrResult.docs.map((result) => {
-      const anilist = anilistDB.find((e) => e._id === `${result.anilist_id}`)._source;
+      const anilist = JSON.parse(anilistDB.find((e) => e.id === result.anilist_id).json);
       return {
         anilist_id: result.anilist_id,
         file: result.file,
