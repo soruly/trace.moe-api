@@ -145,9 +145,9 @@ module.exports = async (ctx) => {
         start,
         end,
         diff: d,
-        video: `https://trace.moe/${anilist_id}/${file}?start=${start}&end=${end}&token=${crypto
+        video: `https://media.trace.moe/video/${anilist_id}/${file}?t=${t}&token=${crypto
           .createHash("md5")
-          .update(`/${anilist_id}/${file}${start}${end}${secretSalt}`)
+          .update(`${t}${secretSalt}`)
           .digest("base64")
           .replace(/\+/g, "-")
           .replace(/\//g, "_")
