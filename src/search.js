@@ -1,6 +1,10 @@
 require("dotenv").config();
 const crypto = require("crypto");
+const os = require("os");
+const path = require("path");
+const child_process = require("child_process");
 const fetch = require("node-fetch");
+const fs = require("fs-extra");
 const aniep = require("aniep");
 const cv = require("opencv4nodejs");
 const redis = require("redis");
@@ -36,11 +40,51 @@ const knex = require("knex")({
 });
 
 module.exports = async (ctx) => {
-  let searchImage = ctx.request.query.url
-    ? await fetch(
-        `https://trace-moe-image-proxy.now.sh/api/image-proxy?url=${ctx.request.query.url}`
-      ).then((res) => res.buffer())
-    : ctx.file.buffer;
+  let searchImage;
+  if (ctx.request.query.url) {
+    const res = await fetch(
+      `https://trace-moe-image-proxy.now.sh/api/image-proxy?url=${encodeURIComponent(
+        decodeURIComponent(ctx.request.query.url)
+      )}`
+    );
+    if (res.headers.get("Content-Type") && res.headers.get("Content-Type").startsWith("video/")) {
+      const tempVideoPath = path.join(os.tmpdir(), `queryVideo${process.hrtime().join("")}.mp4`);
+      const tempImagePath = path.join(os.tmpdir(), `queryImage${process.hrtime().join("")}.jpg`);
+      await fs.writeFile(tempVideoPath, await res.buffer());
+      child_process.spawnSync(
+        "ffmpeg",
+        [
+          "-hide_banner",
+          "-loglevel",
+          "warning",
+          "-nostats",
+          "-y",
+          "-ss",
+          "00:00:00",
+          "-i",
+          tempVideoPath,
+          "-vframes",
+          "1",
+          "-vf",
+          "scale=320:-2",
+          "-crf",
+          "23",
+          "-preset",
+          "faster",
+          tempImagePath,
+        ],
+        { encoding: "utf-8" }
+      );
+      searchImage = fs.readFileSync(tempImagePath);
+      fs.removeSync(tempVideoPath);
+      fs.removeSync(tempImagePath);
+    } else {
+      searchImage = await res.buffer();
+    }
+  } else if (ctx.file) {
+    searchImage = ctx.file.buffer;
+  }
+
   if (true) {
     // crop image or not
     const image = cv.imdecode(searchImage);
