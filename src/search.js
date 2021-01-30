@@ -26,6 +26,7 @@ const {
   ANIME_DB_USER,
   ANIME_DB_PWD,
   ANIME_DB_NAME,
+  TRACE_MEDIA_SALT,
 } = process.env;
 
 const knex = require("knex")({
@@ -43,7 +44,7 @@ module.exports = async (ctx) => {
   let searchImage;
   if (ctx.request.query.url) {
     const res = await fetch(
-      `https://trace-moe-image-proxy.now.sh/api/image-proxy?url=${encodeURIComponent(
+      `https://trace.moe/image-proxy?url=${encodeURIComponent(
         decodeURIComponent(ctx.request.query.url)
       )}`
     );
@@ -118,13 +119,13 @@ module.exports = async (ctx) => {
 
   const solrResult = (
     await Promise.all(
-      ctx.coreNameList.map((coreName) =>
+      ctx.coreList.map((coreList) =>
         fetch(
-          `${SOLA_SOLR_URL}${coreName}/lireq?${[
+          `${coreList}/lireq?${[
             "field=cl_ha",
             "ms=false",
             `accuracy=${Number(ctx.query.trial || 0)}`,
-            "candidates=1000000",
+            "candidates=100000",
             "rows=10",
           ].join("&")}`,
           {
@@ -176,9 +177,6 @@ module.exports = async (ctx) => {
     .sort((a, b) => a.d - b.d)
     .slice(0, 10)
     .map(({ anilist_id, file, t, from, to, d }) => {
-      const start = from - 8 < 0 ? 0 : from - 8;
-      const end = to + 2;
-      const secretSalt = " secretsalt_iY.8eE";
       return {
         anilist_id,
         file,
@@ -186,19 +184,17 @@ module.exports = async (ctx) => {
         t,
         from,
         to,
-        start,
-        end,
         diff: d,
         video: `https://media.trace.moe/video/${anilist_id}/${file}?t=${t}&token=${crypto
           .createHash("md5")
-          .update(`${t}${secretSalt}`)
+          .update(`${t}${TRACE_MEDIA_SALT}`)
           .digest("base64")
           .replace(/\+/g, "-")
           .replace(/\//g, "_")
           .replace(/=/g, "")}`,
-        thumb: `https://api.trace.moe/thumb/${anilist_id}/${file}?t=${t}&token=${crypto
+        image: `https://media.trace.moe/image/${anilist_id}/${file}?t=${t}&token=${crypto
           .createHash("md5")
-          .update(`${t}${secretSalt}`)
+          .update(`${t}${TRACE_MEDIA_SALT}`)
           .digest("base64")
           .replace(/\+/g, "-")
           .replace(/\//g, "_")
@@ -216,8 +212,6 @@ module.exports = async (ctx) => {
   ctx.body = {
     limit: 1,
     limit_ttl: 1,
-    quota: 1,
-    quota_ttl: 1,
     RawDocsCount: solrResult.RawDocsCount,
     RawDocsSearchTime: solrResult.RawDocsSearchTime,
     ReRankSearchTime: solrResult.ReRankSearchTime,
@@ -230,11 +224,9 @@ module.exports = async (ctx) => {
         t: result.t,
         from: result.from,
         to: result.to,
-        start: result.start,
-        end: result.end,
         diff: result.diff,
         video: result.video,
-        thumb: result.thumb,
+        image: result.image,
         title_romaji: anilist.title.romaji,
         title_native: anilist.title.native,
         title_english: anilist.title.english,

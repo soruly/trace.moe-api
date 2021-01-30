@@ -9,7 +9,7 @@ const router = new Router();
 const upload = multer();
 
 const {
-  SOLA_SOLR_URL,
+  SOLA_SOLR_LIST,
   SOLA_SOLR_CORE,
   SOLA_DB_HOST,
   SOLA_DB_PORT,
@@ -23,16 +23,26 @@ const {
     .get("/me", require("./src/me.js"))
     .all("/search", upload.single("image"), require("./src/search.js"))
     .get("/status", require("./src/status.js"))
-    .get("/video/:anilistID/:file", require("./src/video.js"))
-    .get("/thumb/:anilistID/:file", require("./src/thumb.js"))
-    .get("/duration/:anilistID/:file", require("./src/duration.js"))
     .all("/", (ctx) => {
       ctx.body = "ok";
     });
 
-  app.context.coreNameList = Object.keys(
-    (await fetch(`${SOLA_SOLR_URL}admin/cores?wt=json`).then((res) => res.json())).status
-  ).filter((coreName) => coreName.startsWith(`${SOLA_SOLR_CORE}_`));
+  console.log("Loading solr core list...");
+  const coreList = (
+    await Promise.all(
+      SOLA_SOLR_LIST.split(",").map((solrUrl) =>
+        fetch(`${solrUrl}admin/cores?wt=json`)
+          .then((res) => res.json())
+          .then(({ status }) => Object.keys(status).map((coreName) => `${solrUrl}${coreName}`))
+      )
+    )
+  ).flat();
+
+  app.context.coreList = coreList;
+
+  console.log(
+    `Loaded ${coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
+  );
 
   app
     .use(require("koa-logger")())
