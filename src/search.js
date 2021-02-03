@@ -186,19 +186,13 @@ module.exports = async (ctx) => {
         to,
         diff: d,
         video: `https://media.trace.moe/video/${anilist_id}/${file}?t=${t}&token=${crypto
-          .createHash("md5")
+          .createHash("sha256")
           .update(`${t}${TRACE_MEDIA_SALT}`)
-          .digest("base64")
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_")
-          .replace(/=/g, "")}`,
+          .digest("hex")}`,
         image: `https://media.trace.moe/image/${anilist_id}/${file}?t=${t}&token=${crypto
-          .createHash("md5")
+          .createHash("sha256")
           .update(`${t}${TRACE_MEDIA_SALT}`)
-          .digest("base64")
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_")
-          .replace(/=/g, "")}`,
+          .digest("hex")}`,
       };
     });
 
