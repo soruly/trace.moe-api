@@ -3,10 +3,10 @@ module.exports = {
     {
       name: "trace.moe-api",
       script: "index.js",
-      instances: 1,
+      instances: 4,
       autorestart: true,
       watch: false,
-      exec_mode: "fork",
+      exec_mode: "cluster",
     },
   ],
 };
