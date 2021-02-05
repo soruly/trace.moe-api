@@ -1,26 +1,20 @@
-require("dotenv").config();
-const crypto = require("crypto");
-const os = require("os");
-const path = require("path");
-const child_process = require("child_process");
-const fetch = require("node-fetch");
-const fs = require("fs-extra");
-const aniep = require("aniep");
-const cv = require("opencv4nodejs");
-const redis = require("redis");
+import crypto from "crypto";
+import os from "os";
+import path from "path";
+import child_process from "child_process";
+import util from "util";
+import fetch from "node-fetch";
+import fs from "fs-extra";
+import aniep from "aniep";
+import cv from "opencv4nodejs";
+import Knex from "knex";
+import * as redis from "redis";
+
 const client = redis.createClient();
-const util = require("util");
 const getAsync = util.promisify(client.get).bind(client);
 const ttlAsync = util.promisify(client.ttl).bind(client);
 
 const {
-  SOLA_SOLR_URL,
-  SOLA_SOLR_CORE,
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
   ANIME_DB_HOST,
   ANIME_DB_PORT,
   ANIME_DB_USER,
@@ -29,7 +23,7 @@ const {
   TRACE_MEDIA_SALT,
 } = process.env;
 
-const knex = require("knex")({
+const knex = Knex({
   client: "mysql",
   connection: {
     host: ANIME_DB_HOST,
@@ -40,13 +34,11 @@ const knex = require("knex")({
   },
 });
 
-module.exports = async (ctx) => {
+export default async (req, res) => {
   let searchImage;
-  if (ctx.request.query.url) {
+  if (req.query.url) {
     const res = await fetch(
-      `https://trace.moe/image-proxy?url=${encodeURIComponent(
-        decodeURIComponent(ctx.request.query.url)
-      )}`
+      `https://trace.moe/image-proxy?url=${encodeURIComponent(decodeURIComponent(req.query.url))}`
     );
     if (res.headers.get("Content-Type") && res.headers.get("Content-Type").startsWith("video/")) {
       const tempVideoPath = path.join(os.tmpdir(), `queryVideo${process.hrtime().join("")}.mp4`);
@@ -82,8 +74,8 @@ module.exports = async (ctx) => {
     } else {
       searchImage = await res.buffer();
     }
-  } else if (ctx.file) {
-    searchImage = ctx.file.buffer;
+  } else if (req.file) {
+    searchImage = req.file.buffer;
   }
 
   if (true) {
@@ -119,12 +111,12 @@ module.exports = async (ctx) => {
 
   const solrResult = (
     await Promise.all(
-      ctx.coreList.map((coreList) =>
+      req.app.locals.coreList.map((coreList) =>
         fetch(
           `${coreList}/lireq?${[
             "field=cl_ha",
             "ms=false",
-            `accuracy=${Number(ctx.query.trial || 0)}`,
+            `accuracy=${Number(req.query.trial || 0)}`,
             "candidates=100000",
             "rows=10",
           ].join("&")}`,
@@ -203,7 +195,7 @@ module.exports = async (ctx) => {
       solrResult.docs.map((result) => result.anilist_id)
     );
 
-  ctx.body = {
+  res.json({
     limit: 1,
     limit_ttl: 1,
     RawDocsCount: solrResult.RawDocsCount,
@@ -228,5 +220,5 @@ module.exports = async (ctx) => {
         is_adult: anilist.isAdult,
       };
     }),
-  };
+  });
 };

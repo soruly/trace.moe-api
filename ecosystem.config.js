@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "trace.moe-api",
-      script: "index.js",
+      script: "server.js",
       instances: 4,
       autorestart: true,
       watch: false,

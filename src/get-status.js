@@ -1,17 +1,8 @@
-require("dotenv").config();
-const fetch = require("node-fetch");
+import fetch from "node-fetch";
 
-const {
-  SOLA_SOLR_LIST,
-  SOLA_SOLR_CORE,
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-} = process.env;
+const { SOLA_SOLR_LIST } = process.env;
 
-module.exports = async (ctx) => {
+export default async (req, res) => {
   const statusList = (
     await Promise.all(
       SOLA_SOLR_LIST.split(",").map((solrUrl) =>
@@ -28,7 +19,7 @@ module.exports = async (ctx) => {
   let lastModified = 0;
   let sizeInBytes = 0;
   let numDocs = 0;
-  console.log(Object.entries(statusList));
+  // console.log(Object.entries(statusList));
   for (const [solrUrl, coreList] of Object.entries(statusList)) {
     for (const core of Object.values(coreList)) {
       if (new Date(core.index.lastModified) > lastModified) {
@@ -39,9 +30,9 @@ module.exports = async (ctx) => {
     }
   }
 
-  ctx.body = {
+  res.json({
     lastModified,
     sizeInBytes,
     numDocs,
-  };
+  });
 };
