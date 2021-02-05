@@ -29,7 +29,6 @@
     "prettier": "^2.0.5"
   },
   "dependencies": {
-    "@koa/cors": "^3.1.0",
     "@koa/multer": "^3.0.0",
     "@koa/router": "^9.3.1",
     "aniep": "^0.2.0",

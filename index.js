@@ -46,13 +46,7 @@ const {
 
   app
     .use(require("koa-logger")())
-    .use(
-      cors({
-        origin: "*",
-      })
-    )
     .use(require("koa-bodyparser")())
     .use(router.routes())
-    .use(router.allowedMethods())
     .listen(3001);
 })();
