@@ -112,7 +112,7 @@ module.exports = async (ctx) => {
     w = w < 1 ? 1 : w;
     h = h < 1 ? 1 : h;
 
-    const croppedImage = image.getRegion(new cv.Rect(x, y, w, h));
+    const croppedImage = image.getRegion(new cv.Rect(x, y, w, h)).resize(320, 180);
     // cv.imwrite("./test.png", croppedImage);
     searchImage = cv.imencode(".jpg", croppedImage);
   }
