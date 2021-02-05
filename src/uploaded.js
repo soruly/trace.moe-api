@@ -16,10 +16,6 @@ const knex = Knex({
 export default async (req, res) => {
   const { anilistID, filename } = req.params;
   console.log(`Uploaded ${anilistID}/${filename}`);
-  const result = await knex("files").select("status").where("path", `${anilistID}/${filename}`);
-  if (result[0].status !== "UPLOADING") {
-    return res.sendStatus(500);
-  }
   await knex("files").where("path", `${anilistID}/${filename}`).update({ status: "UPLOADED" });
   return res.sendStatus(204);
 };
