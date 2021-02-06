@@ -1,7 +1,6 @@
 import "dotenv/config.js";
 import url from "url";
 import querystring from "querystring";
-import fetch from "node-fetch";
 import WebSocket from "ws";
 import Knex from "knex";
 
@@ -44,7 +43,7 @@ const lookForJobs = async (ws) => {
       workerPool.set(ws, { status: STATE.BUSY, type: "hash", file });
       ws.send(
         JSON.stringify({
-          input: `${TRACE_MEDIA_URL}/${file}?token=${TRACE_MEDIA_SECRET}`,
+          input: `${TRACE_MEDIA_URL}/${file}?token=${TRACE_MEDIA_SECRET}&algo=cl`,
           output: `${TRACE_API_URL}/hashed/${file}?token=${TRACE_API_SECRET}`,
         })
       );
@@ -79,8 +78,7 @@ wss.on("connection", async (ws, request) => {
   const { type } = querystring.parse(query);
   if (type === "hash" || type === "load") {
     const ip = request.headers["x-forwarded-for"]?.split(/\s*,\s*/)?.[0];
-    console.log(`${type} worker connected from ${ip}`);
-    workerPool.set(ws, { status: STATE.READY, type, file: "" });
+    workerPool.set(ws, { status: STATE.READY, type, file: "", ip });
     await lookForJobs(ws);
     ws.on("message", async (message) => {
       const { input, output } = JSON.parse(message);
@@ -92,6 +90,13 @@ wss.on("connection", async (ws, request) => {
     ws.on("message", async (message) => {
       if (message === "getWorkerPool") {
         ws.send(JSON.stringify(Array.from(workerPool)));
+      }
+      if (message === "checkDB") {
+        for (const [ws] of Array.from(workerPool).filter(
+          ([_, { status, type, file }]) => type !== "master" && status === STATE.READY
+        )) {
+          await lookForJobs(ws);
+        }
       }
     });
   }
