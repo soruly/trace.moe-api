@@ -31,6 +31,7 @@ export default async (req, res) => {
   req.on("end", async () => {
     await knex("files").where("path", `${anilistID}/${filename}`).update({ status: "HASHED" });
     console.log(`Saved ${hashFilePath}`);
+    req.app.locals.ws.send("checkDB");
     return res.sendStatus(204);
   });
 };

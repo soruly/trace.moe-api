@@ -11,7 +11,6 @@ import checkSecret from "./src/check-secret.js";
 import getMe from "./src/get-me.js";
 import getStatus from "./src/get-status.js";
 import search from "./src/search.js";
-import uploading from "./src/uploading.js";
 import uploaded from "./src/uploaded.js";
 import putHash from "./src/put-hash.js";
 import getHash from "./src/get-hash.js";
@@ -59,7 +58,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.get("/me", getMe);
 app.get("/status", getStatus);
 app.get("/create-core", checkSecret, createCore);
-app.get("/uploading/:anilistID/:filename", checkSecret, uploading);
 app.get("/uploaded/:anilistID/:filename", checkSecret, uploaded);
 app.put("/hash/:anilistID/:filename", checkSecret, putHash);
 app.get("/hash/:anilistID/:filename", checkSecret, getHash);
@@ -72,7 +70,7 @@ app.all("/", async (req, res) => {
 console.log("Creating SQL table if not exist");
 await knex.raw(`CREATE TABLE IF NOT EXISTS files (
     path varchar(768) COLLATE utf8mb4_unicode_ci NOT NULL,
-    status enum('UPLOADING','UPLOADED','HASHING','HASHED','LOADING','LOADED','UNLOADING') COLLATE utf8mb4_unicode_ci NOT NULL,
+    status enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') COLLATE utf8mb4_unicode_ci NOT NULL,
     created datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (path),

@@ -16,7 +16,15 @@ const knex = Knex({
 export default async (req, res) => {
   const { anilistID, filename } = req.params;
   console.log(`Uploaded ${anilistID}/${filename}`);
-  await knex("files").where("path", `${anilistID}/${filename}`).update({ status: "UPLOADED" });
+  await knex.raw(
+    knex("files")
+      .insert({
+        path: `${anilistID}/${filename}`,
+        status: "UPLOADED",
+      })
+      .toString()
+      .replace(/^insert/i, "insert ignore")
+  );
   req.app.locals.ws.send("checkDB");
   res.sendStatus(204);
 };

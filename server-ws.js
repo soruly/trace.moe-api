@@ -14,7 +14,6 @@ const {
   SERVER_WS_PORT,
   TRACE_API_URL,
   TRACE_MEDIA_URL,
-  TRACE_MEDIA_SECRET,
   TRACE_ALGO,
 } = process.env;
 
