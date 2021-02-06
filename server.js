@@ -16,6 +16,7 @@ import search from "./src/search.js";
 import uploading from "./src/uploading.js";
 import uploaded from "./src/uploaded.js";
 import putHash from "./src/put-hash.js";
+import getHash from "./src/get-hash.js";
 import getWorkers from "./src/get-workers.js";
 import createCore from "./src/create-core.js";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
@@ -63,6 +64,7 @@ app.get("/create-core", checkSecret, createCore);
 app.get("/uploading/:anilistID/:filename", checkSecret, uploading);
 app.get("/uploaded/:anilistID/:filename", checkSecret, uploaded);
 app.put("/hash/:anilistID/:filename", checkSecret, putHash);
+app.get("/hash/:anilistID/:filename", checkSecret, getHash);
 app.get("/workers", checkSecret, getWorkers);
 app.all("/search", upload.single("image"), search);
 app.all("/", async (req, res) => {
