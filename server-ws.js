@@ -12,8 +12,6 @@ const {
   SOLA_DB_NAME,
   SOLA_SOLR_LIST,
   SERVER_WS_PORT,
-  TRACE_API_URL,
-  TRACE_MEDIA_URL,
   TRACE_ALGO,
 } = process.env;
 
@@ -73,13 +71,7 @@ const lookForJobs = async (ws) => {
       const file = rows[0].path;
       await knex("files").where("path", file).update({ status: "HASHING" });
       workerPool.set(ws, { status: STATE.BUSY, type: "hash", file });
-      ws.send(
-        JSON.stringify({
-          input: `${TRACE_MEDIA_URL}/${file}`,
-          output: `${TRACE_API_URL}/hash/${file}`,
-          algo: TRACE_ALGO,
-        })
-      );
+      ws.send(JSON.stringify({ file, algo: TRACE_ALGO }));
     } else {
       workerPool.set(ws, { status: STATE.READY, type: "hash", file: "" });
     }
@@ -95,13 +87,7 @@ const lookForJobs = async (ws) => {
         selectedCore = await getLeastPopulatedCore();
       }
       console.log(`Loading ${file} to ${selectedCore}`);
-      ws.send(
-        JSON.stringify({
-          hash: `${TRACE_API_URL}/hash/${file}.xml.xz`,
-          video: file,
-          core: selectedCore,
-        })
-      );
+      ws.send(JSON.stringify({ file, core: selectedCore }));
     } else {
       workerPool.set(ws, { status: STATE.READY, type: "load", file: "" });
     }
