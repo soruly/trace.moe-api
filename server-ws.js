@@ -100,8 +100,9 @@ const lookForJobs = async (ws) => {
       console.log(`Loading ${file} to ${selectedCore}`);
       ws.send(
         JSON.stringify({
-          input: `${TRACE_API_URL}/${file}.xml.xz?token=${TRACE_API_SECRET}`,
-          output: selectedCore,
+          hash: `${TRACE_API_URL}/hash/${file}.xml.xz?token=${TRACE_API_SECRET}`,
+          video: file,
+          core: selectedCore,
         })
       );
     } else {
