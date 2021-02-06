@@ -8,31 +8,12 @@ export default async (req, res) => {
       SOLA_SOLR_LIST.split(",").map((solrUrl) =>
         fetch(`${solrUrl}admin/cores?wt=json`)
           .then((res) => res.json())
-          .then(({ status }) => [solrUrl, status])
+          .then(({ status }) => ({ solrUrl, cores: Object.values(status) }))
       )
     )
   ).reduce((acc, cur) => {
-    acc[cur[0]] = cur[1];
+    acc[cur.solrUrl] = cur.cores;
     return acc;
   }, {});
-
-  let lastModified = 0;
-  let sizeInBytes = 0;
-  let numDocs = 0;
-  // console.log(Object.entries(statusList));
-  for (const [solrUrl, coreList] of Object.entries(statusList)) {
-    for (const core of Object.values(coreList)) {
-      if (new Date(core.index.lastModified) > lastModified) {
-        lastModified = new Date(core.index.lastModified);
-      }
-      sizeInBytes += core.index.sizeInBytes;
-      numDocs += core.index.numDocs;
-    }
-  }
-
-  res.json({
-    lastModified,
-    sizeInBytes,
-    numDocs,
-  });
+  res.json(statusList);
 };

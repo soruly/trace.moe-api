@@ -3,6 +3,8 @@ import url from "url";
 import querystring from "querystring";
 import WebSocket from "ws";
 import Knex from "knex";
+import fetch from "node-fetch";
+import getSolrCoreList from "./lib/get-solr-core-list.js";
 
 const {
   SOLA_DB_HOST,
@@ -10,6 +12,7 @@ const {
   SOLA_DB_USER,
   SOLA_DB_PWD,
   SOLA_DB_NAME,
+  SOLA_SOLR_LIST,
   SERVER_WS_PORT,
   TRACE_API_URL,
   TRACE_API_SECRET,
@@ -35,6 +38,38 @@ const STATE = { READY: "READY", BUSY: "BUSY" };
 
 const workerPool = new Map();
 
+console.log("Loading solr core list...");
+const coreList = await getSolrCoreList();
+console.log(
+  `Loaded ${coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
+);
+
+const selectCore = (function* (arr) {
+  let index = 0;
+  while (true) {
+    yield arr[index % arr.length];
+    index++;
+  }
+})(coreList);
+
+const getLeastPopulatedCore = async () =>
+  (
+    await Promise.all(
+      SOLA_SOLR_LIST.split(",").map((solrUrl) =>
+        fetch(`${solrUrl}admin/cores?wt=json`)
+          .then((res) => res.json())
+          .then(({ status }) => {
+            return Object.values(status).map((e) => ({
+              name: `${solrUrl}${e.name}`,
+              numDocs: e.index.numDocs,
+            }));
+          })
+      )
+    )
+  )
+    .flat()
+    .sort((a, b) => a.numDocs - b.numDocs)[0].name;
+
 const lookForJobs = async (ws) => {
   if (workerPool.get(ws).type === "hash") {
     const rows = await knex("files").where("status", "UPLOADED");
@@ -57,10 +92,16 @@ const lookForJobs = async (ws) => {
       const file = rows[0].path;
       await knex("files").where("path", file).update({ status: "LOADING" });
       workerPool.set(ws, { status: STATE.BUSY, type: "load", file });
+      let selectedCore = selectCore.next().value;
+      if (rows.length < coreList.length) {
+        console.log("Selecting least populated core");
+        selectedCore = await getLeastPopulatedCore();
+      }
+      console.log(`Loading ${file} to ${selectedCore}`);
       ws.send(
         JSON.stringify({
-          input: `${TRACE_MEDIA_URL}/${file}?token=${TRACE_MEDIA_SECRET}`,
-          output: `${TRACE_API_URL}/hashed/${file}?token=${TRACE_API_SECRET}`,
+          input: `${TRACE_API_URL}/${file}.xml.xz?token=${TRACE_API_SECRET}`,
+          output: selectedCore,
         })
       );
     } else {
