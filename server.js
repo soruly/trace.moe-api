@@ -17,6 +17,8 @@ import uploading from "./src/uploading.js";
 import uploaded from "./src/uploaded.js";
 import putHash from "./src/put-hash.js";
 import getWorkers from "./src/get-workers.js";
+import createCore from "./src/create-core.js";
+import getSolrCoreList from "./lib/get-solr-core-list.js";
 
 const {
   SOLA_DB_HOST,
@@ -57,6 +59,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 app.get("/me", getMe);
 app.get("/status", getStatus);
+app.get("/create-core", checkSecret, createCore);
 app.get("/uploading/:anilistID/:filename", checkSecret, uploading);
 app.get("/uploaded/:anilistID/:filename", checkSecret, uploaded);
 app.put("/hash/:anilistID/:filename", checkSecret, putHash);
@@ -108,17 +111,8 @@ const closeHandle = async () => {
 };
 closeHandle();
 
-// console.log("Loading solr core list...");
-// const coreList = (
-//   await Promise.all(
-//     SOLA_SOLR_LIST.split(",").map((solrUrl) =>
-//       fetch(`${solrUrl}admin/cores?wt=json`)
-//         .then((res) => res.json())
-//         .then(({ status }) => Object.keys(status).map((coreName) => `${solrUrl}${coreName}`))
-//     )
-//   )
-// ).flat();
-// app.locals.coreList = coreList;
-// console.log(
-//   `Loaded ${coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
-// );
+console.log("Loading solr core list...");
+app.locals.coreList = await getSolrCoreList();
+console.log(
+  `Loaded ${app.locals.coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
+);

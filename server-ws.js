@@ -15,6 +15,7 @@ const {
   TRACE_API_SECRET,
   TRACE_MEDIA_URL,
   TRACE_MEDIA_SECRET,
+  TRACE_ALGO,
 } = process.env;
 
 const knex = Knex({
@@ -43,7 +44,7 @@ const lookForJobs = async (ws) => {
       workerPool.set(ws, { status: STATE.BUSY, type: "hash", file });
       ws.send(
         JSON.stringify({
-          input: `${TRACE_MEDIA_URL}/${file}?token=${TRACE_MEDIA_SECRET}&algo=cl`,
+          input: `${TRACE_MEDIA_URL}/${file}?token=${TRACE_MEDIA_SECRET}&algo=${TRACE_ALGO}`,
           output: `${TRACE_API_URL}/hashed/${file}?token=${TRACE_API_SECRET}`,
         })
       );
