@@ -1,6 +1,4 @@
 import "dotenv/config.js";
-import url from "url";
-import querystring from "querystring";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import bodyParser from "body-parser";
@@ -92,9 +90,7 @@ const wsProxy = createProxyMiddleware({ target: `ws://127.0.0.1:${SERVER_WS_PORT
 app.use("/ws", wsProxy);
 
 server.on("upgrade", (request, socket) => {
-  const { query } = url.parse(request.url);
-  const { token } = querystring.parse(query);
-  if (token !== TRACE_API_SECRET) {
+  if (request.headers["x-trace-secret"] !== TRACE_API_SECRET) {
     socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
     socket.destroy();
     return;
@@ -104,7 +100,9 @@ server.on("upgrade", (request, socket) => {
 
 let ws;
 const closeHandle = async () => {
-  ws = new WebSocket(`ws://127.0.0.1:${SERVER_WS_PORT}?type=master&token=${TRACE_API_SECRET}`);
+  ws = new WebSocket(`ws://127.0.0.1:${SERVER_WS_PORT}`, {
+    headers: { "x-trace-secret": TRACE_API_SECRET, "x-trace-worker-type": "master" },
+  });
   app.locals.ws = ws;
   ws.on("close", async () => {
     await new Promise((resolve) => setTimeout(resolve, 5000));

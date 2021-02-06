@@ -7,7 +7,6 @@ const {
   SOLA_DB_PWD,
   SOLA_DB_NAME,
   TRACE_MEDIA_UPLOAD_URL,
-  TRACE_MEDIA_SECRET,
 } = process.env;
 
 const knex = Knex({
@@ -33,5 +32,5 @@ export default async (req, res) => {
       .toString()
       .replace(/^insert/i, "insert ignore")
   );
-  return res.send(`${TRACE_MEDIA_UPLOAD_URL}/${anilistID}/${filename}?token=${TRACE_MEDIA_SECRET}`);
+  return res.send(`${TRACE_MEDIA_UPLOAD_URL}/${anilistID}/${filename}`);
 };

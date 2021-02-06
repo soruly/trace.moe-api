@@ -1,6 +1,4 @@
 import "dotenv/config.js";
-import url from "url";
-import querystring from "querystring";
 import WebSocket from "ws";
 import Knex from "knex";
 import fetch from "node-fetch";
@@ -15,7 +13,6 @@ const {
   SOLA_SOLR_LIST,
   SERVER_WS_PORT,
   TRACE_API_URL,
-  TRACE_API_SECRET,
   TRACE_MEDIA_URL,
   TRACE_MEDIA_SECRET,
   TRACE_ALGO,
@@ -79,8 +76,9 @@ const lookForJobs = async (ws) => {
       workerPool.set(ws, { status: STATE.BUSY, type: "hash", file });
       ws.send(
         JSON.stringify({
-          input: `${TRACE_MEDIA_URL}/${file}?token=${TRACE_MEDIA_SECRET}&algo=${TRACE_ALGO}`,
-          output: `${TRACE_API_URL}/hashed/${file}?token=${TRACE_API_SECRET}`,
+          input: `${TRACE_MEDIA_URL}/${file}`,
+          output: `${TRACE_API_URL}/hash/${file}`,
+          algo: TRACE_ALGO,
         })
       );
     } else {
@@ -100,7 +98,7 @@ const lookForJobs = async (ws) => {
       console.log(`Loading ${file} to ${selectedCore}`);
       ws.send(
         JSON.stringify({
-          hash: `${TRACE_API_URL}/hash/${file}.xml.xz?token=${TRACE_API_SECRET}`,
+          hash: `${TRACE_API_URL}/hash/${file}.xml.xz`,
           video: file,
           core: selectedCore,
         })
@@ -117,15 +115,12 @@ const lookForJobs = async (ws) => {
 };
 
 wss.on("connection", async (ws, request) => {
-  const { query } = url.parse(request.url);
-  const { type } = querystring.parse(query);
+  const type = request.headers["x-trace-worker-type"];
   if (type === "hash" || type === "load") {
     const ip = request.headers["x-forwarded-for"]?.split(/\s*,\s*/)?.[0];
     workerPool.set(ws, { status: STATE.READY, type, file: "", ip });
     await lookForJobs(ws);
     ws.on("message", async (message) => {
-      const { input, output } = JSON.parse(message);
-      console.log(`Completed ${input}`);
       await lookForJobs(ws);
     });
   }
@@ -143,8 +138,7 @@ wss.on("connection", async (ws, request) => {
       }
     });
   }
-  ws.on("close", (code, reason) => {
-    console.log("close:", code, reason);
+  ws.on("close", (code) => {
     workerPool.delete(ws);
   });
 });
