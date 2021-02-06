@@ -64,38 +64,77 @@ const getLeastPopulatedCore = async () =>
     .flat()
     .sort((a, b) => a.numDocs - b.numDocs)[0].name;
 
+let mutexA = 0;
+let mutexB = 0;
+
+const lookForHashJobs = async (ws) => {
+  if (mutexA > 0) {
+    await new Promise((resolve) => {
+      const i = setInterval(() => {
+        if (mutexA === 0) {
+          clearInterval(i);
+          resolve();
+        }
+      }, 10);
+    });
+  }
+  mutexA = 1; // lock mutexA
+  const rows = await knex("files").where("status", "UPLOADED");
+  if (rows.length) {
+    const file = rows[0].path;
+    await knex("files").where("path", file).update({ status: "HASHING" });
+    workerPool.set(ws, { status: STATE.BUSY, type: "hash", file });
+    ws.send(JSON.stringify({ file, algo: TRACE_ALGO }));
+  } else {
+    workerPool.set(ws, { status: STATE.READY, type: "hash", file: "" });
+  }
+  mutexA = 0; // unlock mutexA
+};
+
+const lookForLoadJobs = async (ws) => {
+  if (mutexB > 0) {
+    await new Promise((resolve) => {
+      const i = setInterval(() => {
+        if (mutexB === 0) {
+          clearInterval(i);
+          resolve();
+        }
+      }, 10);
+    });
+  }
+  mutexB = 1; // lock mutexB
+  const rows = await knex("files").where("status", "HASHED");
+  if (rows.length) {
+    const file = rows[0].path;
+    await knex("files").where("path", file).update({ status: "LOADING" });
+    workerPool.set(ws, { status: STATE.BUSY, type: "load", file });
+    let selectedCore = "";
+    if (rows.length < coreList.length) {
+      console.log("Finding least populated core");
+      selectedCore = await getLeastPopulatedCore();
+    } else {
+      console.log("Choosing next core (round-robin)");
+      selectedCore = selectCore.next().value;
+    }
+    console.log(`Loading ${file} to ${selectedCore}`);
+    ws.send(JSON.stringify({ file, core: selectedCore }));
+  } else {
+    workerPool.set(ws, { status: STATE.READY, type: "load", file: "" });
+  }
+  mutexB = 0; // unlock mutexB
+};
+
 const lookForJobs = async (ws) => {
   if (workerPool.get(ws).type === "hash") {
-    const rows = await knex("files").where("status", "UPLOADED");
-    if (rows.length) {
-      const file = rows[0].path;
-      await knex("files").where("path", file).update({ status: "HASHING" });
-      workerPool.set(ws, { status: STATE.BUSY, type: "hash", file });
-      ws.send(JSON.stringify({ file, algo: TRACE_ALGO }));
-    } else {
-      workerPool.set(ws, { status: STATE.READY, type: "hash", file: "" });
-    }
+    await lookForHashJobs(ws);
   } else if (workerPool.get(ws).type === "load") {
-    const rows = await knex("files").where("status", "HASHED");
-    if (rows.length) {
-      const file = rows[0].path;
-      await knex("files").where("path", file).update({ status: "LOADING" });
-      workerPool.set(ws, { status: STATE.BUSY, type: "load", file });
-      let selectedCore = selectCore.next().value;
-      if (rows.length < coreList.length) {
-        console.log("Selecting least populated core");
-        selectedCore = await getLeastPopulatedCore();
-      }
-      console.log(`Loading ${file} to ${selectedCore}`);
-      ws.send(JSON.stringify({ file, core: selectedCore }));
-    } else {
-      workerPool.set(ws, { status: STATE.READY, type: "load", file: "" });
-    }
+    await lookForLoadJobs(ws);
   }
   console.log(
     Array.from(workerPool)
       .filter(([_, { status, type, file }]) => type !== "master")
       .map(([_, { status, type, file }]) => `${type},${status},${file}`)
+      .sort()
   );
 };
 
