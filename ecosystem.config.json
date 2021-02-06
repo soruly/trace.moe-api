@@ -1,0 +1,18 @@
+{
+  "apps": [
+    {
+      "name": "trace.moe-api",
+      "script": "server.js",
+      "instances": 4,
+      "autorestart": true,
+      "exec_mode": "cluster"
+    },
+    {
+      "name": "trace.moe-ws",
+      "script": "server-ws.js",
+      "instances": 1,
+      "autorestart": true,
+      "exec_mode": "fork"
+    }
+  ]
+}

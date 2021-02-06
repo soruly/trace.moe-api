@@ -5,12 +5,12 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "pm2 start ecosystem.config.js",
-    "watch": "pm2 start ecosystem.config.js --watch",
-    "stop": "pm2 stop ecosystem.config.js",
-    "restart": "pm2 restart ecosystem.config.js",
-    "reload": "pm2 reload ecosystem.config.js",
-    "delete": "pm2 delete ecosystem.config.js",
+    "start": "pm2 start ecosystem.config.json",
+    "watch": "pm2 start ecosystem.config.json --watch",
+    "stop": "pm2 stop ecosystem.config.json",
+    "restart": "pm2 restart ecosystem.config.json",
+    "reload": "pm2 reload ecosystem.config.json",
+    "delete": "pm2 delete ecosystem.config.json",
     "prettier": "prettier",
     "format": "prettier --write \"**/*.js\"",
     "lint": "prettier --check \"**/*.js\"",
@@ -36,11 +36,13 @@
     "express": "^4.17.1",
     "express-rate-limit": "^5.2.3",
     "fs-extra": "^9.0.1",
+    "http-proxy-middleware": "^1.0.6",
     "knex": "^0.21.2",
     "multer": "^1.4.2",
     "mysql": "^2.18.1",
     "node-fetch": "^2.6.1",
     "opencv4nodejs": "^5.6.0",
-    "redis": "^3.0.2"
+    "redis": "^3.0.2",
+    "ws": "^7.4.3"
   }
 }
