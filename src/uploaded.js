@@ -1,6 +1,13 @@
 import Knex from "knex";
 
-const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
+const {
+  SOLA_DB_HOST,
+  SOLA_DB_PORT,
+  SOLA_DB_USER,
+  SOLA_DB_PWD,
+  SOLA_DB_NAME,
+  TRACE_ALGO,
+} = process.env;
 
 const knex = Knex({
   client: "mysql",
@@ -17,7 +24,7 @@ export default async (req, res) => {
   const { anilistID, filename } = req.params;
   console.log(`Uploaded ${anilistID}/${filename}`);
   await knex.raw(
-    knex("files")
+    knex(TRACE_ALGO)
       .insert({
         path: `${anilistID}/${filename}`,
         status: "UPLOADED",

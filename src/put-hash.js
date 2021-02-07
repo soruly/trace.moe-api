@@ -9,6 +9,7 @@ const {
   SOLA_DB_PWD,
   SOLA_DB_NAME,
   HASH_PATH,
+  TRACE_ALGO,
 } = process.env;
 
 const knex = Knex({
@@ -29,7 +30,7 @@ export default async (req, res) => {
   fs.ensureDirSync(path.dirname(hashFilePath));
   req.pipe(fs.createWriteStream(hashFilePath));
   req.on("end", async () => {
-    await knex("files").where("path", `${anilistID}/${filename}`).update({ status: "HASHED" });
+    await knex(TRACE_ALGO).where("path", `${anilistID}/${filename}`).update({ status: "HASHED" });
     console.log(`Saved ${hashFilePath}`);
     req.app.locals.ws.send("checkDB");
     return res.sendStatus(204);

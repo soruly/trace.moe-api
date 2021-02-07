@@ -1,6 +1,13 @@
 import Knex from "knex";
 
-const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
+const {
+  SOLA_DB_HOST,
+  SOLA_DB_PORT,
+  SOLA_DB_USER,
+  SOLA_DB_PWD,
+  SOLA_DB_NAME,
+  TRACE_ALGO,
+} = process.env;
 
 const knex = Knex({
   client: "mysql",
@@ -16,7 +23,7 @@ const knex = Knex({
 export default async (req, res) => {
   const { anilistID, filename } = req.params;
   console.log(`Loaded ${anilistID}/${filename}`);
-  await knex("files").where("path", `${anilistID}/${filename}`).update({ status: "LOADED" });
+  await knex(TRACE_ALGO).where("path", `${anilistID}/${filename}`).update({ status: "LOADED" });
   req.app.locals.ws.send("checkDB");
   return res.sendStatus(204);
 };

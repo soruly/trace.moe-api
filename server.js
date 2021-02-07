@@ -20,6 +20,7 @@ import getSolrCoreList from "./lib/get-solr-core-list.js";
 import loaded from "./src/loaded.js";
 
 const {
+  TRACE_ALGO,
   SOLA_DB_HOST,
   SOLA_DB_PORT,
   SOLA_DB_USER,
@@ -70,7 +71,7 @@ app.all("/", async (req, res) => {
 });
 
 console.log("Creating SQL table if not exist");
-await knex.raw(`CREATE TABLE IF NOT EXISTS files (
+await knex.raw(`CREATE TABLE IF NOT EXISTS ${TRACE_ALGO} (
     path varchar(768) COLLATE utf8mb4_unicode_ci NOT NULL,
     status enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') COLLATE utf8mb4_unicode_ci NOT NULL,
     created datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,

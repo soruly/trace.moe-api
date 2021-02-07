@@ -79,10 +79,10 @@ const lookForHashJobs = async (ws) => {
     });
   }
   mutexA = 1; // lock mutexA
-  const rows = await knex("files").where("status", "UPLOADED");
+  const rows = await knex(TRACE_ALGO).where("status", "UPLOADED");
   if (rows.length) {
     const file = rows[0].path;
-    await knex("files").where("path", file).update({ status: "HASHING" });
+    await knex(TRACE_ALGO).where("path", file).update({ status: "HASHING" });
     workerPool.set(ws, { status: STATE.BUSY, type: "hash", file });
     ws.send(JSON.stringify({ file, algo: TRACE_ALGO }));
   } else {
@@ -103,10 +103,10 @@ const lookForLoadJobs = async (ws) => {
     });
   }
   mutexB = 1; // lock mutexB
-  const rows = await knex("files").where("status", "HASHED");
+  const rows = await knex(TRACE_ALGO).where("status", "HASHED");
   if (rows.length) {
     const file = rows[0].path;
-    await knex("files").where("path", file).update({ status: "LOADING" });
+    await knex(TRACE_ALGO).where("path", file).update({ status: "LOADING" });
     workerPool.set(ws, { status: STATE.BUSY, type: "load", file });
     let selectedCore = "";
     if (rows.length < coreList.length) {
