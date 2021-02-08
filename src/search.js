@@ -9,6 +9,7 @@ import aniep from "aniep";
 import cv from "opencv4nodejs";
 import Knex from "knex";
 import * as redis from "redis";
+import { performance } from "perf_hooks";
 
 const client = redis.createClient();
 const getAsync = util.promisify(client.get).bind(client);
@@ -33,6 +34,26 @@ const knex = Knex({
     database: ANIME_DB_NAME,
   },
 });
+
+const search = (coreList, image, candidates, anilistID) =>
+  Promise.all(
+    coreList.map((coreURL) =>
+      fetch(
+        `${coreURL}/lireq?${[
+          "field=cl_ha",
+          "ms=false",
+          `accuracy=0`,
+          `candidates=${candidates}`,
+          "rows=10",
+          anilistID ? `fq=id:${anilistID}/*` : "",
+        ].join("&")}`,
+        {
+          method: "POST",
+          body: image,
+        }
+      ).then((res) => res.json())
+    )
+  );
 
 export default async (req, res) => {
   let searchImage;
@@ -78,66 +99,75 @@ export default async (req, res) => {
     searchImage = req.file.buffer;
   }
 
-  if (true) {
-    // crop image or not
-    const image = cv.imdecode(searchImage);
-    const [height, width] = image.sizes;
-    // Find the largest rectangle
-    let { x, y, width: w, height: h } = image
-      .bgrToGray()
-      .threshold(8, 255, cv.THRESH_BINARY)
-      .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-      .sort((c0, c1) => c1.area - c0.area)[0]
-      .boundingRect();
+  // auto black border cropping
+  const image = cv.imdecode(searchImage);
+  const [height, width] = image.sizes;
+  // Find the possible rectangles
+  const contours = image
+    .bgrToGray()
+    .threshold(8, 255, cv.THRESH_BINARY)
+    .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-    // For images that is not near 16:9, ensure bounding rect is at least 16:9 or taller
-    // And its detected bounding rect wider than 16:9
-    if (Math.abs(width / height - 16 / 9) < 0.03 && w / h - 16 / 9 > 0.03) {
-      // increase top and bottom margin
-      const newHeight = (w / 16) * 9;
-      y = y - (newHeight - h) / 2;
-      h = newHeight;
-    }
-    // ensure the image has dimension
-    y = y < 0 ? 0 : y;
-    x = x < 0 ? 0 : x;
-    w = w < 1 ? 1 : w;
-    h = h < 1 ? 1 : h;
-
-    const croppedImage = image.getRegion(new cv.Rect(x, y, w, h)).resize(320, 180);
-    // cv.imwrite("./test.png", croppedImage);
-    searchImage = cv.imencode(".jpg", croppedImage);
+  let { x, y, width: w, height: h } = contours.length
+    ? contours
+        .sort((c0, c1) => c1.area - c0.area)[0] // Find the largest rectangle
+        .boundingRect()
+    : { x: 0, y: 0, width, height };
+  // For images that is not near 16:9, ensure bounding rect is at least 16:9 or taller
+  // And its detected bounding rect wider than 16:9
+  if (Math.abs(width / height - 16 / 9) < 0.03 && w / h - 16 / 9 > 0.03) {
+    // increase top and bottom margin
+    const newHeight = (w / 16) * 9;
+    y = y - (newHeight - h) / 2;
+    h = newHeight;
   }
+  // ensure the image has dimension
+  y = y < 0 ? 0 : y;
+  x = x < 0 ? 0 : x;
+  w = w < 1 ? 1 : w;
+  h = h < 1 ? 1 : h;
 
-  const solrResult = (
-    await Promise.all(
-      req.app.locals.coreList.map((coreList) =>
-        fetch(
-          `${coreList}/lireq?${[
-            "field=cl_ha",
-            "ms=false",
-            `accuracy=${Number(req.query.trial || 0)}`,
-            "candidates=100000",
-            "rows=10",
-          ].join("&")}`,
-          {
-            method: "POST",
-            body: searchImage,
-          }
-        ).then((res) => res.json())
-      )
-    )
-  ).reduce(
-    (list, { RawDocsCount, RawDocsSearchTime, ReRankSearchTime, response }) => ({
-      RawDocsCount: list.RawDocsCount + Number(RawDocsCount),
-      RawDocsSearchTime: list.RawDocsSearchTime + Number(RawDocsSearchTime),
-      ReRankSearchTime: list.ReRankSearchTime + Number(ReRankSearchTime),
-      docs: list.docs.concat(response.docs),
-    }),
-    { RawDocsCount: 0, RawDocsSearchTime: 0, ReRankSearchTime: 0, docs: [] }
+  const croppedImage = image.getRegion(new cv.Rect(x, y, w, h)).resize(320, 180);
+  // cv.imwrite("./test.png", croppedImage);
+  searchImage = cv.imencode(".jpg", croppedImage);
+
+  let candidates = 200000;
+
+  const startTime = performance.now();
+  let solrResults = await search(
+    req.app.locals.coreList,
+    searchImage,
+    candidates,
+    Number(req.query.anilistID)
   );
 
-  solrResult.docs = solrResult.docs
+  const maxRawDocsCount = Math.max(...solrResults.map((e) => Number(e.RawDocsCount)));
+  if (maxRawDocsCount > candidates) {
+    // found cluster has more candidates than expected
+    // search again with increased candidates count
+    candidates = maxRawDocsCount;
+    solrResults = await search(
+      req.app.locals.coreList,
+      searchImage,
+      candidates,
+      Number(req.query.anilistID)
+    );
+  }
+  const searchTime = (performance.now() - startTime) | 0;
+
+  let results = [];
+  let frameCountList = [];
+  let rawDocsSearchTimeList = [];
+  let reRankSearchTimeList = [];
+
+  for (const { RawDocsCount, RawDocsSearchTime, ReRankSearchTime, response } of solrResults) {
+    frameCountList.push(Number(RawDocsCount));
+    rawDocsSearchTimeList.push(Number(RawDocsSearchTime));
+    reRankSearchTimeList.push(Number(ReRankSearchTime));
+    results = results.concat(response.docs);
+  }
+
+  results = results
     .reduce((list, { d, id }) => {
       // merge nearby results within 2 seconds in the same file
       const anilist_id = Number(id.split("/")[0]);
@@ -166,25 +196,25 @@ export default async (req, res) => {
         return list;
       }
     }, [])
-    .sort((a, b) => a.d - b.d)
-    .slice(0, 10)
+    .sort((a, b) => a.d - b.d) // sort in ascending order of difference
+    .slice(0, 10) // return only top 10 results
     .map(({ anilist_id, file, t, from, to, d }) => {
+      const mid = from + (to - from) / 2;
       return {
         anilist_id,
         file,
         episode: aniep(file),
-        t,
         from,
         to,
-        diff: d,
-        video: `https://media.trace.moe/video/${anilist_id}/${file}?t=${t}&token=${crypto
-          .createHash("sha256")
-          .update(`${t}${TRACE_MEDIA_SALT}`)
-          .digest("hex")}`,
-        image: `https://media.trace.moe/image/${anilist_id}/${file}?t=${t}&token=${crypto
-          .createHash("sha256")
-          .update(`${t}${TRACE_MEDIA_SALT}`)
-          .digest("hex")}`,
+        similarity: (100 - d) / 100,
+        video: `https://media.trace.moe/video/${anilist_id}/${encodeURIComponent(file)}?${[
+          `t=${mid}`,
+          `token=${crypto.createHash("sha256").update(`${mid}${TRACE_MEDIA_SALT}`).digest("hex")}`,
+        ].join("&")}`,
+        image: `https://media.trace.moe/image/${anilist_id}/${encodeURIComponent(file)}?${[
+          `t=${mid}`,
+          `token=${crypto.createHash("sha256").update(`${mid}${TRACE_MEDIA_SALT}`).digest("hex")}`,
+        ].join("&")}`,
       };
     });
 
@@ -192,25 +222,20 @@ export default async (req, res) => {
     .select("id", "json")
     .havingIn(
       "id",
-      solrResult.docs.map((result) => result.anilist_id)
+      results.map((result) => result.anilist_id)
     );
 
   res.json({
-    limit: 1,
-    limit_ttl: 1,
-    RawDocsCount: solrResult.RawDocsCount,
-    RawDocsSearchTime: solrResult.RawDocsSearchTime,
-    ReRankSearchTime: solrResult.ReRankSearchTime,
-    docs: solrResult.docs.map((result) => {
+    frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
+    result: results.map((result) => {
       const anilist = JSON.parse(anilistDB.find((e) => e.id === result.anilist_id).json);
       return {
         anilist_id: result.anilist_id,
         file: result.file,
         episode: result.episode,
-        t: result.t,
         from: result.from,
         to: result.to,
-        diff: result.diff,
+        similarity: result.similarity,
         video: result.video,
         image: result.image,
         title_romaji: anilist.title.romaji,
@@ -221,4 +246,5 @@ export default async (req, res) => {
       };
     }),
   });
+  // console.log(`searchTime: ${searchTime}`);
 };
