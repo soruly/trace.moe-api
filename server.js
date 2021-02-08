@@ -49,7 +49,7 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(
   rateLimit({
-    max: 30, // 30 requests per IP address (per node.js process)
+    max: 60, // 60 requests per IP address (per node.js process)
     windowMs: 60 * 1000, // per 1 minute
   })
 );
