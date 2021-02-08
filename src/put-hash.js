@@ -26,6 +26,10 @@ const knex = Knex({
 export default async (req, res) => {
   const { anilistID, filename } = req.params;
   const hashFilePath = path.join(HASH_PATH, anilistID, `${filename}.xml.xz`);
+  if (!hashFilePath.startsWith(HASH_PATH)) {
+    res.status(403).send("403 Forbidden");
+    return;
+  }
   console.log(`Saving ${hashFilePath}`);
   fs.ensureDirSync(path.dirname(hashFilePath));
   req.pipe(fs.createWriteStream(hashFilePath));
