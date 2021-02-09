@@ -16,22 +16,22 @@ const getAsync = util.promisify(client.get).bind(client);
 const ttlAsync = util.promisify(client.ttl).bind(client);
 
 const {
-  ANIME_DB_HOST,
-  ANIME_DB_PORT,
-  ANIME_DB_USER,
-  ANIME_DB_PWD,
-  ANIME_DB_NAME,
+  SOLA_DB_HOST,
+  SOLA_DB_PORT,
+  SOLA_DB_USER,
+  SOLA_DB_PWD,
+  SOLA_DB_NAME,
   TRACE_MEDIA_SALT,
 } = process.env;
 
 const knex = Knex({
   client: "mysql",
   connection: {
-    host: ANIME_DB_HOST,
-    port: ANIME_DB_PORT,
-    user: ANIME_DB_USER,
-    password: ANIME_DB_PWD,
-    database: ANIME_DB_NAME,
+    host: SOLA_DB_HOST,
+    port: SOLA_DB_PORT,
+    user: SOLA_DB_USER,
+    password: SOLA_DB_PWD,
+    database: SOLA_DB_NAME,
   },
 });
 
