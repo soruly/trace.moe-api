@@ -106,7 +106,7 @@ export default async (req, res) => {
     // Find the possible rectangles
     const contours = image
       .bgrToGray()
-      .threshold(4, 255, cv.THRESH_BINARY)
+      .threshold(4, 255, cv.THRESH_BINARY) // low enough so dark background is not cut away
       .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
     let { x, y, width: w, height: h } = contours.length
@@ -122,14 +122,17 @@ export default async (req, res) => {
       y = y - (newHeight - h) / 2;
       h = newHeight;
     }
+    // cut top and bottom border slightly more. For bright scenes with with back borders
+    y = y + Math.floor(height * 0.015);
+    h = h - Math.floor(height * 0.03);
     // ensure the image has dimension
     y = y < 0 ? 0 : y;
     x = x < 0 ? 0 : x;
     w = w < 1 ? 1 : w;
     h = h < 1 ? 1 : h;
 
-    const croppedImage = image.getRegion(new cv.Rect(x, y, w, h));
-    // cv.imwrite("./test.png", croppedImage);
+    const croppedImage = image.getRegion(new cv.Rect(x, y, w, h)).resize(180, 320);
+    // cv.imwrite(`temp/${performance.now()}.png`, croppedImage);
     searchImage = cv.imencode(".jpg", croppedImage);
   }
 
