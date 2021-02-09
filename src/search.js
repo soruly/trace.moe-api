@@ -106,7 +106,7 @@ export default async (req, res) => {
     // Find the possible rectangles
     const contours = image
       .bgrToGray()
-      .threshold(8, 255, cv.THRESH_BINARY)
+      .threshold(4, 255, cv.THRESH_BINARY)
       .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
     let { x, y, width: w, height: h } = contours.length
