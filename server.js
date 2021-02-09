@@ -53,6 +53,16 @@ app.use(
     windowMs: 60 * 1000, // per 1 minute
   })
 );
+// max: async (req, res) => {
+//   if (!req.query.token) {
+//     return 60; // 60 requests per IP address (per node.js process)
+//   }
+//   const result = await knex("user").select("rate_limit").where("api_key", req.query.token);
+//   if (result.length === 0) {
+//     return result[0].rate_limit;
+//   }
+//   return 60;
+// },
 
 app.use(bodyParser.urlencoded({ extended: false }));
 const upload = multer({ storage: multer.memoryStorage() });
