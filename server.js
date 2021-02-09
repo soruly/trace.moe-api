@@ -18,6 +18,7 @@ import getWorkers from "./src/get-workers.js";
 import createCore from "./src/create-core.js";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 import loaded from "./src/loaded.js";
+import putAnilistChinese from "./src/put-anilist-chinese.js";
 
 const {
   TRACE_ALGO,
@@ -65,6 +66,7 @@ app.use(
 // },
 
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.get("/me", getMe);
@@ -74,6 +76,7 @@ app.get("/uploaded/:anilistID/:filename", checkSecret, uploaded);
 app.put("/hash/:anilistID/:filename", checkSecret, putHash);
 app.get("/hash/:anilistID/:filename", checkSecret, getHash);
 app.get("/loaded/:anilistID/:filename", checkSecret, loaded);
+app.put("/anilist_chinese/:anilistID", checkSecret, putAnilistChinese);
 app.get("/workers", checkSecret, getWorkers);
 app.all("/search", upload.single("image"), search);
 app.all("/", async (req, res) => {
