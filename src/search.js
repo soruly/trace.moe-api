@@ -99,39 +99,41 @@ export default async (req, res) => {
     searchImage = req.file.buffer;
   }
 
-  // auto black border cropping
-  const image = cv.imdecode(searchImage);
-  const [height, width] = image.sizes;
-  // Find the possible rectangles
-  const contours = image
-    .bgrToGray()
-    .threshold(8, 255, cv.THRESH_BINARY)
-    .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+  if (req.query.cutBorders) {
+    // auto black border cropping
+    const image = cv.imdecode(searchImage);
+    const [height, width] = image.sizes;
+    // Find the possible rectangles
+    const contours = image
+      .bgrToGray()
+      .threshold(8, 255, cv.THRESH_BINARY)
+      .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-  let { x, y, width: w, height: h } = contours.length
-    ? contours
-        .sort((c0, c1) => c1.area - c0.area)[0] // Find the largest rectangle
-        .boundingRect()
-    : { x: 0, y: 0, width, height };
-  // For images that is not near 16:9, ensure bounding rect is at least 16:9 or taller
-  // And its detected bounding rect wider than 16:9
-  if (Math.abs(width / height - 16 / 9) < 0.03 && w / h - 16 / 9 > 0.03) {
-    // increase top and bottom margin
-    const newHeight = (w / 16) * 9;
-    y = y - (newHeight - h) / 2;
-    h = newHeight;
+    let { x, y, width: w, height: h } = contours.length
+      ? contours
+          .sort((c0, c1) => c1.area - c0.area)[0] // Find the largest rectangle
+          .boundingRect()
+      : { x: 0, y: 0, width, height };
+    // For images that is not near 16:9, ensure bounding rect is at least 16:9 or taller
+    // And its detected bounding rect wider than 16:9
+    if (Math.abs(width / height - 16 / 9) < 0.03 && w / h - 16 / 9 > 0.03) {
+      // increase top and bottom margin
+      const newHeight = (w / 16) * 9;
+      y = y - (newHeight - h) / 2;
+      h = newHeight;
+    }
+    // ensure the image has dimension
+    y = y < 0 ? 0 : y;
+    x = x < 0 ? 0 : x;
+    w = w < 1 ? 1 : w;
+    h = h < 1 ? 1 : h;
+
+    const croppedImage = image.getRegion(new cv.Rect(x, y, w, h));
+    // cv.imwrite("./test.png", croppedImage);
+    searchImage = cv.imencode(".jpg", croppedImage);
   }
-  // ensure the image has dimension
-  y = y < 0 ? 0 : y;
-  x = x < 0 ? 0 : x;
-  w = w < 1 ? 1 : w;
-  h = h < 1 ? 1 : h;
 
-  const croppedImage = image.getRegion(new cv.Rect(x, y, w, h)).resize(320, 180);
-  // cv.imwrite("./test.png", croppedImage);
-  searchImage = cv.imencode(".jpg", croppedImage);
-
-  let candidates = 200000;
+  let candidates = 250000;
 
   const startTime = performance.now();
   let solrResults = await search(
