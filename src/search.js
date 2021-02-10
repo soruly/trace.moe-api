@@ -114,14 +114,7 @@ export default async (req, res) => {
           .sort((c0, c1) => c1.area - c0.area)[0] // Find the largest rectangle
           .boundingRect()
       : { x: 0, y: 0, width, height };
-    // For images that is not near 16:9, ensure bounding rect is at least 16:9 or taller
-    // And its detected bounding rect wider than 16:9
-    if (Math.abs(width / height - 16 / 9) < 0.03 && w / h - 16 / 9 > 0.03) {
-      // increase top and bottom margin
-      const newHeight = (w / 16) * 9;
-      y = y - (newHeight - h) / 2;
-      h = newHeight;
-    }
+
     // cut top and bottom border slightly more. For bright scenes with with back borders
     y = y + Math.floor(height * 0.015);
     h = h - Math.floor(height * 0.03);
