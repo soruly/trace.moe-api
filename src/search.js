@@ -101,7 +101,16 @@ export default async (req, res) => {
 
   if (req.query.cutBorders) {
     // auto black border cropping
-    const image = cv.imdecode(searchImage);
+    let image;
+    try {
+      image = cv.imdecode(searchImage);
+    } catch (e) {
+      return res.json({
+        frameCount: 0,
+        error: "OpenCV: Failed to decode image",
+        result: [],
+      });
+    }
     const [height, width] = image.sizes;
     // Find the possible rectangles
     const contours = image
@@ -159,12 +168,11 @@ export default async (req, res) => {
   let reRankSearchTimeList = [];
 
   if (solrResults.Error) {
-    res.json({
+    return res.json({
       frameCount: 0,
       error: solrResults.Error,
       result: [],
     });
-    return;
   }
 
   for (const { RawDocsCount, RawDocsSearchTime, ReRankSearchTime, response } of solrResults) {
