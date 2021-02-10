@@ -1,4 +1,5 @@
 import Knex from "knex";
+import fetch from "node-fetch";
 
 const {
   SOLA_DB_HOST,
@@ -7,6 +8,9 @@ const {
   SOLA_DB_PWD,
   SOLA_DB_NAME,
   TRACE_ALGO,
+  DISCORD_URL,
+  TELEGRAM_ID,
+  TELEGRAM_URL,
 } = process.env;
 
 const knex = Knex({
@@ -25,5 +29,23 @@ export default async (req, res) => {
   console.log(`Loaded ${anilistID}/${filename}`);
   await knex(TRACE_ALGO).where("path", `${anilistID}/${filename}`).update({ status: "LOADED" });
   req.app.locals.ws.send("checkDB");
-  return res.sendStatus(204);
+  res.sendStatus(204);
+
+  if (TELEGRAM_ID && TELEGRAM_URL) {
+    fetch(TELEGRAM_URL, {
+      method: "POST",
+      body: new URLSearchParams([
+        ["chat_id", TELEGRAM_ID],
+        ["parse_mode", "Markdown"],
+        ["text", "`" + filename + "`"],
+      ]),
+    });
+  }
+
+  if (DISCORD_URL) {
+    fetch(DISCORD_URL, {
+      method: "POST",
+      body: new URLSearchParams([["content", filename]]),
+    });
+  }
 };
