@@ -51,7 +51,7 @@ const search = (coreList, image, candidates, anilistID) =>
           method: "POST",
           body: image,
         }
-      ).then((res) => res.json())
+      )
     )
   );
 
@@ -176,24 +176,46 @@ export default async (req, res) => {
   let candidates = 250000;
 
   const startTime = performance.now();
-  let solrResults = await search(
+  let solrResponse = await search(
     req.app.locals.coreList,
     searchImage,
     candidates,
     Number(req.query.anilistID)
   );
+  if (solrResponse.find((e) => e.status >= 500)) {
+    return res.json({
+      frameCount: 0,
+      error: `HTTP ${e.status} Database is ${e.status === 504 ? "overloaded" : "offline"}`,
+      result: [],
+    });
+  }
+  let solrResults = await Promise.all(solrResponse.map((e) => e.json()));
 
   const maxRawDocsCount = Math.max(...solrResults.map((e) => Number(e.RawDocsCount)));
   if (maxRawDocsCount > candidates) {
     // found cluster has more candidates than expected
     // search again with increased candidates count
     candidates = maxRawDocsCount;
-    solrResults = await search(
+    solrResponse = await search(
       req.app.locals.coreList,
       searchImage,
       candidates,
       Number(req.query.anilistID)
     );
+    solrResponse = await search(
+      req.app.locals.coreList,
+      searchImage,
+      candidates,
+      Number(req.query.anilistID)
+    );
+    if (solrResponse.find((e) => e.status >= 500)) {
+      return res.json({
+        frameCount: 0,
+        error: `HTTP ${e.status} Database is ${e.status === 504 ? "overloaded" : "offline"}`,
+        result: [],
+      });
+    }
+    solrResults = await Promise.all(solrResponse.map((e) => e.json()));
   }
   const searchTime = (performance.now() - startTime) | 0;
 
