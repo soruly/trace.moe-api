@@ -19,6 +19,7 @@ import createCore from "./src/create-core.js";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 import loaded from "./src/loaded.js";
 import putAnilistChinese from "./src/put-anilist-chinese.js";
+import getAnilistInfo from "./src/get-anilist-info.js";
 
 const {
   TRACE_ALGO,
@@ -79,6 +80,7 @@ app.get("/loaded/:anilistID/:filename", checkSecret, loaded);
 app.put("/anilist_chinese/:anilistID", checkSecret, putAnilistChinese);
 app.get("/workers", checkSecret, getWorkers);
 app.all("/search", upload.single("image"), search);
+app.get("/info/:anilistID", getAnilistInfo);
 app.all("/", async (req, res) => {
   res.send("ok");
 });
