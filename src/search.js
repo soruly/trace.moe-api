@@ -58,18 +58,18 @@ const search = (coreList, image, candidates, anilistID) =>
 export default async (req, res) => {
   let searchImage;
   if (req.query.url) {
+    // console.log(req.query.url);
     try {
       new URL(req.query.url);
     } catch (e) {
-      console.log(`Invalid image url ${req.query.url}`);
-      return res.json({
+      return res.status(400).json({
         frameCount: 0,
-        error: "Invalid image url",
+        error: `Invalid image url ${req.query.url}`,
         result: [],
       });
     }
 
-    const res = await fetch(
+    const response = await fetch(
       [
         "api.telegram.org",
         "cdn.discordapp.com",
@@ -79,10 +79,20 @@ export default async (req, res) => {
         ? req.query.url
         : `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
     );
-    if (res.headers.get("Content-Type") && res.headers.get("Content-Type").startsWith("video/")) {
+    if (response.status >= 400) {
+      return res.status(response.status).json({
+        frameCount: 0,
+        error: `Failed to fetch image ${req.query.url}`,
+        result: [],
+      });
+    }
+    if (
+      response.headers.get("Content-Type")?.startsWith("video/") ||
+      [".mp4", ".webm", ".mkv"].includes(path.extname(new URL(req.query.url).pathname))
+    ) {
       const tempVideoPath = path.join(os.tmpdir(), `queryVideo${process.hrtime().join("")}.mp4`);
       const tempImagePath = path.join(os.tmpdir(), `queryImage${process.hrtime().join("")}.jpg`);
-      await fs.writeFile(tempVideoPath, await res.buffer());
+      await fs.writeFile(tempVideoPath, await response.buffer());
       child_process.spawnSync(
         "ffmpeg",
         [
@@ -107,11 +117,18 @@ export default async (req, res) => {
         ],
         { encoding: "utf-8" }
       );
+      if (!fs.existsSync(tempImagePath)) {
+        return res.status(500).json({
+          frameCount: 0,
+          error: `Failed to extract image from ${req.query.url}`,
+          result: [],
+        });
+      }
       searchImage = fs.readFileSync(tempImagePath);
       fs.removeSync(tempVideoPath);
       fs.removeSync(tempImagePath);
     } else {
-      searchImage = await res.buffer();
+      searchImage = await response.buffer();
     }
   } else if (req.file) {
     searchImage = req.file.buffer;
