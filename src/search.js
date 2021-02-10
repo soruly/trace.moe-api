@@ -165,6 +165,15 @@ export default async (req, res) => {
   let rawDocsSearchTimeList = [];
   let reRankSearchTimeList = [];
 
+  if (solrResults.Error) {
+    res.json({
+      frameCount: 0,
+      error: solrResults.Error,
+      result: [],
+    });
+    return;
+  }
+
   for (const { RawDocsCount, RawDocsSearchTime, ReRankSearchTime, response } of solrResults) {
     frameCountList.push(Number(RawDocsCount));
     rawDocsSearchTimeList.push(Number(RawDocsSearchTime));
@@ -232,6 +241,7 @@ export default async (req, res) => {
 
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
+    error: "",
     result: results.map((result) => {
       const anilist = JSON.parse(anilistDB.find((e) => e.id === result.anilist_id).json);
       return {
