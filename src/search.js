@@ -58,8 +58,26 @@ const search = (coreList, image, candidates, anilistID) =>
 export default async (req, res) => {
   let searchImage;
   if (req.query.url) {
+    try {
+      new URL(req.query.url);
+    } catch (e) {
+      console.log(`Invalid image url ${req.query.url}`);
+      return res.json({
+        frameCount: 0,
+        error: "Invalid image url",
+        result: [],
+      });
+    }
+
     const res = await fetch(
-      `https://trace.moe/image-proxy?url=${encodeURIComponent(decodeURIComponent(req.query.url))}`
+      [
+        "api.telegram.org",
+        "cdn.discordapp.com",
+        "media.discordapp.net",
+        "media.trace.moe",
+      ].includes(new URL(req.query.url).hostname)
+        ? req.query.url
+        : `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
     );
     if (res.headers.get("Content-Type") && res.headers.get("Content-Type").startsWith("video/")) {
       const tempVideoPath = path.join(os.tmpdir(), `queryVideo${process.hrtime().join("")}.mp4`);
