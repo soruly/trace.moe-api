@@ -48,8 +48,28 @@ const knex = Knex({
 
 const app = express();
 
-app.set("trust proxy", 1);
 app.disable("x-powered-by");
+
+app.set("trust proxy", 1);
+
+app.use((req, res, next) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, x-trace-secret");
+  res.set("Referrer-Policy", "no-referrer");
+  res.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'none'",
+      "base-uri 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'none'",
+      "block-all-mixed-content",
+    ].join("; ")
+  );
+  next();
+});
+
 app.use(
   rateLimit({
     max: 60, // 60 requests per IP address (per node.js process)
