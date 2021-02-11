@@ -57,6 +57,7 @@ app.use((req, res, next) => {
   res.set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type, x-trace-secret");
   res.set("Referrer-Policy", "no-referrer");
+  res.set("X-Content-Type-Options", "nosniff");
   res.set(
     "Content-Security-Policy",
     [
