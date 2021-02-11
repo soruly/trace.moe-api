@@ -49,6 +49,7 @@ const knex = Knex({
 const app = express();
 
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
 app.use(
   rateLimit({
     max: 60, // 60 requests per IP address (per node.js process)
