@@ -78,10 +78,10 @@ app.use(
   })
 );
 // max: async (req, res) => {
-//   if (!req.query.token) {
+//   if (!req.query.key) {
 //     return 60; // 60 requests per IP address (per node.js process)
 //   }
-//   const result = await knex("user").select("rate_limit").where("api_key", req.query.token);
+//   const result = await knex("user").select("rate_limit").where("api_key", req.query.key);
 //   if (result.length === 0) {
 //     return result[0].rate_limit;
 //   }

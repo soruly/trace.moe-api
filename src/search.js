@@ -56,6 +56,20 @@ const search = (coreList, image, candidates, anilistID) =>
   );
 
 export default async (req, res) => {
+  const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
+  if (apiKey) {
+    const rows = await knex("user")
+      .select("id", "monthly_quota", "monthly_search")
+      .where("api_key", apiKey);
+    if (rows[0].monthly_search >= rows[0].monthly_quota) {
+      return res.status(402).json({
+        frameCount: 0,
+        error: "You have reached your monthly search quota",
+        result: [],
+      });
+    }
+  }
+
   let searchImage;
   if (req.query.url) {
     // console.log(req.query.url);
@@ -319,5 +333,9 @@ export default async (req, res) => {
       };
     }),
   });
+
+  if (apiKey) {
+    await knex("user").where("api_key", apiKey).increment("monthly_search", 1);
+  }
   // console.log(`searchTime: ${searchTime}`);
 };
