@@ -233,7 +233,7 @@ export default async (req, res) => {
   }
   const searchTime = (performance.now() - startTime) | 0;
 
-  let results = [];
+  let result = [];
   let frameCountList = [];
   let rawDocsSearchTimeList = [];
   let reRankSearchTimeList = [];
@@ -250,25 +250,25 @@ export default async (req, res) => {
     frameCountList.push(Number(RawDocsCount));
     rawDocsSearchTimeList.push(Number(RawDocsSearchTime));
     reRankSearchTimeList.push(Number(ReRankSearchTime));
-    results = results.concat(response.docs);
+    result = result.concat(response.docs);
   }
 
-  results = results
+  result = result
     .reduce((list, { d, id }) => {
-      // merge nearby results within 2 seconds in the same file
+      // merge nearby results within 2 seconds in the same filename
       const anilist_id = Number(id.split("/")[0]);
-      const file = id.split("/")[1];
+      const filename = id.split("/")[1];
       const t = Number(id.split("/")[2]);
       const index = list.findIndex(
         (e) =>
           e.anilist_id === anilist_id &&
-          e.file === file &&
+          e.filename === filename &&
           (Math.abs(e.from - t) < 2 || Math.abs(e.to - t) < 2)
       );
       if (index < 0) {
         return list.concat({
           anilist_id,
-          file,
+          filename,
           t,
           from: t,
           to: t,
@@ -283,55 +283,56 @@ export default async (req, res) => {
       }
     }, [])
     .sort((a, b) => a.d - b.d) // sort in ascending order of difference
-    .slice(0, 10) // return only top 10 results
-    .map(({ anilist_id, file, t, from, to, d }) => {
-      const mid = from + (to - from) / 2;
-      return {
-        anilist_id,
-        file,
-        episode: aniep(file),
-        from,
-        to,
-        similarity: (100 - d) / 100,
-        video: `https://media.trace.moe/video/${anilist_id}/${encodeURIComponent(file)}?${[
-          `t=${mid}`,
-          `token=${crypto.createHash("sha256").update(`${mid}${TRACE_MEDIA_SALT}`).digest("hex")}`,
-        ].join("&")}`,
-        image: `https://media.trace.moe/image/${anilist_id}/${encodeURIComponent(file)}?${[
-          `t=${mid}`,
-          `token=${crypto.createHash("sha256").update(`${mid}${TRACE_MEDIA_SALT}`).digest("hex")}`,
-        ].join("&")}`,
-      };
-    });
+    .slice(0, 10); // return only top 10 results
 
   const anilistDB = await knex("anilist_view")
     .select("id", "json")
     .havingIn(
       "id",
-      results.map((result) => result.anilist_id)
+      result.map((result) => result.anilist_id)
     );
+
+  result = result.map(({ anilist_id, filename, t, from, to, d }) => {
+    const mid = from + (to - from) / 2;
+    const anilist = JSON.parse(anilistDB.find((e) => e.id === anilist_id).json);
+
+    return {
+      anilist:
+        req.query.anilistInfo === "full"
+          ? anilist
+          : req.query.anilistInfo === "id"
+          ? {
+              id: anilist.id,
+              idMal: anilist.idMal,
+            }
+          : {
+              id: anilist.id,
+              idMal: anilist.idMal,
+              isAdult: anilist.isAdult,
+              synonyms: anilist.synonyms,
+              synonyms_chinese: anilist.synonyms_chinese,
+              title: anilist.title,
+            },
+      filename,
+      episode: aniep(filename),
+      from,
+      to,
+      similarity: (100 - d) / 100,
+      video: `https://media.trace.moe/video/${anilist.id}/${encodeURIComponent(filename)}?${[
+        `t=${mid}`,
+        `token=${crypto.createHash("sha256").update(`${mid}${TRACE_MEDIA_SALT}`).digest("hex")}`,
+      ].join("&")}`,
+      image: `https://media.trace.moe/image/${anilist.id}/${encodeURIComponent(filename)}?${[
+        `t=${mid}`,
+        `token=${crypto.createHash("sha256").update(`${mid}${TRACE_MEDIA_SALT}`).digest("hex")}`,
+      ].join("&")}`,
+    };
+  });
 
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",
-    result: results.map((result) => {
-      const anilist = JSON.parse(anilistDB.find((e) => e.id === result.anilist_id).json);
-      return {
-        anilist_id: result.anilist_id,
-        file: result.file,
-        episode: result.episode,
-        from: result.from,
-        to: result.to,
-        similarity: result.similarity,
-        video: result.video,
-        image: result.image,
-        title_romaji: anilist.title.romaji,
-        title_native: anilist.title.native,
-        title_english: anilist.title.english,
-        title_chinese: anilist.title.chinese,
-        is_adult: anilist.isAdult,
-      };
-    }),
+    result,
   });
 
   if (apiKey) {
