@@ -294,7 +294,15 @@ export default async (req, res) => {
 
   result = result.map(({ anilist_id, filename, t, from, to, d }) => {
     const mid = from + (to - from) / 2;
+    if (!anilistDB.find((e) => e.id === anilist_id)) {
+      console.log(`${anilist_id}/${filename} should be deleted from DB`);
+    }
     const anilist = JSON.parse(anilistDB.find((e) => e.id === anilist_id).json);
+    const token = crypto
+      .createHash("sha1")
+      .update([anilist.id, filename, mid, TRACE_MEDIA_SALT].join(""))
+      .digest("base64")
+      .replace(/[^0-9A-Za-z]/g, "");
 
     return {
       anilist:
@@ -320,11 +328,11 @@ export default async (req, res) => {
       similarity: (100 - d) / 100,
       video: `https://media.trace.moe/video/${anilist.id}/${encodeURIComponent(filename)}?${[
         `t=${mid}`,
-        `token=${crypto.createHash("sha256").update(`${mid}${TRACE_MEDIA_SALT}`).digest("hex")}`,
+        `token=${token}`,
       ].join("&")}`,
       image: `https://media.trace.moe/image/${anilist.id}/${encodeURIComponent(filename)}?${[
         `t=${mid}`,
-        `token=${crypto.createHash("sha256").update(`${mid}${TRACE_MEDIA_SALT}`).digest("hex")}`,
+        `token=${token}`,
       ].join("&")}`,
     };
   });
