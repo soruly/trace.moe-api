@@ -255,7 +255,7 @@ export default async (req, res) => {
 
   result = result
     .reduce((list, { d, id }) => {
-      // merge nearby results within 2 seconds in the same filename
+      // merge nearby results within 5 seconds in the same filename
       const anilist_id = Number(id.split("/")[0]);
       const filename = id.split("/")[1];
       const t = Number(id.split("/")[2]);
@@ -263,7 +263,7 @@ export default async (req, res) => {
         (e) =>
           e.anilist_id === anilist_id &&
           e.filename === filename &&
-          (Math.abs(e.from - t) < 2 || Math.abs(e.to - t) < 2)
+          (Math.abs(e.from - t) < 5 || Math.abs(e.to - t) < 5)
       );
       if (index < 0) {
         return list.concat({
