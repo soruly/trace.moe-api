@@ -3,7 +3,7 @@
     {
       "name": "trace.moe-api",
       "script": "server.js",
-      "instances": 4,
+      "instances": 8,
       "autorestart": true,
       "exec_mode": "cluster"
     },
