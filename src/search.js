@@ -42,9 +42,9 @@ const search = (coreList, image, candidates, anilistID) =>
         `${coreURL}/lireq?${[
           "field=cl_ha",
           "ms=false",
-          `accuracy=0`,
+          `accuracy=3`,
           `candidates=${candidates}`,
-          "rows=10",
+          "rows=30",
           anilistID ? `fq=id:${anilistID}/*` : "",
         ].join("&")}`,
         {
@@ -198,7 +198,7 @@ export default async (req, res) => {
     }
   }
 
-  let candidates = 250000;
+  let candidates = 500000;
 
   const startTime = performance.now();
   let solrResponse = await search(
@@ -217,16 +217,11 @@ export default async (req, res) => {
   let solrResults = await Promise.all(solrResponse.map((e) => e.json()));
 
   const maxRawDocsCount = Math.max(...solrResults.map((e) => Number(e.RawDocsCount)));
+  console.log(maxRawDocsCount, maxRawDocsCount > candidates ? "!!" : "");
   if (maxRawDocsCount > candidates) {
     // found cluster has more candidates than expected
     // search again with increased candidates count
     candidates = maxRawDocsCount;
-    solrResponse = await search(
-      req.app.locals.coreList,
-      searchImage,
-      candidates,
-      Number(req.query.anilistID)
-    );
     solrResponse = await search(
       req.app.locals.coreList,
       searchImage,
