@@ -173,18 +173,29 @@ export default async (req, res) => {
           .boundingRect()
       : { x: 0, y: 0, width, height };
 
-    // cut top and bottom border slightly more. For bright scenes with with back borders
-    y = y + Math.floor(height * 0.015);
-    h = h - Math.floor(height * 0.03);
-    // ensure the image has dimension
-    y = y < 0 ? 0 : y;
-    x = x < 0 ? 0 : x;
-    w = w < 1 ? 1 : w;
-    h = h < 1 ? 1 : h;
+    if (x === 0 && y === 0 && w === width && h === height) {
+      const croppedImage = image.resize(Math.round((height / width) * 320), 320);
+      // cv.imwrite(`temp/${performance.now()}.png`, croppedImage);
+      searchImage = cv.imencode(".jpg", croppedImage);
+    } else {
+      if (w > 0 && h > 0 && Math.abs(w / h - 16 / 9) < 0.2) {
+        // if detected area is near 16:9 (e.g. 16:10), assume it is 16:9
+        const newHeight = Math.round((w / 16) * 9) - 2; // cut 2px more for anti-aliasing after scale
+        y = Math.round(y - (newHeight - h) / 2);
+        h = newHeight;
+      }
+      // ensure the image has dimension
+      y = y <= 0 ? 0 : y;
+      x = x <= 0 ? 0 : x;
+      w = w <= 1 ? 1 : w;
+      h = h <= 1 ? 1 : h;
 
-    const croppedImage = image.getRegion(new cv.Rect(x, y, w, h)).resize(180, 320);
-    // cv.imwrite(`temp/${performance.now()}.png`, croppedImage);
-    searchImage = cv.imencode(".jpg", croppedImage);
+      const croppedImage = image
+        .getRegion(new cv.Rect(x, y, w, h))
+        .resize(Math.round((height / width) * 320), 320);
+      // cv.imwrite(`temp/${performance.now()}.png`, croppedImage);
+      searchImage = cv.imencode(".jpg", croppedImage);
+    }
   }
 
   let candidates = 250000;
