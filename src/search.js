@@ -42,7 +42,7 @@ const search = (coreList, image, candidates, anilistID) =>
         `${coreURL}/lireq?${[
           "field=cl_ha",
           "ms=false",
-          `accuracy=3`,
+          `accuracy=1`,
           `candidates=${candidates}`,
           "rows=30",
           anilistID ? `fq=id:${anilistID}/*` : "",

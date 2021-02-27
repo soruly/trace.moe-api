@@ -5,6 +5,8 @@ import bodyParser from "body-parser";
 import multer from "multer";
 import Knex from "knex";
 import WebSocket from "ws";
+import morgan from "morgan";
+import fs from "fs-extra";
 import { createProxyMiddleware } from "http-proxy-middleware";
 
 import checkSecret from "./src/check-secret.js";
@@ -20,6 +22,11 @@ import getSolrCoreList from "./lib/get-solr-core-list.js";
 import loaded from "./src/loaded.js";
 import putAnilistChinese from "./src/put-anilist-chinese.js";
 import getAnilistInfo from "./src/get-anilist-info.js";
+
+import v8 from "v8";
+console.log(
+  `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`
+);
 
 const {
   TRACE_ALGO,
@@ -88,6 +95,19 @@ app.use(
 //   return 60;
 // },
 
+morgan.token("path", (req) => req.path);
+
+app.use(
+  morgan(function (tokens, req, res) {
+    return [
+      tokens.status(req, res),
+      tokens.path(req, res),
+      tokens["response-time"](req, res),
+      "ms",
+    ].join(" ");
+  })
+);
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 const upload = multer({ storage: multer.memoryStorage() });
@@ -150,7 +170,14 @@ const closeHandle = async () => {
 closeHandle();
 
 console.log("Loading solr core list...");
-app.locals.coreList = await getSolrCoreList();
+let coreList = [];
+if (fs.existsSync("core-list.json")) {
+  coreList = JSON.parse(fs.readFileSync("core-list.json", "utf8"));
+} else {
+  const coreList = await getSolrCoreList();
+  fs.outputFileSync("core-list.json", JSON.stringify(coreList, null, 2));
+}
+app.locals.coreList = coreList;
 console.log(
   `Loaded ${app.locals.coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
 );

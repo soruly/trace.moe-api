@@ -38,6 +38,7 @@
     "fs-extra": "^9.1.0",
     "http-proxy-middleware": "^1.0.6",
     "knex": "^0.21.18",
+    "morgan": "^1.10.0",
     "multer": "^1.4.2",
     "mysql": "^2.18.1",
     "node-fetch": "^2.6.1",
