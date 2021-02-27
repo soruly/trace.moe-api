@@ -198,7 +198,15 @@ export default async (req, res) => {
     }
   }
 
-  let candidates = 500000;
+  if (!req.app.locals.coreList || req.app.locals.coreList.length === 0) {
+    return res.json({
+      frameCount: 0,
+      error: "Database is offline",
+      result: [],
+    });
+  }
+
+  let candidates = 1000000;
 
   const startTime = performance.now();
   let solrResponse = await search(
@@ -229,9 +237,10 @@ export default async (req, res) => {
       Number(req.query.anilistID)
     );
     if (solrResponse.find((e) => e.status >= 500)) {
+      const r = solrResponse.find((e) => e.status >= 500);
       return res.json({
         frameCount: 0,
-        error: `HTTP ${e.status} Database is ${e.status === 504 ? "overloaded" : "offline"}`,
+        error: `HTTP ${r.status} Database is ${r.status === 504 ? "overloaded" : "offline"}`,
         result: [],
       });
     }
