@@ -208,16 +208,16 @@ export default async (req, res) => {
     Number(req.query.anilistID)
   );
   if (solrResponse.find((e) => e.status >= 500)) {
+    const r = solrResponse.find((e) => e.status >= 500);
     return res.json({
       frameCount: 0,
-      error: `HTTP ${e.status} Database is ${e.status === 504 ? "overloaded" : "offline"}`,
+      error: `HTTP ${r.status} Database is ${r.status === 504 ? "overloaded" : "offline"}`,
       result: [],
     });
   }
   let solrResults = await Promise.all(solrResponse.map((e) => e.json()));
 
   const maxRawDocsCount = Math.max(...solrResults.map((e) => Number(e.RawDocsCount)));
-  console.log(maxRawDocsCount, maxRawDocsCount > candidates ? "!!" : "");
   if (maxRawDocsCount > candidates) {
     // found cluster has more candidates than expected
     // search again with increased candidates count
