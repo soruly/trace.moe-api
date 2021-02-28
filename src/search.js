@@ -145,10 +145,10 @@ export default async (req, res) => {
   if (req.query.cutBorders) {
     // auto black border cropping
     try {
-      let image = cv.imdecode(searchImage);
+      const image = cv.imdecode(searchImage);
       const [height, width] = image.sizes;
       // Find the possible rectangles
-      let contours = image
+      const contours = image
         .bgrToGray()
         .threshold(4, 255, cv.THRESH_BINARY) // low enough so dark background is not cut away
         .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
@@ -160,11 +160,14 @@ export default async (req, res) => {
         : { x: 0, y: 0, width, height };
 
       if (x !== 0 || y !== 0 || w !== width || h !== height) {
-        if (w > 0 && h > 0 && Math.abs(w / h - 16 / 9) < 0.2) {
-          // if detected area is near 16:9 (e.g. 16:10), assume it is 16:9
-          const newHeight = Math.round((w / 16) * 9) - 2; // cut 2px more for anti-aliasing
+        if (w > 0 && h > 0 && w / h < 16 / 9 && w / h >= 1.6) {
+          // if detected area is slightly larger than 16:9 (e.g. 16:10)
+          const newHeight = Math.round((w / 16) * 9); // assume it is 16:9
           y = Math.round(y - (newHeight - h) / 2);
           h = newHeight;
+          // cut 1px more for anti-aliasing
+          h = h - 1;
+          y = y + 1;
         }
         // ensure the image has correct dimensions
         y = y <= 0 ? 0 : y;
@@ -175,6 +178,7 @@ export default async (req, res) => {
         h = h >= height ? height : h;
 
         searchImage = cv.imencode(".jpg", image.getRegion(new cv.Rect(x, y, w, h)));
+        // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
       }
     } catch (e) {
       // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
@@ -185,7 +189,7 @@ export default async (req, res) => {
       });
     }
   }
-  // fs.outputFileSync(`temp/${new Date().toISOString()}.png`, searchImage);
+  // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
 
   if (!req.app.locals.coreList || req.app.locals.coreList.length === 0) {
     return res.status(500).json({
