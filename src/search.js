@@ -105,7 +105,8 @@ export default async (req, res) => {
     }
     if (
       response.headers.get("Content-Type")?.startsWith("video/") ||
-      [".mp4", ".webm", ".mkv"].includes(path.extname(new URL(req.query.url).pathname))
+      response.headers.get("Content-Type") === "image/gif" ||
+      [".mp4", ".webm", ".mkv", ".gif"].includes(path.extname(new URL(req.query.url).pathname))
     ) {
       const tempVideoPath = path.join(os.tmpdir(), `queryVideo${process.hrtime().join("")}.mp4`);
       const tempImagePath = path.join(os.tmpdir(), `queryImage${process.hrtime().join("")}.jpg`);
