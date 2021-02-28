@@ -2,6 +2,7 @@ import "dotenv/config.js";
 import { performance } from "perf_hooks";
 import express from "express";
 import rateLimit from "express-rate-limit";
+import rateLimitRedis from "rate-limit-redis";
 import bodyParser from "body-parser";
 import multer from "multer";
 import Knex from "knex";
@@ -80,21 +81,14 @@ app.use((req, res, next) => {
 });
 
 app.use(
-  rateLimit({
-    max: 60, // 60 requests per IP address (per node.js process)
-    windowMs: 60 * 1000, // per 1 minute
+  new rateLimit({
+    store: new rateLimitRedis({
+      expiry: 60,
+    }),
+    max: 30, // limit each IP to 30 requests per 60 seconds
+    delayMs: 0, // disable delaying - full speed until the max limit is reached
   })
 );
-// max: async (req, res) => {
-//   if (!req.query.key) {
-//     return 60; // 60 requests per IP address (per node.js process)
-//   }
-//   const result = await knex("user").select("rate_limit").where("api_key", req.query.key);
-//   if (result.length === 0) {
-//     return result[0].rate_limit;
-//   }
-//   return 60;
-// },
 
 app.locals.id = 0;
 app.locals.queue = new Set();
