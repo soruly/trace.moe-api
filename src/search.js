@@ -189,6 +189,8 @@ export default async (req, res) => {
       x = x <= 0 ? 0 : x;
       w = w <= 1 ? 1 : w;
       h = h <= 1 ? 1 : h;
+      w = w >= width ? width : w;
+      h = h >= height ? height : h;
 
       const croppedImage = image
         .getRegion(new cv.Rect(x, y, w, h))
