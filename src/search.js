@@ -73,7 +73,7 @@ export default async (req, res) => {
     }
   }
 
-  let searchImage;
+  let searchFile;
   if (req.query.url) {
     // console.log(req.query.url);
     try {
@@ -103,115 +103,89 @@ export default async (req, res) => {
         result: [],
       });
     }
-    if (
-      response.headers.get("Content-Type")?.startsWith("video/") ||
-      response.headers.get("Content-Type") === "image/gif" ||
-      [".mp4", ".webm", ".mkv", ".gif"].includes(path.extname(new URL(req.query.url).pathname))
-    ) {
-      const tempVideoPath = path.join(os.tmpdir(), `queryVideo${process.hrtime().join("")}.mp4`);
-      const tempImagePath = path.join(os.tmpdir(), `queryImage${process.hrtime().join("")}.jpg`);
-      await fs.writeFile(tempVideoPath, await response.buffer());
-      child_process.spawnSync(
-        "ffmpeg",
-        [
-          "-hide_banner",
-          "-loglevel",
-          "warning",
-          "-nostats",
-          "-y",
-          "-ss",
-          "00:00:00",
-          "-i",
-          tempVideoPath,
-          "-vframes",
-          "1",
-          "-vf",
-          "scale=320:-2",
-          "-crf",
-          "23",
-          "-preset",
-          "faster",
-          tempImagePath,
-        ],
-        { encoding: "utf-8" }
-      );
-      if (!fs.existsSync(tempImagePath)) {
-        return res.status(400).json({
-          frameCount: 0,
-          error: `Failed to extract image from ${req.query.url}`,
-          result: [],
-        });
-      }
-      searchImage = fs.readFileSync(tempImagePath);
-      fs.removeSync(tempVideoPath);
-      fs.removeSync(tempImagePath);
-    } else {
-      searchImage = await response.buffer();
-    }
+    searchFile = await response.buffer();
   } else if (req.file) {
-    searchImage = req.file.buffer;
+    searchFile = req.file.buffer;
   }
+
+  const tempFilePath = path.join(os.tmpdir(), `queryFile${process.hrtime().join("")}`);
+  const tempImagePath = path.join(os.tmpdir(), `queryImage${process.hrtime().join("")}.jpg`);
+  fs.writeFileSync(tempFilePath, searchFile);
+  child_process.spawnSync(
+    "ffmpeg",
+    [
+      "-hide_banner",
+      "-loglevel",
+      "warning",
+      "-nostats",
+      "-y",
+      "-ss",
+      "00:00:00",
+      "-i",
+      tempFilePath,
+      "-vframes",
+      "1",
+      "-vf",
+      "scale=320:-2",
+      tempImagePath,
+    ],
+    { encoding: "utf-8" }
+  );
+  if (!fs.existsSync(tempImagePath)) {
+    return res.status(400).json({
+      frameCount: 0,
+      error: `Failed to process image`,
+      result: [],
+    });
+  }
+  let searchImage = fs.readFileSync(tempImagePath);
+  fs.removeSync(tempFilePath);
+  fs.removeSync(tempImagePath);
 
   if (req.query.cutBorders) {
     // auto black border cropping
-    let image;
     try {
-      image = cv.imdecode(searchImage);
-    } catch (e) {
-      return res.status(400).json({
-        frameCount: 0,
-        error: "OpenCV: Failed to decode image",
-        result: [],
-      });
-    }
-    const [height, width] = image.sizes;
-    // Find the possible rectangles
-    let contours;
-    try {
-      contours = image
+      let image = cv.imdecode(searchImage);
+      const [height, width] = image.sizes;
+      // Find the possible rectangles
+      let contours = image
         .bgrToGray()
         .threshold(4, 255, cv.THRESH_BINARY) // low enough so dark background is not cut away
         .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+      let { x, y, width: w, height: h } = contours.length
+        ? contours
+            .sort((c0, c1) => c1.area - c0.area)[0] // Find the largest rectangle
+            .boundingRect()
+        : { x: 0, y: 0, width, height };
+
+      if (x !== 0 || y !== 0 || w !== width || h !== height) {
+        if (w > 0 && h > 0 && Math.abs(w / h - 16 / 9) < 0.2) {
+          // if detected area is near 16:9 (e.g. 16:10), assume it is 16:9
+          const newHeight = Math.round((w / 16) * 9) - 2; // cut 2px more for anti-aliasing
+          y = Math.round(y - (newHeight - h) / 2);
+          h = newHeight;
+        }
+        // ensure the image has correct dimensions
+        y = y <= 0 ? 0 : y;
+        x = x <= 0 ? 0 : x;
+        w = w <= 1 ? 1 : w;
+        h = h <= 1 ? 1 : h;
+        w = w >= width ? width : w;
+        h = h >= height ? height : h;
+
+        searchImage = cv.imencode(".jpg", image.getRegion(new cv.Rect(x, y, w, h)));
+      }
     } catch (e) {
+      // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
       return res.status(400).json({
         frameCount: 0,
-        error: "OpenCV: Failed to detect borders",
+        error: "OpenCV: Failed to detect and cut borders",
         result: [],
       });
     }
-
-    let { x, y, width: w, height: h } = contours.length
-      ? contours
-          .sort((c0, c1) => c1.area - c0.area)[0] // Find the largest rectangle
-          .boundingRect()
-      : { x: 0, y: 0, width, height };
-
-    if (x === 0 && y === 0 && w === width && h === height) {
-      const croppedImage = image.resize(Math.round((height / width) * 320), 320);
-      // cv.imwrite(`temp/${new Date().toISOString()}.png`, croppedImage);
-      searchImage = cv.imencode(".jpg", croppedImage);
-    } else {
-      if (w > 0 && h > 0 && Math.abs(w / h - 16 / 9) < 0.2) {
-        // if detected area is near 16:9 (e.g. 16:10), assume it is 16:9
-        const newHeight = Math.round((w / 16) * 9) - 2; // cut 2px more for anti-aliasing after scale
-        y = Math.round(y - (newHeight - h) / 2);
-        h = newHeight;
-      }
-      // ensure the image has dimension
-      y = y <= 0 ? 0 : y;
-      x = x <= 0 ? 0 : x;
-      w = w <= 1 ? 1 : w;
-      h = h <= 1 ? 1 : h;
-      w = w >= width ? width : w;
-      h = h >= height ? height : h;
-
-      const croppedImage = image
-        .getRegion(new cv.Rect(x, y, w, h))
-        .resize(Math.round((height / width) * 320), 320);
-      // cv.imwrite(`temp/${new Date().toISOString()}.png`, croppedImage);
-      searchImage = cv.imencode(".jpg", croppedImage);
-    }
   }
+  // fs.outputFileSync(`temp/${new Date().toISOString()}.png`, searchImage);
 
   if (!req.app.locals.coreList || req.app.locals.coreList.length === 0) {
     return res.status(500).json({
