@@ -90,16 +90,9 @@ app.use(
   })
 );
 
-app.locals.id = 0;
-app.locals.queue = new Set();
-
 app.use((req, res, next) => {
   const startTime = performance.now();
   console.log("=>", new Date().toISOString(), req.ip, req.path);
-  req.app.locals.id = req.app.locals.id + 1;
-  const myID = req.app.locals.id;
-  req.app.locals.queue.add(myID);
-  console.log(req.app.locals.queue);
   res.on("finish", () => {
     console.log(
       "<=",
@@ -109,8 +102,6 @@ app.use((req, res, next) => {
       res.statusCode,
       `${(performance.now() - startTime).toFixed(0)}ms`
     );
-    req.app.locals.queue.delete(myID);
-    console.log(req.app.locals.queue);
   });
   next();
 });
