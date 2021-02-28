@@ -1,11 +1,11 @@
 import "dotenv/config.js";
+import { performance } from "perf_hooks";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import bodyParser from "body-parser";
 import multer from "multer";
 import Knex from "knex";
 import WebSocket from "ws";
-import morgan from "morgan";
 import fs from "fs-extra";
 import { createProxyMiddleware } from "http-proxy-middleware";
 
@@ -96,19 +96,29 @@ app.use(
 //   return 60;
 // },
 
-morgan.token("path", (req) => req.path);
+app.locals.id = 0;
+app.locals.queue = new Set();
 
-app.use(
-  morgan(function (tokens, req, res) {
-    return [
+app.use((req, res, next) => {
+  const startTime = performance.now();
+  console.log("=>", new Date().toISOString(), req.path);
+  req.app.locals.id = req.app.locals.id + 1;
+  const myID = req.app.locals.id;
+  req.app.locals.queue.add(myID);
+  console.log(req.app.locals.queue);
+  res.on("finish", () => {
+    console.log(
+      "<=",
       new Date().toISOString(),
-      tokens.status(req, res),
-      tokens.path(req, res),
-      tokens["response-time"](req, res),
-      "ms",
-    ].join(" ");
-  })
-);
+      req.path,
+      res.statusCode,
+      `${(performance.now() - startTime).toFixed(0)}ms`
+    );
+    req.app.locals.queue.delete(myID);
+    console.log(req.app.locals.queue);
+  });
+  next();
+});
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());

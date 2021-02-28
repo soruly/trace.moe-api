@@ -42,7 +42,7 @@ const search = (coreList, image, candidates, anilistID) =>
         `${coreURL}/lireq?${[
           "field=cl_ha",
           "ms=false",
-          `accuracy=3`,
+          `accuracy=2`,
           `candidates=${candidates}`,
           "rows=30",
           anilistID ? `fq=id:${anilistID}/*` : "",
@@ -220,8 +220,7 @@ export default async (req, res) => {
       Number(req.query.anilistID)
     );
   } catch (e) {
-    console.log(e);
-    return res.status(500).json({
+    return res.status(503).json({
       frameCount: 0,
       error: `Error: Database is not responding`,
       result: [],
