@@ -20,6 +20,7 @@ import getWorkers from "./src/get-workers.js";
 import createCore from "./src/create-core.js";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 import loaded from "./src/loaded.js";
+import unload from "./src/unload.js";
 import putAnilistChinese from "./src/put-anilist-chinese.js";
 import getAnilistInfo from "./src/get-anilist-info.js";
 
@@ -100,6 +101,7 @@ morgan.token("path", (req) => req.path);
 app.use(
   morgan(function (tokens, req, res) {
     return [
+      new Date().toISOString(),
       tokens.status(req, res),
       tokens.path(req, res),
       tokens["response-time"](req, res),
@@ -119,6 +121,7 @@ app.get("/uploaded/:anilistID/:filename", checkSecret, uploaded);
 app.put("/hash/:anilistID/:filename", checkSecret, putHash);
 app.get("/hash/:anilistID/:filename", checkSecret, getHash);
 app.get("/loaded/:anilistID/:filename", checkSecret, loaded);
+app.get("/unload/:anilistID/:filename", checkSecret, unload);
 app.put("/anilist_chinese/:anilistID", checkSecret, putAnilistChinese);
 app.get("/workers", checkSecret, getWorkers);
 app.all("/search", upload.single("image"), search);
