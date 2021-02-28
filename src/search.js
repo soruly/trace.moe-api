@@ -132,7 +132,7 @@ export default async (req, res) => {
         { encoding: "utf-8" }
       );
       if (!fs.existsSync(tempImagePath)) {
-        return res.status(500).json({
+        return res.status(400).json({
           frameCount: 0,
           error: `Failed to extract image from ${req.query.url}`,
           result: [],
@@ -154,7 +154,7 @@ export default async (req, res) => {
     try {
       image = cv.imdecode(searchImage);
     } catch (e) {
-      return res.json({
+      return res.status(400).json({
         frameCount: 0,
         error: "OpenCV: Failed to decode image",
         result: [],
@@ -175,7 +175,7 @@ export default async (req, res) => {
 
     if (x === 0 && y === 0 && w === width && h === height) {
       const croppedImage = image.resize(Math.round((height / width) * 320), 320);
-      // cv.imwrite(`temp/${performance.now()}.png`, croppedImage);
+      // cv.imwrite(`temp/${new Date().toISOString()}.png`, croppedImage);
       searchImage = cv.imencode(".jpg", croppedImage);
     } else {
       if (w > 0 && h > 0 && Math.abs(w / h - 16 / 9) < 0.2) {
@@ -193,13 +193,13 @@ export default async (req, res) => {
       const croppedImage = image
         .getRegion(new cv.Rect(x, y, w, h))
         .resize(Math.round((height / width) * 320), 320);
-      // cv.imwrite(`temp/${performance.now()}.png`, croppedImage);
+      // cv.imwrite(`temp/${new Date().toISOString()}.png`, croppedImage);
       searchImage = cv.imencode(".jpg", croppedImage);
     }
   }
 
   if (!req.app.locals.coreList || req.app.locals.coreList.length === 0) {
-    return res.json({
+    return res.status(500).json({
       frameCount: 0,
       error: "Database is offline",
       result: [],
@@ -209,17 +209,27 @@ export default async (req, res) => {
   let candidates = 1000000;
 
   const startTime = performance.now();
-  let solrResponse = await search(
-    req.app.locals.coreList,
-    searchImage,
-    candidates,
-    Number(req.query.anilistID)
-  );
+  let solrResponse = null;
+  try {
+    solrResponse = await search(
+      req.app.locals.coreList,
+      searchImage,
+      candidates,
+      Number(req.query.anilistID)
+    );
+  } catch (e) {
+    console.log(e);
+    return res.status(500).json({
+      frameCount: 0,
+      error: `Error: Database is not responding`,
+      result: [],
+    });
+  }
   if (solrResponse.find((e) => e.status >= 500)) {
     const r = solrResponse.find((e) => e.status >= 500);
-    return res.json({
+    return res.status(r.status).json({
       frameCount: 0,
-      error: `HTTP ${r.status} Database is ${r.status === 504 ? "overloaded" : "offline"}`,
+      error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
       result: [],
     });
   }
@@ -238,9 +248,9 @@ export default async (req, res) => {
     );
     if (solrResponse.find((e) => e.status >= 500)) {
       const r = solrResponse.find((e) => e.status >= 500);
-      return res.json({
+      return res.status(r.status).json({
         frameCount: 0,
-        error: `HTTP ${r.status} Database is ${r.status === 504 ? "overloaded" : "offline"}`,
+        error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
         result: [],
       });
     }
@@ -254,7 +264,7 @@ export default async (req, res) => {
   let reRankSearchTimeList = [];
 
   if (solrResults.Error) {
-    return res.json({
+    return res.status(500).json({
       frameCount: 0,
       error: solrResults.Error,
       result: [],
