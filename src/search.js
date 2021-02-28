@@ -162,10 +162,19 @@ export default async (req, res) => {
     }
     const [height, width] = image.sizes;
     // Find the possible rectangles
-    const contours = image
-      .bgrToGray()
-      .threshold(4, 255, cv.THRESH_BINARY) // low enough so dark background is not cut away
-      .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    let contours;
+    try {
+      contours = image
+        .bgrToGray()
+        .threshold(4, 255, cv.THRESH_BINARY) // low enough so dark background is not cut away
+        .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    } catch (e) {
+      return res.status(400).json({
+        frameCount: 0,
+        error: "OpenCV: Failed to detect borders",
+        result: [],
+      });
+    }
 
     let { x, y, width: w, height: h } = contours.length
       ? contours
