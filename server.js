@@ -95,7 +95,7 @@ app.locals.queue = new Set();
 
 app.use((req, res, next) => {
   const startTime = performance.now();
-  console.log("=>", new Date().toISOString(), req.path);
+  console.log("=>", new Date().toISOString(), req.ip, req.path);
   req.app.locals.id = req.app.locals.id + 1;
   const myID = req.app.locals.id;
   req.app.locals.queue.add(myID);
@@ -104,6 +104,7 @@ app.use((req, res, next) => {
     console.log(
       "<=",
       new Date().toISOString(),
+      req.ip,
       req.path,
       res.statusCode,
       `${(performance.now() - startTime).toFixed(0)}ms`

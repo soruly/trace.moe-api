@@ -13,7 +13,10 @@ import { performance } from "perf_hooks";
 
 const client = redis.createClient();
 const getAsync = util.promisify(client.get).bind(client);
-const ttlAsync = util.promisify(client.ttl).bind(client);
+const setAsync = util.promisify(client.set).bind(client);
+const delAsync = util.promisify(client.del).bind(client);
+const expireAsync = util.promisify(client.expire).bind(client);
+const keysAsync = util.promisify(client.keys).bind(client);
 
 const {
   SOLA_DB_HOST,
@@ -221,6 +224,17 @@ export default async (req, res) => {
 
   const startTime = performance.now();
   let solrResponse = null;
+  const queue = await keysAsync("queue:*");
+  if (queue.length >= 10) {
+    return res.status(503).json({
+      frameCount: 0,
+      error: `Error: Database is overloaded`,
+      result: [],
+    });
+  }
+  const key = `queue:${new Date().toISOString()}:${req.ip}`;
+  await setAsync(key, 1);
+  await expireAsync(key, 30);
   try {
     solrResponse = await search(
       req.app.locals.coreList,
@@ -229,12 +243,14 @@ export default async (req, res) => {
       Number(req.query.anilistID)
     );
   } catch (e) {
+    await delAsync(key);
     return res.status(503).json({
       frameCount: 0,
       error: `Error: Database is not responding`,
       result: [],
     });
   }
+  await delAsync(key);
   if (solrResponse.find((e) => e.status >= 500)) {
     const r = solrResponse.find((e) => e.status >= 500);
     return res.status(r.status).json({
