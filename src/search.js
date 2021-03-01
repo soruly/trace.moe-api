@@ -302,43 +302,85 @@ export default async (req, res) => {
 
   result = result.map(({ anilist_id, filename, t, from, to, d }) => {
     const mid = from + (to - from) / 2;
-    if (!anilistDB.find((e) => e.id === anilist_id)) {
-      console.log(`${anilist_id}/${filename} should be deleted from DB`);
-    }
-    const anilist = JSON.parse(anilistDB.find((e) => e.id === anilist_id).json);
     const token = crypto
       .createHash("sha1")
-      .update([anilist.id, filename, mid, TRACE_MEDIA_SALT].join(""))
+      .update([anilist_id, filename, mid, TRACE_MEDIA_SALT].join(""))
       .digest("base64")
       .replace(/[^0-9A-Za-z]/g, "");
 
+    let anilistInfo = null;
+    if (!anilistDB.find((e) => e.id === anilist_id)) {
+      console.log(`${anilist_id}/${filename} should be deleted from DB`);
+    } else {
+      const src = JSON.parse(anilistDB.find((e) => e.id === anilist_id).json);
+      if (req.query.info === "full") {
+        anilistInfo = src;
+      } else if (req.query.info === "advanced") {
+        anilistInfo = {
+          // averageScore: src.averageScore,
+          bannerImage: src.bannerImage,
+          // characters: src.characters,
+          coverImage: src.coverImage,
+          // description: src.description,
+          duration: src.duration,
+          endDate: src.endDate,
+          episodes: src.episodes,
+          externalLinks: src.externalLinks,
+          format: src.format,
+          genres: src.genres,
+          // hashtag: src.hashtag,
+          id: src.id,
+          idMal: src.idMal,
+          isAdult: src.isAdult,
+          // meanScore: src.meanScore,
+          // popularity: src.popularity,
+          // rankings: src.rankings,
+          // relations: src.relations,
+          season: src.season,
+          siteUrl: src.siteUrl,
+          source: src.source,
+          // staff: src.staff,
+          startDate: src.startDate,
+          // stats: src.stats,
+          status: src.status,
+          studios: src.studios,
+          synonyms: src.synonyms,
+          synonyms_chinese: src.synonyms_chinese,
+          // tags: src.tags,
+          title: src.title,
+          // trailer: src.trailer,
+          type: src.type,
+          // updatedAt: src.updatedAt,
+        };
+      } else if (req.query.info === "basic") {
+        anilistInfo = {
+          id: src.id,
+          idMal: src.idMal,
+          isAdult: src.isAdult,
+          synonyms: src.synonyms,
+          synonyms_chinese: src.synonyms_chinese,
+          title: src.title,
+        };
+      } else if (req.query.info === "id") {
+        anilistInfo = {
+          id: src.id,
+          idMal: src.idMal,
+        };
+      }
+    }
+
     return {
-      anilist:
-        req.query.anilistInfo === "full"
-          ? anilist
-          : req.query.anilistInfo === "id"
-          ? {
-              id: anilist.id,
-              idMal: anilist.idMal,
-            }
-          : {
-              id: anilist.id,
-              idMal: anilist.idMal,
-              isAdult: anilist.isAdult,
-              synonyms: anilist.synonyms,
-              synonyms_chinese: anilist.synonyms_chinese,
-              title: anilist.title,
-            },
+      anilist: anilistInfo,
       filename,
       episode: aniep(filename),
       from,
       to,
       similarity: (100 - d) / 100,
-      video: `https://media.trace.moe/video/${anilist.id}/${encodeURIComponent(filename)}?${[
+      video: `https://media.trace.moe/video/${anilist_id}/${encodeURIComponent(filename)}?${[
         `t=${mid}`,
         `token=${token}`,
       ].join("&")}`,
-      image: `https://media.trace.moe/image/${anilist.id}/${encodeURIComponent(filename)}?${[
+      image: `https://media.trace.moe/image/${anilist_id}/${encodeURIComponent(filename)}?${[
         `t=${mid}`,
         `token=${token}`,
       ].join("&")}`,
