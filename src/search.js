@@ -66,9 +66,7 @@ export default async (req, res) => {
       .where("api_key", apiKey);
     if (rows[0].monthly_search >= rows[0].monthly_quota) {
       return res.status(402).json({
-        frameCount: 0,
         error: "You have reached your monthly search quota",
-        result: [],
       });
     }
   }
@@ -80,9 +78,7 @@ export default async (req, res) => {
       new URL(req.query.url);
     } catch (e) {
       return res.status(400).json({
-        frameCount: 0,
         error: `Invalid image url ${req.query.url}`,
-        result: [],
       });
     }
 
@@ -98,9 +94,7 @@ export default async (req, res) => {
     );
     if (response.status >= 400) {
       return res.status(response.status).json({
-        frameCount: 0,
         error: `Failed to fetch image ${req.query.url}`,
-        result: [],
       });
     }
     searchFile = await response.buffer();
@@ -133,9 +127,7 @@ export default async (req, res) => {
   );
   if (!fs.existsSync(tempImagePath)) {
     return res.status(400).json({
-      frameCount: 0,
       error: `Failed to process image`,
-      result: [],
     });
   }
   let searchImage = fs.readFileSync(tempImagePath);
@@ -183,9 +175,7 @@ export default async (req, res) => {
     } catch (e) {
       // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
       return res.status(400).json({
-        frameCount: 0,
         error: "OpenCV: Failed to detect and cut borders",
-        result: [],
       });
     }
   }
@@ -193,9 +183,7 @@ export default async (req, res) => {
 
   if (!req.app.locals.coreList || req.app.locals.coreList.length === 0) {
     return res.status(500).json({
-      frameCount: 0,
       error: "Database is offline",
-      result: [],
     });
   }
 
@@ -206,9 +194,7 @@ export default async (req, res) => {
   const queue = await keysAsync("queue:*");
   if (queue.length >= 10) {
     return res.status(503).json({
-      frameCount: 0,
       error: `Error: Database is overloaded`,
-      result: [],
     });
   }
   const key = `queue:${new Date().toISOString()}:${req.ip}`;
@@ -224,18 +210,14 @@ export default async (req, res) => {
   } catch (e) {
     await delAsync(key);
     return res.status(503).json({
-      frameCount: 0,
       error: `Error: Database is not responding`,
-      result: [],
     });
   }
   await delAsync(key);
   if (solrResponse.find((e) => e.status >= 500)) {
     const r = solrResponse.find((e) => e.status >= 500);
     return res.status(r.status).json({
-      frameCount: 0,
       error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
-      result: [],
     });
   }
   let solrResults = await Promise.all(solrResponse.map((e) => e.json()));
@@ -254,9 +236,7 @@ export default async (req, res) => {
     if (solrResponse.find((e) => e.status >= 500)) {
       const r = solrResponse.find((e) => e.status >= 500);
       return res.status(r.status).json({
-        frameCount: 0,
         error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
-        result: [],
       });
     }
     solrResults = await Promise.all(solrResponse.map((e) => e.json()));
@@ -270,9 +250,7 @@ export default async (req, res) => {
 
   if (solrResults.Error) {
     return res.status(500).json({
-      frameCount: 0,
       error: solrResults.Error,
-      result: [],
     });
   }
 
