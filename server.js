@@ -84,7 +84,7 @@ app.use(
     store: new rateLimitRedis({
       expiry: 60,
     }),
-    max: 30, // limit each IP to 30 requests per 60 seconds
+    max: 60, // limit each IP to 60 requests per 60 seconds
     delayMs: 0, // disable delaying - full speed until the max limit is reached
   })
 );

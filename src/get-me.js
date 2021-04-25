@@ -18,14 +18,14 @@ export default async (req, res) => {
     id: req.ip,
     email: "",
     rate_limit: 10,
-    monthly_quota: 3000,
-    monthly_search: 0,
+    concurrency: 2,
+    quota: 10000,
   };
 
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
     const rows = await knex("user")
-      .select("id", "email", "rate_limit", "monthly_quota", "monthly_search")
+      .select("id", "email", "rate_limit", "concurrency", "quota")
       .where("api_key", apiKey);
 
     if (rows.length === 0) {
@@ -36,12 +36,19 @@ export default async (req, res) => {
       user = rows[0];
     }
   }
+  const searchCount = (
+    await knex("log")
+      .count({ count: "time" })
+      .where("time", ">", new Date().toISOString().replace(/(\d+-\d+).+/, "$1-01T00:00:00.000Z"))
+      .andWhere({ status: 200, uid: user.id })
+  )[0].count;
 
   res.json({
     id: `${user.id}`,
     email: user.email,
     rate_limit: user.rate_limit,
-    monthly_quota: user.monthly_quota,
-    monthly_search: user.monthly_search,
+    concurrency: user.concurrency,
+    quota: user.quota,
+    search_count: searchCount,
   });
 };

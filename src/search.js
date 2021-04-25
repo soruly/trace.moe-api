@@ -13,10 +13,9 @@ import { performance } from "perf_hooks";
 
 const client = redis.createClient();
 const getAsync = util.promisify(client.get).bind(client);
-const setAsync = util.promisify(client.set).bind(client);
-const delAsync = util.promisify(client.del).bind(client);
+const incrAsync = util.promisify(client.incr).bind(client);
+const decrAsync = util.promisify(client.decr).bind(client);
 const expireAsync = util.promisify(client.expire).bind(client);
-const keysAsync = util.promisify(client.keys).bind(client);
 
 const {
   SOLA_DB_HOST,
@@ -59,17 +58,39 @@ const search = (coreList, image, candidates, anilistID) =>
   );
 
 export default async (req, res) => {
+  let concurrency = 2;
+  let uid = req.ip;
+  let quota = 10000;
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
-    const rows = await knex("user")
-      .select("id", "monthly_quota", "monthly_search")
-      .where("api_key", apiKey);
-    if (rows[0].monthly_search >= rows[0].monthly_quota) {
-      return res.status(402).json({
-        error: "You have reached your monthly search quota",
-      });
-    }
+    const rows = await knex("user").select("id", "quota", "concurrency").where("api_key", apiKey);
+    quota = rows[0].quota;
+    concurrency = rows[0].concurrency;
+    uid = rows[0].id;
   }
+  const searchCount = (
+    await knex("log")
+      .count({ count: "time" })
+      .where("time", ">", new Date().toISOString().replace(/(\d+-\d+).+/, "$1-01T00:00:00.000Z"))
+      .andWhere({ status: 200, uid })
+  )[0].count;
+
+  if (searchCount >= quota) {
+    await knex("log").insert({ time: knex.fn.now(), uid, status: 402 });
+    return res.status(402).json({
+      error: "Search quota depleted",
+    });
+  }
+
+  const concurrentCount = await getAsync(`c:${uid}`);
+  if (concurrentCount && concurrentCount > concurrency) {
+    await knex("log").insert({ time: knex.fn.now(), uid, status: 402 });
+    return res.status(402).json({
+      error: "Concurrency limit exceeded",
+    });
+  }
+  await incrAsync(`c:${uid}`);
+  await expireAsync(`c:${uid}`, 60);
 
   let searchFile;
   if (req.query.url) {
@@ -77,6 +98,7 @@ export default async (req, res) => {
     try {
       new URL(req.query.url);
     } catch (e) {
+      await knex("log").insert({ time: knex.fn.now(), uid, status: 400 });
       return res.status(400).json({
         error: `Invalid image url ${req.query.url}`,
       });
@@ -93,6 +115,7 @@ export default async (req, res) => {
         : `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
     );
     if (response.status >= 400) {
+      await knex("log").insert({ time: knex.fn.now(), uid, status: 400 });
       return res.status(response.status).json({
         error: `Failed to fetch image ${req.query.url}`,
       });
@@ -101,6 +124,7 @@ export default async (req, res) => {
   } else if (req.file) {
     searchFile = req.file.buffer;
   } else {
+    await knex("log").insert({ time: knex.fn.now(), uid, status: 405 });
     return res.status(405).json({
       error: "Method Not Allowed",
     });
@@ -130,6 +154,7 @@ export default async (req, res) => {
     { encoding: "utf-8" }
   );
   if (!fs.existsSync(tempImagePath)) {
+    await knex("log").insert({ time: knex.fn.now(), uid, status: 400 });
     return res.status(400).json({
       error: `Failed to process image`,
     });
@@ -178,6 +203,7 @@ export default async (req, res) => {
       }
     } catch (e) {
       // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
+      await knex("log").insert({ time: knex.fn.now(), uid, status: 400 });
       return res.status(400).json({
         error: "OpenCV: Failed to detect and cut borders",
       });
@@ -186,6 +212,7 @@ export default async (req, res) => {
   // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
 
   if (!req.app.locals.coreList || req.app.locals.coreList.length === 0) {
+    await knex("log").insert({ time: knex.fn.now(), uid, status: 500 });
     return res.status(500).json({
       error: "Database is offline",
     });
@@ -195,15 +222,15 @@ export default async (req, res) => {
 
   const startTime = performance.now();
   let solrResponse = null;
-  const queue = await keysAsync("queue:*");
-  if (queue.length >= 10) {
+  const queue = await getAsync("queue");
+  if (queue && queue >= 5) {
+    await knex("log").insert({ time: knex.fn.now(), uid, status: 503 });
     return res.status(503).json({
       error: `Error: Database is overloaded`,
     });
   }
-  const key = `queue:${new Date().toISOString()}:${req.ip}`;
-  await setAsync(key, 1);
-  await expireAsync(key, 30);
+  await incrAsync("queue");
+  await expireAsync("queue", 60);
   try {
     solrResponse = await search(
       req.app.locals.coreList,
@@ -212,14 +239,16 @@ export default async (req, res) => {
       Number(req.query.anilistID)
     );
   } catch (e) {
-    await delAsync(key);
+    await decrAsync("queue");
+    await knex("log").insert({ time: knex.fn.now(), uid, status: 503 });
     return res.status(503).json({
       error: `Error: Database is not responding`,
     });
   }
-  await delAsync(key);
+  await decrAsync("queue");
   if (solrResponse.find((e) => e.status >= 500)) {
     const r = solrResponse.find((e) => e.status >= 500);
+    await knex("log").insert({ time: knex.fn.now(), uid, status: r.status });
     return res.status(r.status).json({
       error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
     });
@@ -239,6 +268,7 @@ export default async (req, res) => {
     );
     if (solrResponse.find((e) => e.status >= 500)) {
       const r = solrResponse.find((e) => e.status >= 500);
+      await knex("log").insert({ time: knex.fn.now(), uid, status: r.status });
       return res.status(r.status).json({
         error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
       });
@@ -253,6 +283,7 @@ export default async (req, res) => {
   let reRankSearchTimeList = [];
 
   if (solrResults.Error) {
+    await knex("log").insert({ time: knex.fn.now(), uid, status: 500 });
     return res.status(500).json({
       error: solrResults.Error,
     });
@@ -391,14 +422,13 @@ export default async (req, res) => {
     };
   });
 
+  await knex("log").insert({ time: knex.fn.now(), uid, status: 200 });
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",
     result,
   });
 
-  if (apiKey) {
-    await knex("user").where("api_key", apiKey).increment("monthly_search", 1);
-  }
+  await decrAsync(`c:${uid}`);
   // console.log(`searchTime: ${searchTime}`);
 };
