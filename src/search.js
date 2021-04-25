@@ -100,6 +100,10 @@ export default async (req, res) => {
     searchFile = await response.buffer();
   } else if (req.file) {
     searchFile = req.file.buffer;
+  } else {
+    return res.status(405).json({
+      error: "Method Not Allowed",
+    });
   }
 
   const tempFilePath = path.join(os.tmpdir(), `queryFile${process.hrtime().join("")}`);
