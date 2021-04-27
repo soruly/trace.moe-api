@@ -224,10 +224,6 @@ export default async (req, res) => {
     });
   }
 
-  let candidates = 1000000;
-
-  const startTime = performance.now();
-  let solrResponse = null;
   const queue = await incrAsync("queue");
   await expireAsync("queue", 60);
   if (queue > 5) {
@@ -238,6 +234,10 @@ export default async (req, res) => {
       error: `Error: Database is overloaded`,
     });
   }
+
+  let candidates = 1000000;
+  const startTime = performance.now();
+  let solrResponse = null;
   try {
     solrResponse = await search(
       req.app.locals.coreList,
@@ -433,7 +433,7 @@ export default async (req, res) => {
     };
   });
 
-  await knex("log").insert({ time: knex.fn.now(), uid, status: 200 });
+  await knex("log").insert({ time: knex.fn.now(), uid, status: 200, search_time: searchTime });
   await decrAsync(`c:${uid}`);
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
