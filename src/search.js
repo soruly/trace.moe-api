@@ -59,7 +59,7 @@ const search = (coreList, image, candidates, anilistID) =>
 
 export default async (req, res) => {
   let concurrency = 2;
-  let uid = req.ip;
+  let uid = req.query.ip ?? req.ip;
   let quota = 10000;
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
@@ -82,15 +82,15 @@ export default async (req, res) => {
     });
   }
 
-  const concurrentCount = await getAsync(`c:${uid}`);
-  if (concurrentCount && concurrentCount > concurrency) {
+  const concurrentCount = await incrAsync(`c:${uid}`);
+  await expireAsync(`c:${uid}`, 60);
+  if (concurrentCount > concurrency) {
     await knex("log").insert({ time: knex.fn.now(), uid, status: 402 });
+    await decrAsync(`c:${uid}`);
     return res.status(402).json({
       error: "Concurrency limit exceeded",
     });
   }
-  await incrAsync(`c:${uid}`);
-  await expireAsync(`c:${uid}`, 60);
 
   let searchFile;
   if (req.query.url) {
@@ -228,16 +228,16 @@ export default async (req, res) => {
 
   const startTime = performance.now();
   let solrResponse = null;
-  const queue = await getAsync("queue");
-  if (queue && queue >= 5) {
+  const queue = await incrAsync("queue");
+  await expireAsync("queue", 60);
+  if (queue > 5) {
+    await decrAsync("queue");
     await knex("log").insert({ time: knex.fn.now(), uid, status: 503 });
     await decrAsync(`c:${uid}`);
     return res.status(503).json({
       error: `Error: Database is overloaded`,
     });
   }
-  await incrAsync("queue");
-  await expireAsync("queue", 60);
   try {
     solrResponse = await search(
       req.app.locals.coreList,
