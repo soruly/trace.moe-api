@@ -13,6 +13,7 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 import checkSecret from "./src/check-secret.js";
 import getMe from "./src/get-me.js";
 import getStatus from "./src/get-status.js";
+import getStats from "./src/get-stats.js";
 import search from "./src/search.js";
 import uploaded from "./src/uploaded.js";
 import putHash from "./src/put-hash.js";
@@ -111,6 +112,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 app.get("/me", getMe);
 app.get("/status", getStatus);
+app.get("/stats", getStats);
 app.get("/create-core", checkSecret, createCore);
 app.get("/uploaded/:anilistID/:filename", checkSecret, uploaded);
 app.put("/hash/:anilistID/:filename", checkSecret, putHash);
