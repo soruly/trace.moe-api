@@ -141,8 +141,7 @@ const lookForJobs = async (ws) => {
 wss.on("connection", async (ws, request) => {
   const type = request.headers["x-trace-worker-type"];
   if (type === "hash" || type === "load") {
-    const ip = request.headers["x-forwarded-for"]?.split(/\s*,\s*/)?.[0];
-    workerPool.set(ws, { status: STATE.READY, type, file: "", ip });
+    workerPool.set(ws, { status: STATE.READY, type, file: "" });
     await lookForJobs(ws);
     ws.on("message", async (message) => {
       await lookForJobs(ws);
