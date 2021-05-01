@@ -24,6 +24,8 @@ import getSolrCoreList from "./lib/get-solr-core-list.js";
 import loaded from "./src/loaded.js";
 import unload from "./src/unload.js";
 import putAnilistChinese from "./src/put-anilist-chinese.js";
+import github from "./src/webhook/github.js";
+import patreon from "./src/webhook/patreon.js";
 
 import v8 from "v8";
 console.log(
@@ -107,7 +109,13 @@ app.use((req, res, next) => {
 });
 
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(
+  bodyParser.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.get("/me", getMe);
@@ -121,6 +129,8 @@ app.get("/loaded/:anilistID/:filename", checkSecret, loaded);
 app.get("/unload/:anilistID/:filename", checkSecret, unload);
 app.put("/anilist_chinese/:anilistID", checkSecret, putAnilistChinese);
 app.get("/workers", checkSecret, getWorkers);
+app.all("/webhook/github", github);
+app.all("/webhook/patreon", patreon);
 app.all("/search", upload.single("image"), search);
 app.all("/", async (req, res) => {
   res.send("ok");
