@@ -16,6 +16,7 @@ const getAsync = util.promisify(client.get).bind(client);
 const incrAsync = util.promisify(client.incr).bind(client);
 const decrAsync = util.promisify(client.decr).bind(client);
 const expireAsync = util.promisify(client.expire).bind(client);
+const ttlAsync = util.promisify(client.ttl).bind(client);
 
 const {
   SOLA_DB_HOST,
@@ -58,15 +59,24 @@ const search = (coreList, image, candidates, anilistID) =>
   );
 
 export default async (req, res) => {
-  let concurrency = 2;
   let uid = req.query.ip ?? req.ip;
-  let quota = 10000;
+  let concurrency = 0;
+  let rateLimit = 0;
+  let quota = 0;
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
-    const rows = await knex("user").select("id", "quota", "concurrency").where("api_key", apiKey);
+    const rows = await knex("user_view")
+      .select("id", "quota", "concurrency", "rate_limit")
+      .where("api_key", apiKey);
     quota = rows[0].quota;
     concurrency = rows[0].concurrency;
+    rateLimit = rows[0].rate_limit;
     uid = rows[0].id;
+  } else {
+    const rows = await knex("tier").select("rate_limit", "concurrency", "quota").where("id", 0);
+    quota = rows[0].quota;
+    concurrency = rows[0].concurrency;
+    rateLimit = rows[0].rate_limit;
   }
   const searchCount = (
     await knex("log")
@@ -89,6 +99,17 @@ export default async (req, res) => {
     await decrAsync(`c:${uid}`);
     return res.status(402).json({
       error: "Concurrency limit exceeded",
+    });
+  }
+
+  const rateCount = await incrAsync(`r:${uid}`);
+  if (rateCount === 1) {
+    await expireAsync(`r:${uid}`, 60);
+  }
+  if (rateCount > rateLimit) {
+    await knex("log").insert({ time: knex.fn.now(), uid, status: 402 });
+    return res.status(402).json({
+      error: "Rate limit exceeded",
     });
   }
 

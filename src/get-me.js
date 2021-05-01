@@ -14,17 +14,15 @@ const knex = Knex({
 });
 
 export default async (req, res) => {
-  let user = {
-    id: req.ip,
-    email: "",
-    rate_limit: 10,
-    concurrency: 2,
-    quota: 10000,
-  };
+  let uid = "";
+  let email = "";
+  let rateLimit = 0;
+  let concurrency = 0;
+  let quota = 0;
 
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
-    const rows = await knex("user")
+    const rows = await knex("user_view")
       .select("id", "email", "rate_limit", "concurrency", "quota")
       .where("api_key", apiKey);
 
@@ -33,22 +31,33 @@ export default async (req, res) => {
         error: "Invalid API key",
       });
     } else {
-      user = rows[0];
+      uid = rows[0].id;
+      email = rows[0].email;
+      rateLimit = rows[0].rate_limit;
+      concurrency = rows[0].concurrency;
+      quota = rows[0].quota;
     }
+  } else {
+    const rows = await knex("tier").select("rate_limit", "concurrency", "quota").where("id", 0);
+    uid = req.id;
+    email = "";
+    rateLimit = rows[0].rate_limit;
+    concurrency = rows[0].concurrency;
+    quota = rows[0].quota;
   }
-  const searchCount = (
+  const quotaUsed = (
     await knex("log")
       .count({ count: "time" })
       .where("time", ">", new Date().toISOString().replace(/(\d+-\d+).+/, "$1-01T00:00:00.000Z"))
-      .andWhere({ status: 200, uid: user.id })
+      .andWhere({ status: 200, uid })
   )[0].count;
 
   res.json({
-    id: `${user.id}`,
-    email: user.email,
-    rate_limit: user.rate_limit,
-    concurrency: user.concurrency,
-    quota: user.quota,
-    search_count: searchCount,
+    id: uid,
+    email,
+    rateLimit,
+    concurrency,
+    quota,
+    quotaUsed,
   });
 };
