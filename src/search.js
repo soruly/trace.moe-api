@@ -354,7 +354,7 @@ export default async (req, res) => {
       .digest("base64")
       .replace(/[^0-9A-Za-z]/g, "");
 
-    let anilistInfo = null;
+    let anilistInfo = anilist_id;
     if (!anilistDB.find((e) => e.id === anilist_id)) {
       console.log(`${anilist_id}/${filename} should be deleted from DB`);
     } else {
