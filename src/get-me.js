@@ -39,7 +39,7 @@ export default async (req, res) => {
     }
   } else {
     const rows = await knex("tier").select("rate_limit", "concurrency", "quota").where("id", 0);
-    uid = req.id;
+    uid = req.ip;
     email = "";
     rateLimit = rows[0].rate_limit;
     concurrency = rows[0].concurrency;
