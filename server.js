@@ -4,6 +4,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import rateLimitRedis from "rate-limit-redis";
 import bodyParser from "body-parser";
+import cors from "cors";
 import multer from "multer";
 import Knex from "knex";
 import WebSocket from "ws";
@@ -26,6 +27,9 @@ import unload from "./src/unload.js";
 import putAnilistChinese from "./src/put-anilist-chinese.js";
 import github from "./src/webhook/github.js";
 import patreon from "./src/webhook/patreon.js";
+import login from "./src/user/login.js";
+import resetKey from "./src/user/reset-key.js";
+import resetPassword from "./src/user/reset-password.js";
 
 import v8 from "v8";
 console.log(
@@ -108,6 +112,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(
   bodyParser.json({
@@ -132,6 +137,9 @@ app.get("/workers", checkSecret, getWorkers);
 app.all("/webhook/github", github);
 app.all("/webhook/patreon", patreon);
 app.all("/search", upload.single("image"), search);
+app.all("/user/login", login);
+app.all("/user/reset-key", resetKey);
+app.all("/user/reset-password", resetPassword);
 app.all("/", async (req, res) => {
   res.send("ok");
 });
