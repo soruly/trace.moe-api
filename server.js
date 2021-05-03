@@ -10,6 +10,8 @@ import Knex from "knex";
 import WebSocket from "ws";
 import fs from "fs-extra";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import * as redis from "redis";
+import util from "util";
 
 import checkSecret from "./src/check-secret.js";
 import getMe from "./src/get-me.js";
@@ -49,6 +51,10 @@ const {
   SERVER_WS_PORT,
   TRACE_API_SECRET,
 } = process.env;
+
+const client = redis.createClient();
+const flushallAsync = util.promisify(client.flushall).bind(client);
+await flushallAsync();
 
 const knex = Knex({
   client: "mysql",
