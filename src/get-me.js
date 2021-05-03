@@ -45,12 +45,8 @@ export default async (req, res) => {
     concurrency = rows[0].concurrency;
     quota = rows[0].quota;
   }
-  const quotaUsed = (
-    await knex("log")
-      .count({ count: "time" })
-      .where("time", ">", new Date().toISOString().replace(/(\d+-\d+).+/, "$1-01T00:00:00.000Z"))
-      .andWhere({ status: 200, uid })
-  )[0].count;
+  const userQuota = await knex("user_quota").where("uid", uid);
+  const quotaUsed = userQuota.length ? userQuota[0].count : 0;
 
   res.json({
     id: uid,
