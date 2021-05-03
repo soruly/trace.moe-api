@@ -7,7 +7,7 @@ const {
   SOLA_DB_USER,
   SOLA_DB_PWD,
   SOLA_DB_NAME,
-  TRACE_MEDIA_SALT,
+  TRACE_API_SALT,
 } = process.env;
 
 const knex = Knex({
@@ -34,7 +34,7 @@ export default async (req, res) => {
       error: "Invalid API key",
     });
   }
-  const hmac = crypto.createHmac("sha256", TRACE_MEDIA_SALT);
+  const hmac = crypto.createHmac("sha256", TRACE_API_SALT);
   const key = hmac.update(`${Math.random() * 10000}`).digest("hex");
   await knex("user").where("id", rows[0].id).update("api_key", key);
 

@@ -1,4 +1,5 @@
 import Knex from "knex";
+import crypto from "crypto";
 
 const {
   SOLA_DB_HOST,
@@ -6,7 +7,7 @@ const {
   SOLA_DB_USER,
   SOLA_DB_PWD,
   SOLA_DB_NAME,
-  TRACE_MEDIA_SALT,
+  TRACE_API_SALT,
 } = process.env;
 
 const knex = Knex({
@@ -26,9 +27,11 @@ export default async (req, res) => {
       error: "Invalid Email or Password",
     });
   }
+  const hmac = crypto.createHmac("sha256", TRACE_API_SALT);
+  const hashedPassword = hmac.update(req.body.password).digest("hex");
   const rows = await knex("user").select("api_key").where({
     email: req.body.email,
-    password: req.body.password,
+    password: hashedPassword,
   });
   if (rows.length) {
     return res.json({

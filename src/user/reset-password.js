@@ -7,7 +7,7 @@ const {
   SOLA_DB_USER,
   SOLA_DB_PWD,
   SOLA_DB_NAME,
-  TRACE_MEDIA_SALT,
+  TRACE_API_SALT,
 } = process.env;
 
 const knex = Knex({
@@ -39,7 +39,9 @@ export default async (req, res) => {
       error: "Password must be at least 8 characters long",
     });
   }
-  await knex("user").where("id", rows[0].id).update("password", req.body.password);
+  const hmac = crypto.createHmac("sha256", TRACE_API_SALT);
+  const hashedPassword = hmac.update(req.body.password).digest("hex");
+  await knex("user").where("id", rows[0].id).update("password", hashedPassword);
 
   return res.json({});
 };
