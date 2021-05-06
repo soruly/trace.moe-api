@@ -58,6 +58,15 @@ const search = (coreList, image, candidates, anilistID) =>
     )
   );
 
+const logAndDequeue = async (uid, status, searchTime) => {
+  if (searchTime) {
+    await knex("log").insert({ time: knex.fn.now(), uid, status, search_time: searchTime });
+  } else {
+    await knex("log").insert({ time: knex.fn.now(), uid, status });
+  }
+  await decrAsync(`c:${uid}`);
+};
+
 export default async (req, res) => {
   let uid = req.query.ip ?? req.ip;
   let concurrency = 0;
@@ -95,8 +104,7 @@ export default async (req, res) => {
   const concurrentCount = await incrAsync(`c:${uid}`);
   await expireAsync(`c:${uid}`, 60);
   if (concurrentCount > concurrency) {
-    await knex("log").insert({ time: knex.fn.now(), uid, status: 402 });
-    await decrAsync(`c:${uid}`);
+    await logAndDequeue(uid, 402);
     return res.status(402).json({
       error: "Concurrency limit exceeded",
     });
@@ -107,7 +115,7 @@ export default async (req, res) => {
     await expireAsync(`r:${uid}`, 60);
   }
   if (rateCount > rateLimit) {
-    await knex("log").insert({ time: knex.fn.now(), uid, status: 402 });
+    await logAndDequeue(uid, 402);
     return res.status(402).json({
       error: "Rate limit exceeded",
     });
@@ -119,8 +127,7 @@ export default async (req, res) => {
     try {
       new URL(req.query.url);
     } catch (e) {
-      await knex("log").insert({ time: knex.fn.now(), uid, status: 400 });
-      await decrAsync(`c:${uid}`);
+      await logAndDequeue(uid, 400);
       return res.status(400).json({
         error: `Invalid image url ${req.query.url}`,
       });
@@ -137,8 +144,7 @@ export default async (req, res) => {
         : `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
     );
     if (response.status >= 400) {
-      await knex("log").insert({ time: knex.fn.now(), uid, status: 400 });
-      await decrAsync(`c:${uid}`);
+      await logAndDequeue(uid, 400);
       return res.status(response.status).json({
         error: `Failed to fetch image ${req.query.url}`,
       });
@@ -147,8 +153,7 @@ export default async (req, res) => {
   } else if (req.file) {
     searchFile = req.file.buffer;
   } else {
-    await knex("log").insert({ time: knex.fn.now(), uid, status: 405 });
-    await decrAsync(`c:${uid}`);
+    await logAndDequeue(uid, 405);
     return res.status(405).json({
       error: "Method Not Allowed",
     });
@@ -178,8 +183,7 @@ export default async (req, res) => {
     { encoding: "utf-8" }
   );
   if (!fs.existsSync(tempImagePath)) {
-    await knex("log").insert({ time: knex.fn.now(), uid, status: 400 });
-    await decrAsync(`c:${uid}`);
+    await logAndDequeue(uid, 400);
     return res.status(400).json({
       error: `Failed to process image`,
     });
@@ -228,8 +232,7 @@ export default async (req, res) => {
       }
     } catch (e) {
       // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
-      await knex("log").insert({ time: knex.fn.now(), uid, status: 400 });
-      await decrAsync(`c:${uid}`);
+      await logAndDequeue(uid, 400);
       return res.status(400).json({
         error: "OpenCV: Failed to detect and cut borders",
       });
@@ -238,8 +241,7 @@ export default async (req, res) => {
   // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
 
   if (!req.app.locals.coreList || req.app.locals.coreList.length === 0) {
-    await knex("log").insert({ time: knex.fn.now(), uid, status: 500 });
-    await decrAsync(`c:${uid}`);
+    await logAndDequeue(uid, 500);
     return res.status(500).json({
       error: "Database is offline",
     });
@@ -249,8 +251,7 @@ export default async (req, res) => {
   await expireAsync("queue", 60);
   if (queue > 5) {
     await decrAsync("queue");
-    await knex("log").insert({ time: knex.fn.now(), uid, status: 503 });
-    await decrAsync(`c:${uid}`);
+    await logAndDequeue(uid, 503);
     return res.status(503).json({
       error: `Error: Database is overloaded`,
     });
@@ -268,8 +269,7 @@ export default async (req, res) => {
     );
   } catch (e) {
     await decrAsync("queue");
-    await knex("log").insert({ time: knex.fn.now(), uid, status: 503 });
-    await decrAsync(`c:${uid}`);
+    await logAndDequeue(uid, 503);
     return res.status(503).json({
       error: `Error: Database is not responding`,
     });
@@ -277,8 +277,7 @@ export default async (req, res) => {
   await decrAsync("queue");
   if (solrResponse.find((e) => e.status >= 500)) {
     const r = solrResponse.find((e) => e.status >= 500);
-    await knex("log").insert({ time: knex.fn.now(), uid, status: r.status });
-    await decrAsync(`c:${uid}`);
+    await logAndDequeue(uid, r.status);
     return res.status(r.status).json({
       error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
     });
@@ -298,8 +297,7 @@ export default async (req, res) => {
     );
     if (solrResponse.find((e) => e.status >= 500)) {
       const r = solrResponse.find((e) => e.status >= 500);
-      await knex("log").insert({ time: knex.fn.now(), uid, status: r.status });
-      await decrAsync(`c:${uid}`);
+      await logAndDequeue(uid, r.status);
       return res.status(r.status).json({
         error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
       });
@@ -314,8 +312,7 @@ export default async (req, res) => {
   let reRankSearchTimeList = [];
 
   if (solrResults.Error) {
-    await knex("log").insert({ time: knex.fn.now(), uid, status: 500 });
-    await decrAsync(`c:${uid}`);
+    await logAndDequeue(uid, 500);
     return res.status(500).json({
       error: solrResults.Error,
     });
@@ -454,8 +451,7 @@ export default async (req, res) => {
     };
   });
 
-  await knex("log").insert({ time: knex.fn.now(), uid, status: 200, search_time: searchTime });
-  await decrAsync(`c:${uid}`);
+  await logAndDequeue(uid, 200, searchTime);
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",
