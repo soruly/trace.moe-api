@@ -1,4 +1,4 @@
-import "dotenv/config.js";
+import "dotenv/config";
 import { performance } from "perf_hooks";
 import express from "express";
 import rateLimit from "express-rate-limit";

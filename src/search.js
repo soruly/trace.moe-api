@@ -12,11 +12,12 @@ import * as redis from "redis";
 import { performance } from "perf_hooks";
 
 const client = redis.createClient();
-const getAsync = util.promisify(client.get).bind(client);
+const delAsync = util.promisify(client.del).bind(client);
+const mgetAsync = util.promisify(client.mget).bind(client);
+const keysAsync = util.promisify(client.keys).bind(client);
 const incrAsync = util.promisify(client.incr).bind(client);
 const decrAsync = util.promisify(client.decr).bind(client);
 const expireAsync = util.promisify(client.expire).bind(client);
-const ttlAsync = util.promisify(client.ttl).bind(client);
 
 const {
   SOLA_DB_HOST,
@@ -58,34 +59,37 @@ const search = (coreList, image, candidates, anilistID) =>
     )
   );
 
-const logAndDequeue = async (uid, status, searchTime) => {
+const logAndDequeue = async (uid, priority, status, searchTime) => {
   if (searchTime) {
     await knex("log").insert({ time: knex.fn.now(), uid, status, search_time: searchTime });
   } else {
     await knex("log").insert({ time: knex.fn.now(), uid, status });
   }
-  await decrAsync(`c:${uid}`);
+  const c = await decrAsync(`c:${uid}`);
+  if (c < 0) {
+    await delAsync(`c:${uid}`);
+  }
+  const q = await decrAsync(`q:${priority}`);
+  if (q < 0) {
+    await delAsync(`q:${priority}`);
+  }
 };
 
 export default async (req, res) => {
-  let uid = req.query.ip ?? req.ip;
-  let concurrency = 0;
-  let rateLimit = 0;
-  let quota = 0;
+  const rows = await knex("tier").select("concurrency", "quota", "priority").where("id", 0);
+  let quota = rows[0].quota;
+  let concurrency = rows[0].concurrency;
+  let priority = rows[0].priority;
+  let uid = req.ip;
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
     const rows = await knex("user_view")
-      .select("id", "quota", "concurrency", "rate_limit")
+      .select("id", "quota", "concurrency", "priority")
       .where("api_key", apiKey);
     quota = rows[0].quota;
     concurrency = rows[0].concurrency;
-    rateLimit = rows[0].rate_limit;
-    uid = rows[0].id;
-  } else {
-    const rows = await knex("tier").select("rate_limit", "concurrency", "quota").where("id", 0);
-    quota = rows[0].quota;
-    concurrency = rows[0].concurrency;
-    rateLimit = rows[0].rate_limit;
+    priority = rows[0].priority;
+    uid = rows[0].id >= 1000 ? rows[0].id : req.query.uid ?? rows[0].id;
   }
   const searchCount = (
     await knex("log")
@@ -104,20 +108,23 @@ export default async (req, res) => {
   const concurrentCount = await incrAsync(`c:${uid}`);
   await expireAsync(`c:${uid}`, 60);
   if (concurrentCount > concurrency) {
-    await logAndDequeue(uid, 402);
+    await logAndDequeue(uid, priority, 402);
     return res.status(402).json({
       error: "Concurrency limit exceeded",
     });
   }
 
-  const rateCount = await incrAsync(`r:${uid}`);
-  if (rateCount === 1) {
-    await expireAsync(`r:${uid}`, 60);
-  }
-  if (rateCount > rateLimit) {
-    await logAndDequeue(uid, 402);
-    return res.status(402).json({
-      error: "Rate limit exceeded",
+  await incrAsync(`q:${priority}`);
+  await expireAsync(`q:${priority}`, 60);
+  const queueKeys = await keysAsync("q:*");
+  const priorityKeys = queueKeys.filter((e) => Number(e.split(":")[1]) >= priority);
+  const priorityQueues = priorityKeys.length ? await mgetAsync(priorityKeys) : [];
+  const priorityQueuesLength = priorityQueues.map((e) => Number(e)).reduce((a, b) => a + b, 0);
+
+  if (priorityQueuesLength >= 5) {
+    await logAndDequeue(uid, priority, 503);
+    return res.status(503).json({
+      error: `Error: Search queue is full`,
     });
   }
 
@@ -127,7 +134,7 @@ export default async (req, res) => {
     try {
       new URL(req.query.url);
     } catch (e) {
-      await logAndDequeue(uid, 400);
+      await logAndDequeue(uid, priority, 400);
       return res.status(400).json({
         error: `Invalid image url ${req.query.url}`,
       });
@@ -144,7 +151,7 @@ export default async (req, res) => {
         : `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
     );
     if (response.status >= 400) {
-      await logAndDequeue(uid, 400);
+      await logAndDequeue(uid, priority, 400);
       return res.status(response.status).json({
         error: `Failed to fetch image ${req.query.url}`,
       });
@@ -153,7 +160,7 @@ export default async (req, res) => {
   } else if (req.file) {
     searchFile = req.file.buffer;
   } else {
-    await logAndDequeue(uid, 405);
+    await logAndDequeue(uid, priority, 405);
     return res.status(405).json({
       error: "Method Not Allowed",
     });
@@ -183,7 +190,7 @@ export default async (req, res) => {
     { encoding: "utf-8" }
   );
   if (!fs.existsSync(tempImagePath)) {
-    await logAndDequeue(uid, 400);
+    await logAndDequeue(uid, priority, 400);
     return res.status(400).json({
       error: `Failed to process image`,
     });
@@ -232,7 +239,7 @@ export default async (req, res) => {
       }
     } catch (e) {
       // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
-      await logAndDequeue(uid, 400);
+      await logAndDequeue(uid, priority, 400);
       return res.status(400).json({
         error: "OpenCV: Failed to detect and cut borders",
       });
@@ -241,19 +248,9 @@ export default async (req, res) => {
   // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
 
   if (!req.app.locals.coreList || req.app.locals.coreList.length === 0) {
-    await logAndDequeue(uid, 500);
+    await logAndDequeue(uid, priority, 500);
     return res.status(500).json({
       error: "Database is offline",
-    });
-  }
-
-  const queue = await incrAsync("queue");
-  await expireAsync("queue", 60);
-  if (queue > 5) {
-    await decrAsync("queue");
-    await logAndDequeue(uid, 503);
-    return res.status(503).json({
-      error: `Error: Database is overloaded`,
     });
   }
 
@@ -268,16 +265,14 @@ export default async (req, res) => {
       Number(req.query.anilistID)
     );
   } catch (e) {
-    await decrAsync("queue");
-    await logAndDequeue(uid, 503);
+    await logAndDequeue(uid, priority, 503);
     return res.status(503).json({
       error: `Error: Database is not responding`,
     });
   }
-  await decrAsync("queue");
   if (solrResponse.find((e) => e.status >= 500)) {
     const r = solrResponse.find((e) => e.status >= 500);
-    await logAndDequeue(uid, r.status);
+    await logAndDequeue(uid, priority, r.status);
     return res.status(r.status).json({
       error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
     });
@@ -297,7 +292,7 @@ export default async (req, res) => {
     );
     if (solrResponse.find((e) => e.status >= 500)) {
       const r = solrResponse.find((e) => e.status >= 500);
-      await logAndDequeue(uid, r.status);
+      await logAndDequeue(uid, priority, r.status);
       return res.status(r.status).json({
         error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
       });
@@ -312,7 +307,7 @@ export default async (req, res) => {
   let reRankSearchTimeList = [];
 
   if (solrResults.Error) {
-    await logAndDequeue(uid, 500);
+    await logAndDequeue(uid, priority, 500);
     return res.status(500).json({
       error: solrResults.Error,
     });
@@ -451,7 +446,7 @@ export default async (req, res) => {
     };
   });
 
-  await logAndDequeue(uid, 200, searchTime);
+  await logAndDequeue(uid, priority, 200, searchTime);
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",

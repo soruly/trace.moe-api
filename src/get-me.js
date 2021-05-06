@@ -16,14 +16,14 @@ const knex = Knex({
 export default async (req, res) => {
   let uid = "";
   let email = "";
-  let rateLimit = 0;
+  let priority = 0;
   let concurrency = 0;
   let quota = 0;
 
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
     const rows = await knex("user_view")
-      .select("id", "email", "rate_limit", "concurrency", "quota")
+      .select("id", "email", "priority", "concurrency", "quota")
       .where("api_key", apiKey);
 
     if (rows.length === 0) {
@@ -33,15 +33,15 @@ export default async (req, res) => {
     } else {
       uid = rows[0].id;
       email = rows[0].email;
-      rateLimit = rows[0].rate_limit;
+      priority = rows[0].priority;
       concurrency = rows[0].concurrency;
       quota = rows[0].quota;
     }
   } else {
-    const rows = await knex("tier").select("rate_limit", "concurrency", "quota").where("id", 0);
+    const rows = await knex("tier").select("priority", "concurrency", "quota").where("id", 0);
     uid = req.ip;
     email = "";
-    rateLimit = rows[0].rate_limit;
+    priority = rows[0].priority;
     concurrency = rows[0].concurrency;
     quota = rows[0].quota;
   }
@@ -51,7 +51,7 @@ export default async (req, res) => {
   res.json({
     id: uid,
     email,
-    rateLimit,
+    priority,
     concurrency,
     quota,
     quotaUsed,

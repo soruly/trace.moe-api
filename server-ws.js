@@ -1,4 +1,4 @@
-import "dotenv/config.js";
+import "dotenv/config";
 import WebSocket from "ws";
 import Knex from "knex";
 import fetch from "node-fetch";
