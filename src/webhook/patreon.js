@@ -1,3 +1,5 @@
+//
+import fs from "fs-extra";
 import fetch from "node-fetch";
 import Knex from "knex";
 import crypto from "crypto";
@@ -9,6 +11,7 @@ const {
   SOLA_DB_PWD,
   SOLA_DB_NAME,
   WEBHOOK_PATREON_SECRET,
+  TRACE_API_SALT,
   SENDGRID_API_KEY,
 } = process.env;
 
@@ -42,7 +45,7 @@ export default async (req, res) => {
 
   const {
     data: {
-      attributes: { patron_status, email },
+      attributes: { patron_status, email, full_name },
     },
     included,
   } = req.body;
@@ -69,6 +72,29 @@ export default async (req, res) => {
         hmac = crypto.createHmac("sha256", TRACE_API_SALT);
         const api_key = hmac.update(crypto.randomBytes(16)).digest("hex");
         await knex("user").insert({ email, password, api_key, tier });
+
+        await fetch("https://api.sendgrid.com/v3/mail/send", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SENDGRID_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email }] }],
+            from: { email: "no-reply@trace.moe", name: "trace.moe" },
+            subject: "Thank you for supporting trace.moe",
+            content: [
+              {
+                type: "text/html",
+                value: fs
+                  .readFileSync("./email.html", "utf8")
+                  .replace("<!--user-->", full_name)
+                  .replace("<!--email-->", email)
+                  .replace("<!--password-->", plainPassword),
+              },
+            ],
+          }),
+        });
       } else {
         await knex("user").where("email", email).update({ tier });
       }
@@ -76,22 +102,6 @@ export default async (req, res) => {
   } else if (patron_status === "declined_patron") {
     await knex("user").where("email", email).update({ tier: 0 });
   }
-
-  // if (SENDGRID_API_KEY) {
-  //   await fetch("https://api.sendgrid.com/v3/mail/send", {
-  //     method: "POST",
-  //     headers: {
-  //       Authorization: `Bearer ${SENDGRID_API_KEY}`,
-  //       "Content-Type": "application/json",
-  //     },
-  //     body: JSON.stringify({
-  //       personalizations: [{ to: [{ email: "soruly@gmail.com" }] }],
-  //       from: { email: "no-reply@trace.moe" },
-  //       subject: "Sending with SendGrid is Fun",
-  //       content: [{ type: "text/plain", value: "and easy to do anywhere, even with cURL" }],
-  //     }),
-  //   });
-  // }
 
   res.json({});
 };
