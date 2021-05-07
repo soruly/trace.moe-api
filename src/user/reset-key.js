@@ -35,7 +35,7 @@ export default async (req, res) => {
     });
   }
   const hmac = crypto.createHmac("sha256", TRACE_API_SALT);
-  const key = hmac.update(`${Math.random() * 10000}`).digest("hex");
+  const key = hmac.update(crypto.randomBytes(16)).digest("hex");
   await knex("user").where("id", rows[0].id).update("api_key", key);
 
   return res.json({
