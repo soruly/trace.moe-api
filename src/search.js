@@ -86,10 +86,15 @@ export default async (req, res) => {
     const rows = await knex("user_view")
       .select("id", "quota", "concurrency", "priority")
       .where("api_key", apiKey);
-    quota = rows[0].quota;
-    concurrency = rows[0].concurrency;
-    priority = rows[0].priority;
-    uid = rows[0].id >= 1000 ? rows[0].id : req.query.uid ?? rows[0].id;
+    if (rows[0].id >= 1000) {
+      quota = rows[0].quota;
+      concurrency = rows[0].concurrency;
+      priority = rows[0].priority;
+      uid = rows[0].id;
+    } else {
+      // system accounts
+      uid = req.query.uid ?? rows[0].id;
+    }
   }
   const searchCount = (
     await knex("log")
