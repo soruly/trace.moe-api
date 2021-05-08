@@ -10,7 +10,8 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 
 - serve image search request
 - crop black borders on search images
-- serve anilist info
+- rate limiting and user management
+- serve server and database status
 - create solr cores
 - store and serve compressed hash files
 - serve workers and mange video and hash status
