@@ -1,14 +1,7 @@
 import Knex from "knex";
-import crypto from "crypto";
+import generateAPIKey from "../../lib/generate-api-key.js";
 
-const {
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-  TRACE_API_SALT,
-} = process.env;
+const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
 
 const knex = Knex({
   client: "mysql",
@@ -34,9 +27,7 @@ export default async (req, res) => {
       error: "Invalid API key",
     });
   }
-  const hmac = crypto.createHmac("sha256", TRACE_API_SALT);
-  const key = hmac.update(crypto.randomBytes(16)).digest("hex");
-  await knex("user").where("id", rows[0].id).update("api_key", key);
+  await knex("user").where("id", rows[0].id).update("api_key", generateAPIKey(rows[0].id));
 
   return res.json({
     key,
