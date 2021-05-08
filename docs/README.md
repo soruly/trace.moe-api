@@ -116,7 +116,7 @@ The recommended resolution is 640 x 360px, higher resolution doesn't yield bette
 
 | Fields     | Meaning                                        | Value                                             |
 | ---------- | ---------------------------------------------- | ------------------------------------------------- |
-| anilist    | The matching [AniList](https://anilist.co/) ID | number                                            |
+| anilist    | The matching Anilist ID or Anilist info        | number or object                                  |
 | filename   | The filename of file where the match is found  | string                                            |
 | episode    | The extracted episode number from filename     | Refer to [aniep](https://github.com/soruly/aniep) |
 | from       | Starting time of the matching scene (seconds)  | number                                            |
@@ -128,8 +128,55 @@ The recommended resolution is 640 x 360px, higher resolution doesn't yield bette
 - Results are sorted from most similar to least similar
 - Similarity lower than 90% are most likely incorrect results. It's up to you to judge what is a match and what is just visually similar.
 - `episode` can be null because it is just a result of parsing the `filename` with [aniep](https://github.com/soruly/aniep)
-- To get anime info like titles, MAL IDs, adult flag, make a second query to [AniList API](https://github.com/AniList/ApiV2-GraphQL-Docs) with `anilist` ID.
-- If you need chinese-translated titles, take a look at [anilist-chinese](https://github.com/soruly/anilist-chinese)
+
+By default, it only returns Anilist ID for search results. To get more anime info, make a second query to [AniList API](https://github.com/AniList/ApiV2-GraphQL-Docs). If you need chinese-translated titles, take a look at [anilist-chinese](https://github.com/soruly/anilist-chinese)
+
+### Include Anilist info
+
+Asking for Anilist info would slow down your request because it takes additional query to Anilist, and may fail depending on their availability.
+
+Only ask for it when you need nothing more than `idMal`, `title`, `synonyms`, `isAdult` from Anilist, you can add `anilistInfo` to query string. e.g.
+
+```bash
+curl https://api.trace.moe/search?anilistInfo&url=https%3A%2F%2Ffoobar%2Fbaz.jpg
+```
+
+```javascript
+await fetch(
+  `https://api.trace.moe/search?anilistInfo&url=${encodeURIComponent("https://foobar/baz.jpg")}`
+).then((e) => e.json());
+```
+
+Example response
+
+```json
+{
+  "frameCount": 745506,
+  "error": "",
+  "result": [
+    {
+      "anilist": {
+        "id": 99939,
+        "idMal": 34658,
+        "title": { "native": "ネコぱらOVA", "romaji": "Nekopara OVA", "english": null },
+        "synonyms": ["Neko Para OVA"],
+        "isAdult": false
+      },
+      "filename": "Nekopara - OVA (BD 1280x720 x264 AAC).mp4",
+      "episode": null,
+      "from": 97.75,
+      "to": 98.92,
+      "similarity": 0.9440424588727485,
+      "video": "https://media.trace.moe/video/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.33500000000001&token=xxxxxxxxxxxxxx",
+      "image": "https://media.trace.moe/image/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.33500000000001&token=xxxxxxxxxxxxxx"
+    }
+  ]
+}
+```
+
+The data inside the anilist object is an unmodified response from Anilist API. These data are managed by Anilist and they may change or delete these entries anytime.
+
+Some title variants would be null. Please read [this section on Anilist API Docs](https://anilist.gitbook.io/anilist-apiv2-docs/overview/migrating-from-apiv1#media-titles) for explanations. It is recommended to have some fallback when selecting your preferred title.
 
 ### Media Preview
 

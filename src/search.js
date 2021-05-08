@@ -86,6 +86,11 @@ export default async (req, res) => {
     const rows = await knex("user_view")
       .select("id", "quota", "concurrency", "priority")
       .where("api_key", apiKey);
+    if (rows.length === 0) {
+      return res.status(403).json({
+        error: "Invalid API key",
+      });
+    }
     if (rows[0].id >= 1000) {
       quota = rows[0].quota;
       concurrency = rows[0].concurrency;
@@ -377,46 +382,8 @@ export default async (req, res) => {
       console.log(`${anilist_id}/${filename} should be deleted from DB`);
     } else {
       const src = JSON.parse(anilistDB.find((e) => e.id === anilist_id).json);
-      if (req.query.info === "full") {
-        anilistInfo = src;
-      } else if (req.query.info === "advanced") {
-        anilistInfo = {
-          // averageScore: src.averageScore,
-          bannerImage: src.bannerImage,
-          // characters: src.characters,
-          coverImage: src.coverImage,
-          // description: src.description,
-          duration: src.duration,
-          endDate: src.endDate,
-          episodes: src.episodes,
-          externalLinks: src.externalLinks,
-          format: src.format,
-          genres: src.genres,
-          // hashtag: src.hashtag,
-          id: src.id,
-          idMal: src.idMal,
-          isAdult: src.isAdult,
-          // meanScore: src.meanScore,
-          // popularity: src.popularity,
-          // rankings: src.rankings,
-          // relations: src.relations,
-          season: src.season,
-          siteUrl: src.siteUrl,
-          source: src.source,
-          // staff: src.staff,
-          startDate: src.startDate,
-          // stats: src.stats,
-          status: src.status,
-          studios: src.studios,
-          synonyms: src.synonyms,
-          synonyms_chinese: src.synonyms_chinese,
-          // tags: src.tags,
-          title: src.title,
-          // trailer: src.trailer,
-          type: src.type,
-          // updatedAt: src.updatedAt,
-        };
-      } else if (req.query.info === "basic") {
+      if (req.query.info === "basic") {
+        // for legacy API, to be deprecated
         anilistInfo = {
           id: src.id,
           idMal: src.idMal,
@@ -424,11 +391,6 @@ export default async (req, res) => {
           synonyms: src.synonyms,
           synonyms_chinese: src.synonyms_chinese,
           title: src.title,
-        };
-      } else if (req.query.info === "id") {
-        anilistInfo = {
-          id: src.id,
-          idMal: src.idMal,
         };
       }
     }
@@ -450,6 +412,39 @@ export default async (req, res) => {
       ].join("&")}`,
     };
   });
+
+  if ("anilistInfo" in req.query) {
+    const response = await fetch("https://graphql.anilist.co/", {
+      method: "POST",
+      body: JSON.stringify({
+        query: `query ($ids: [Int]) {
+            Page(page: 1, perPage: 50) {
+              media(id_in: $ids, type: ANIME) {
+                id
+                idMal
+                title {
+                  native
+                  romaji
+                  english
+                }
+                synonyms
+                isAdult
+              }
+            }
+          }
+          `,
+        variables: { ids: result.map((e) => e.anilist) },
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+    if (response.status < 400) {
+      const anilistData = (await response.json()).data.Page.media;
+      result = result.map((entry) => {
+        entry.anilist = anilistData.find((e) => e.id === entry.anilist);
+        return entry;
+      });
+    }
+  }
 
   await logAndDequeue(uid, priority, 200, searchTime);
   res.json({
