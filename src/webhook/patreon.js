@@ -46,7 +46,7 @@ export default async (req, res) => {
     included,
   } = req.body;
   if (!email) {
-    continue;
+    return;
   }
   if (patron_status === "active_patron") {
     const rewardTierID = included
