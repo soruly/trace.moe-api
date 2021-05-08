@@ -40,7 +40,6 @@ export default async (req, res) => {
   } else {
     const rows = await knex("tier").select("priority", "concurrency", "quota").where("id", 0);
     uid = req.ip;
-    email = "";
     priority = rows[0].priority;
     concurrency = rows[0].concurrency;
     quota = rows[0].quota;
@@ -49,8 +48,7 @@ export default async (req, res) => {
   const quotaUsed = userQuota.length ? userQuota[0].count : 0;
 
   res.json({
-    id: uid,
-    email,
+    id: apiKey ? email : uid,
     priority,
     concurrency,
     quota,

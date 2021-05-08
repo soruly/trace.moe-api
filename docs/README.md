@@ -215,7 +215,6 @@ Example Response
 ```json
 {
   "id": "127.0.0.1",
-  "email": "",
   "priority": 0,
   "concurrency": 1,
   "quota": 1000,
@@ -225,8 +224,7 @@ Example Response
 
 | Fields      | Meaning                                         | Value              |
 | ----------- | ----------------------------------------------- | ------------------ |
-| id          | IP address or Account ID                        | string or number   |
-| email       | your Account's email address (empty for guest)  | string             |
+| id          | IP address (guest) or email address (user)      | string             |
 | priority    | Your priority in search queue                   | number (0: lowest) |
 | concurrency | Number of parallel search requests you can make | number             |
 | quota       | Search quota you have for this month            | number             |
