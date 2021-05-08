@@ -204,7 +204,7 @@ export default async (req, res) => {
   fs.removeSync(tempFilePath);
   fs.removeSync(tempImagePath);
 
-  if (req.query.cutBorders) {
+  if ("cutBorders" in req.query) {
     // auto black border cropping
     try {
       const image = cv.imdecode(searchImage);

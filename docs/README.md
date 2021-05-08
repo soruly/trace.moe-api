@@ -51,15 +51,15 @@ const res = await fetch("https://api.trace.moe/search", {
 
 trace.moe can detect black borders automatically and cut away unnecessary parts of the images that would affect search results accuracy. This is useful if your image is a screencap from a smartphone or iPad that contains black bars.
 
-To enable black border crop, add `cutBorders=1` to the query string. e.g.
+To enable black border crop, add `cutBorders` to the query string. e.g.
 
 ```bash
-curl https://api.trace.moe/search?cutBorders=1&url=https%3A%2F%2Ffoobar%2Fbaz.jpg
+curl https://api.trace.moe/search?cutBorders&url=https%3A%2F%2Ffoobar%2Fbaz.jpg
 ```
 
 ```javascript
 await fetch(
-  `https://api.trace.moe/search?cutBorders=1&url=${encodeURIComponent("https://foobar/baz.jpg")}`
+  `https://api.trace.moe/search?cutBorders&url=${encodeURIComponent("https://foobar/baz.jpg")}`
 ).then((e) => e.json());
 ```
 
