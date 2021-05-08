@@ -27,7 +27,8 @@ export default async (req, res) => {
       error: "Invalid API key",
     });
   }
-  await knex("user").where("id", rows[0].id).update("api_key", generateAPIKey(rows[0].id));
+  const key = generateAPIKey(rows[0].id);
+  await knex("user").where("id", rows[0].id).update("api_key", key);
 
   return res.json({
     key,
