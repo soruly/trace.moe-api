@@ -1,266 +1,218 @@
 # trace.moe API Docs
 
-This API is always under development. Please stay up-to-date with this project via Discord or Patreon, and <a href="https://www.patreon.com/soruly">donate</a> <ExternalLinkIcon /> to support this project!
+trace.moe API provides a HTTP interface for developers to interact with trace.moe programmatically.
 
-## Search
+Using the API, you can develop programs such as: chat bots, browser plugins, video tagging / deduplication applications, games or whatever scripts that you need to know the anime info from an image.
 
-You have 2 ways to use the API for searching:
+## Terms and Agreements
 
-Search by image URL
+By using the trace.moe API, you implicitly agree and approve the below terms:
 
-```bash
-curl -s https://trace.moe/api/search?url=https://foobar/baz.jpg
-```
+1. trace.moe is not responsible for any of your losses due to service interruptions or due to inaccurate / inappropriate search results. There is no service-level agreement or refund policies.
+1. trace.moe does not keep any of your search images. All temporary files (if any) are deleted immediately after search. But the image you submit would be processed by software used by trace.moe.
+1. IP addresses would be logged for rate limiting.
+1. Users abusing the API (including but not limited to DoS attacks, sending malicious media, data crawling, hacking) is strictly forbidden and would be banned.
+1. Using this API for commercial purpose (such as reselling) is forbidden, unless explicitly approved.
+1. There is no guarantee that the API remains unchanged forever. Changes to the API would be announced via <a href="https://www.patreon.com/soruly">Patreon</a> and <a href="https://discord.gg/K9jn6Kj">Discord</a>.
+1. trace.moe retains the rights to explain and make changes to above terms.
 
-This method is easiest but it only works for images that are publicly available.
+## /search
 
-Otherwise, you must send the image data:
-
-Upload image by FORM
-
-```
-curl -F "image=@your_search_image.jpg" https://trace.moe/api/search
-```
-
-POST image by FORM
+### Search by image URL
 
 ```bash
-curl -X POST https://trace.moe/api/search -d "image=$(base64 -w 0 your_search_image.jpg)"
+curl https://api.trace.moe/search?url=https%3A%2F%2Ffoobar%2Fbaz.jpg
 ```
 
-POST image by JSON
+```javascript
+await fetch(
+  `https://api.trace.moe/search?url=${encodeURIComponent("https://foobar/baz.jpg")}`
+).then((e) => e.json());
+```
+
+This method is the easiest if your image is already hosted somewhere in public. Otherwise, you must upload the image.
+
+### Search by image upload
+
+```
+curl -F "image=@your_search_image.jpg" https://api.trace.moe/search
+```
+
+```javascript
+const formData = new FormData();
+formData.append("image", imageBlob);
+const res = await fetch("https://api.trace.moe/search", {
+  method: "POST",
+  body: formData,
+});
+```
+
+### Cut Black Borders
+
+trace.moe can detect black borders automatically and cut away unnecessary parts of the images that would affect search results accuracy. This is useful if your image is a screencap from a smartphone or iPad that contains black bars.
+
+To enable black border crop, add `cutBorders=1` to the query string. e.g.
 
 ```bash
-curl -X POST https://trace.moe/api/search -H "Content-Type: application/json" -d '{ "image" : "'$(base64 -w 0 your_search_image.jpg)'" }'
+curl https://api.trace.moe/search?cutBorders=1&url=https%3A%2F%2Ffoobar%2Fbaz.jpg
 ```
 
-| Fields | Value             | Notes                                |
-| ------ | ----------------- | ------------------------------------ |
-| image  | String (Required) | Base64 Encoded Image                 |
-| filter | Number (Optional) | Limit search to specific anilist ID. |
+```javascript
+await fetch(
+  `https://api.trace.moe/search?cutBorders=1&url=${encodeURIComponent("https://foobar/baz.jpg")}`
+).then((e) => e.json());
+```
+
+### Filter by Anilist ID
+
+You can search for a matching scene only in a particular anime by Anilist ID. This is useful when you are certain about the anime name but cannot remember which episode.
+
+First you have to look for the Anilist ID of your anime from [AniList](https://anilist.co/) first. Then add `anilistID=1` to the query string. e.g. Anilist ID of Cowboy Bebop is 1
+
+```bash
+curl https://api.trace.moe/search?anilistID=1&url=https%3A%2F%2Ffoobar%2Fbaz.jpg
+```
+
+```javascript
+await fetch(
+  `https://api.trace.moe/search?anilistID=1&url=${encodeURIComponent("https://foobar/baz.jpg")}`
+).then((e) => e.json());
+```
 
 ### Search Image Format
 
-- Supported image format is any format supported by `javax.imageio.ImageIO` (i.e. jpg, png, bmp, gif)
-- For Animated GIF, only first frame is used for searching
-- [Data URI](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs) prefix like `data:image/jpeg;base64,` is optional. Only data part after the comma is used. This is to maintain compatibility with [toDataURL()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL) with HTML5 canvas.
-- Binary file upload is not yet supported
+trace.moe support any media format that can be decoded by [ffmpeg](https://www.ffmpeg.org/), including video and gif. When using video / gif, only the 1st frame would be extracted for searching.
 
-<Note type="warning">
+Your image / video must be smaller than 10MB. Otherwise it would fail with HTTP 413 (Request Entity Too Large).
 
-Note that there is a hard limit of 10MB post size. You should ensure your Base64 encoded image is < 10MB. Otherwise the server responds with HTTP 413 (Request Entity Too Large).
+The recommended resolution is 640 x 360px, higher resolution doesn't yield better search results. The algorithm is also resistant to jpeg artifacts, so you don't have to use uncompressed formats like png.
 
-</Note>
-
-Javascript Example
-
-```javascript
-var img = document.querySelector("img"); // select image from DOM
-var canvas = document.createElement("canvas");
-canvas.width = img.naturalWidth;
-canvas.height = img.naturalHeight;
-var ctx = canvas.getContext("2d");
-ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-fetch("https://trace.moe/api/search", {
-  method: "POST",
-  body: JSON.stringify({ image: canvas.toDataURL("image/jpeg", 0.8) }),
-  headers: { "Content-Type": "application/json" },
-})
-  .then((res) => res.json())
-  .then((result) => {
-    console.log(result);
-  });
-```
-
-Example Response
+### Response format
 
 ```json
 {
-  "RawDocsCount": 3555648,
-  "RawDocsSearchTime": 14056,
-  "ReRankSearchTime": 1182,
-  "CacheHit": false,
-  "trial": 1,
-  "limit": 9,
-  "limit_ttl": 60,
-  "quota": 150,
-  "quota_ttl": 86400,
-  "docs": [
+  "frameCount": 745506,
+  "error": "",
+  "result": [
     {
-      "from": 663.17,
-      "to": 665.42,
-      "anilist_id": 98444,
-      "at": 665.08,
-      "season": "2018-01",
-      "anime": "搖曳露營",
-      "filename": "[Ohys-Raws] Yuru Camp - 05 (AT-X 1280x720 x264 AAC).mp4",
-      "episode": 5,
-      "tokenthumb": "bB-8KQuoc6u-1SfzuVnDMw",
-      "similarity": 0.9563952960290518,
-      "title": "ゆるキャン△",
-      "title_native": "ゆるキャン△",
-      "title_chinese": "搖曳露營",
-      "title_english": "Laid-Back Camp",
-      "title_romaji": "Yuru Camp△",
-      "mal_id": 34798,
-      "synonyms": ["Yurucamp", "Yurukyan△"],
-      "synonyms_chinese": [],
-      "is_adult": false
+      "anilist": 99939,
+      "filename": "Nekopara - OVA (BD 1280x720 x264 AAC).mp4",
+      "episode": null,
+      "from": 97.75,
+      "to": 98.92,
+      "similarity": 0.9440424588727485,
+      "video": "https://media.trace.moe/video/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.33500000000001&token=xxxxxxxxxxxxxx",
+      "image": "https://media.trace.moe/image/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.33500000000001&token=xxxxxxxxxxxxxx"
     }
   ]
 }
 ```
 
-| Fields            | Meaning                                                                              | Value            |
-| ----------------- | ------------------------------------------------------------------------------------ | ---------------- |
-| RawDocsCount      | Total number of frames searched                                                      | Number           |
-| RawDocsSearchTime | Time taken to retrieve the frames from database (sum of all cores)                   | Number           |
-| ReRankSearchTime  | Time taken to compare the frames (sum of all cores)                                  | Number           |
-| CacheHit          | Whether the search result is cached. (Results are cached by extracted image feature) | Boolean          |
-| trial             | Number of times searched                                                             | Number           |
-| limit             | Number of search limit remaining                                                     | Number           |
-| limit_ttl         | Time until limit resets (seconds)                                                    | Number           |
-| quota             | Number of search quota remaining                                                     | Number           |
-| quota_ttl         | Time until quota resets (seconds)                                                    | Number           |
-| docs              | Search results (see table below)                                                     | Array of Objects |
+| Fields     | Meaning                          | Value            |
+| ---------- | -------------------------------- | ---------------- |
+| frameCount | Total number of frames searched  | number           |
+| error      | Error message                    | string           |
+| result     | Search results (see table below) | Array of Objects |
 
-| Fields           | Meaning                                                 | Value                                 |
-| ---------------- | ------------------------------------------------------- | ------------------------------------- |
-| from             | Starting time of the matching scene                     | Number (seconds, in 2 decimal places) |
-| to               | Ending time of the matching scene                       | Number (seconds, in 2 decimal places) |
-| at               | Exact time of the matching scene                        | Number (seconds, in 2 decimal places) |
-| episode          | The extracted episode number from filename              | Number, "OVA/OAD", "Special", ""      |
-| similarity       | Similarity compared to the search image                 | Number (float between 0-1)            |
-| anilist_id       | The matching [AniList](https://anilist.co/) ID          | Number                                |
-| mal_id           | The matching [MyAnimeList](https://myanimelist.net/) ID | Number or null                        |
-| is_adult         | Whether the anime is hentai                             | Boolean                               |
-| title_native     | Native (Japanese) title                                 | String or null (Can be empty string)  |
-| title_chinese    | Chinese title                                           | String or null (Can be empty string)  |
-| title_english    | English title                                           | String or null (Can be empty string)  |
-| title_romaji     | Title in romaji                                         | String                                |
-| synonyms         | Alternate english titles                                | Array of String or []                 |
-| synonyms_chinese | Alternate chinese titles                                | Array of String or []                 |
-| filename         | The filename of file where the match is found           | String                                |
-| tokenthumb       | A token for generating preview                          | String                                |
+| Fields     | Meaning                                        | Value                                             |
+| ---------- | ---------------------------------------------- | ------------------------------------------------- |
+| anilist    | The matching [AniList](https://anilist.co/) ID | number                                            |
+| filename   | The filename of file where the match is found  | string                                            |
+| episode    | The extracted episode number from filename     | Refer to [aniep](https://github.com/soruly/aniep) |
+| from       | Starting time of the matching scene (seconds)  | number                                            |
+| to         | Ending time of the matching scene (seconds)    | number                                            |
+| similarity | Similarity compared to the search image        | number (0 to 1)                                   |
+| video      | URL to the preview video of the matching scene | string                                            |
+| image      | URL to the preview image of the matching scene | string                                            |
 
-<Note type="tip">
+- Results are sorted from most similar to least similar
+- Similarity lower than 90% are most likely incorrect results. It's up to you to judge what is a match and what is just visually similar.
+- `episode` can be null because it is just a result of parsing the `filename` with [aniep](https://github.com/soruly/aniep)
+- To get anime info like titles, MAL IDs, adult flag, make a second query to [AniList API](https://github.com/AniList/ApiV2-GraphQL-Docs) with `anilist` ID.
+- If you need chinese-translated titles, take a look at [anilist-chinese](https://github.com/soruly/anilist-chinese)
 
-Search results with similarity lower than 87% are probably incorrect result (just similar, not a match). It's up to you to decide the cut-off value.
+### Media Preview
 
-</Note>
+The url you obtained from `image` and `video` from search result is served by [trace.moe-media](https://github.com/soruly/trace.moe-media)
 
-### Search Result Notes
-
-- Results are always sorted by similarity, from most similar to least similar
-- If multiple results are found in the same file, near the same timecode and has similarity > 98%, results are grouped as one, using `from` and `to` to indicate the starting time and ending time of that scene.
-- `episode` is only an estimated number extraction from `filename`, it may fail and return empty string
-- With `anilist_id`, you may get more anime info from `https://anilist.co/anime/{anilist_id}` . Read [AniList API](https://github.com/AniList/ApiV2-GraphQL-Docs) for more information.
-- The list of chinese translation can be obtained from [anilist-chinese](https://github.com/soruly/anilist-chinese)
-- API would return HTTP 400 if your search image is empty
-- API would return HTTP 403 if are using an invalid token
-- API would return HTTP 429 if are using requesting too fast
-- API would return HTTP 500 or HTTP 503 if something went wrong in backend
-
-If your image is malformed, you may got an error message (HTTP 500) like this:
+It can generate image or video preview of 3 sizes by appending `size=l` (large), `size=m` (medium, default) or `size=s` (small) at the end of the url. e.g.
 
 ```
-"Error reading image from URL: http://192.168.2.11/pic/1549186015.8901.jpg: http://192.168.2.11/pic/1549186015.8901.jpg"
+https://media.trace.moe/image/xxx/xxxxxx.mp4?t=0&token=xxxxx&size=s
+https://media.trace.moe/video/xxx/xxxxxx.mp4?t=0&token=xxxxx&size=s
 ```
 
-These image URLs are for debugging use, and is not accessible from internet. You may send this to admin to inspect what went wrong. All images send to server are deleted after 24 hours.
-
-Aside from the JSON response or the [/me](#Me) endpoint, you can also get the current limit from HTTP response header.
+For video preview, it can generate a video with sound (default), or a muted video by appending `mute` to the end of url. e.g.
 
 ```
-x-whatanime-limit: 9
-x-whatanime-limit-ttl: 60
-x-whatanime-quota: 150
-x-whatanime-quota-ttl: 86400
-```
-
-Once the limit is reached. Server would respond HTTP 429 Too Many Requests, with a double quoted string showing when the quota will reset.
-
-Example
-
-```
-"Search limit exceeded. Please wait 87 seconds."
-```
-
-<Note type="tip">
-
-All error messages are double quoted string in order to ensure they are always valid JSON format.
-
-</Note>
-
-## Previews
-
-With `tokenthumb` you obtained from [/search](#Search), you can get previews of the matched scene. (not 100% accurate due to timecode and seeking method)
-
-### Image and Video Preview
-
-Media preview is served by [trace.moe-media](https://github.com/soruly/trace.moe-media)
-
-```
-https://media.trace.moe/image/${anilist_id}/${encodeURIComponent(filename)}?t=${at}&token=${tokenthumb}`
-```
-
-It can generate image or video preview of 3 sizes: `size=l` (large), `size=m` (medium, default), `size=s` (small)
-
-```
-https://media.trace.moe/image/${anilist_id}/${encodeURIComponent(filename)}?t=${at}&token=${tokenthumb}&size=s`
+https://media.trace.moe/video/xxx/xxxxxx.mp4?t=0&token=xxxxx&mute
+https://media.trace.moe/video/xxx/xxxxxx.mp4?t=0&token=xxxxx&size=s&mute
 ```
 
 Video previews are cut on timestamp boundaries of a scene.
 
-```
-https://media.trace.moe/video/${anilist_id}/${encodeURIComponent(filename)}?t=${at}&token=${tokenthumb}`
-```
+## /me
 
-If you prefer getting a mute video, add `mute` in your querystring
-
-```
-https://media.trace.moe/video/${anilist_id}/${encodeURIComponent(filename)}?t=${at}&token=${tokenthumb}&mute`
-```
-
-## Me
-
-Let you check the search quota and limit for your account (or IP address).
+Let you check the search quota and limit for your account (with API key) or IP address (without API key).
 
 ```bash
-curl https://trace.moe/api/me
+curl https://api.trace.moe/me
+```
+
+```javascript
+await fetch("https://api.trace.moe/me").then((e) => e.json());
 ```
 
 Example Response
 
 ```json
 {
-  "user_id": 1001,
-  "email": "soruly@gmail.com",
-  "limit": 9,
-  "limit_ttl": 45,
+  "id": "127.0.0.1",
+  "email": "",
+  "priority": 0,
+  "concurrency": 1,
   "quota": 1000,
-  "quota_ttl": 86400,
-  "user_limit": 10,
-  "user_limit_ttl": 60,
-  "user_quota": 1000,
-  "user_quota_ttl": 86400
+  "quotaUsed": 43
 }
 ```
 
-| Fields         | Meaning                                      | Value            |
-| -------------- | -------------------------------------------- | ---------------- |
-| user_id        | Null or Account ID                           | Null or Number   |
-| email          | IP address or your Account Email             | String           |
-| limit          | Current remaining limit for your account now | Number           |
-| limit_ttl      | Time until limit reset                       | Number (seconds) |
-| quota          | Current remaining limit for your account now | Number           |
-| quota_ttl      | Time until quota reset                       | Number (seconds) |
-| user_limit     | Rate limit associated with your account      | Number           |
-| user_limit_ttl | Usually set to 60 (1 minute)                 | Number (seconds) |
-| user_quota     | Quota associated with your account           | Number           |
-| user_quota_ttl | Usually set to 86400 (1 day)                 | Number (seconds) |
+| Fields      | Meaning                                         | Value              |
+| ----------- | ----------------------------------------------- | ------------------ |
+| id          | IP address or Account ID                        | string or number   |
+| email       | your Account's email address (empty for guest)  | string             |
+| priority    | Your priority in search queue                   | number (0: lowest) |
+| concurrency | Number of parallel search requests you can make | number             |
+| quota       | Search quota you have for this month            | number             |
+| quotaUsed   | Search quota you have used this month           | number             |
 
-## Rate limit and Search Quota
+## Using the API with API Keys
 
-Every IP address has a rate limit of 10/minute, counting API and WebUI together. There is no limit to daily search quota.
+If you have an API Key that grants you more search quota and limits, put your API key in either HTTP header `x-trace-key` or query string `key`.
+
+When searching with API Keys, it would count towards your account quota and limits. When searching without an API Key, you search as guests using your IP address.
+
+### Use API Keys in HTTP header
+
+```bash
+curl https://api.trace.moe/me -H "x-trace-key: xxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+```javascript
+await fetch("https://api.trace.moe/me", {
+  headers: {
+    "x-trace-key": "xxxxxxxxxxxxxxxxxxxxxxx",
+  },
+}).then((e) => e.json());
+```
+
+### Use API Keys in query string
+
+If you're lazy and doesn't mind your API Key being exposed to browser history or logs. Just put your key in key in query string
+
+```bash
+curl https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx
+```
+
+```javascript
+await fetch("https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx").then((e) => e.json());
+```
