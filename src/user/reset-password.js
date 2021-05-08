@@ -39,9 +39,12 @@ export default async (req, res) => {
       error: "Password must be at least 8 characters long",
     });
   }
-  const hmac = crypto.createHmac("sha256", TRACE_API_SALT);
-  const hashedPassword = hmac.update(req.body.password).digest("hex");
-  await knex("user").where("id", rows[0].id).update("password", hashedPassword);
+  await knex("user")
+    .where("id", rows[0].id)
+    .update(
+      "password",
+      crypto.scryptSync(req.body.password, TRACE_API_SALT, 64).toString("base64")
+    );
 
   return res.json({});
 };

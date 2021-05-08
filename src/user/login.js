@@ -27,12 +27,12 @@ export default async (req, res) => {
       error: "Invalid Email or Password",
     });
   }
-  const hmac = crypto.createHmac("sha256", TRACE_API_SALT);
-  const hashedPassword = hmac.update(req.body.password).digest("hex");
-  const rows = await knex("user").select("api_key").where({
-    email: req.body.email,
-    password: hashedPassword,
-  });
+  const rows = await knex("user")
+    .select("api_key")
+    .where({
+      email: req.body.email,
+      password: crypto.scryptSync(req.body.password, TRACE_API_SALT, 64).toString("base64"),
+    });
   if (rows.length) {
     return res.json({
       key: rows[0].api_key,
