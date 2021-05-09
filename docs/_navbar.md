@@ -1,0 +1,4 @@
+- [Home page](https://github.com/soruly/trace.moe)
+- [GitHub Sponsor](https://github.com/sponsors/soruly)
+- [Patreon](https://www.patreon.com/soruly)
+- [Discord](https://discord.gg/K9jn6Kj)

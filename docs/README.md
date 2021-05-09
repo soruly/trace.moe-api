@@ -1,6 +1,6 @@
 # trace.moe API Docs
 
-trace.moe API provides a HTTP interface for developers to interact with trace.moe programmatically.
+trace.moe API provides a HTTP interface for developers to interact with [trace.moe](https://trace.moe) programmatically.
 
 Using the API, you can develop programs such as: chat bots, browser plugins, video tagging / deduplication applications, games or whatever scripts that you need to know the anime info from an image.
 
@@ -237,7 +237,9 @@ https://media.trace.moe/video/xxx/xxxxxx.mp4?t=0&token=xxxxx&mute
 https://media.trace.moe/video/xxx/xxxxxx.mp4?t=0&token=xxxxx&size=s&mute
 ```
 
-Video previews are cut on timestamp boundaries of a scene.
+The media server would detect boundaries of the scene and cut videos at the boundaries. There is no way to specify the duration of the video.
+
+> Do not attempt to parse and modify the urls except documented above. The urls are not permanent and may change without notice.
 
 ## /me
 
