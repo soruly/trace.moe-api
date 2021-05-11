@@ -19,14 +19,8 @@ const incrAsync = util.promisify(client.incr).bind(client);
 const decrAsync = util.promisify(client.decr).bind(client);
 const expireAsync = util.promisify(client.expire).bind(client);
 
-const {
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-  TRACE_MEDIA_SALT,
-} = process.env;
+const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME, TRACE_MEDIA_SALT } =
+  process.env;
 
 const knex = Knex({
   client: "mysql",
@@ -220,7 +214,12 @@ export default async (req, res) => {
         .threshold(4, 255, cv.THRESH_BINARY) // low enough so dark background is not cut away
         .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-      let { x, y, width: w, height: h } = contours.length
+      let {
+        x,
+        y,
+        width: w,
+        height: h,
+      } = contours.length
         ? contours
             .sort((c0, c1) => c1.area - c0.area)[0] // Find the largest rectangle
             .boundingRect()

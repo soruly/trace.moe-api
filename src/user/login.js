@@ -1,14 +1,8 @@
 import Knex from "knex";
 import crypto from "crypto";
 
-const {
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-  TRACE_API_SALT,
-} = process.env;
+const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME, TRACE_API_SALT } =
+  process.env;
 
 const knex = Knex({
   client: "mysql",
