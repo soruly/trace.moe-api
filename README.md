@@ -6,6 +6,8 @@
 
 API server for [trace.moe](https://github.com/soruly/trace.moe)
 
+[API Docs](https://soruly.github.io/trace.moe-api/)
+
 ### Features
 
 - serve image search request
