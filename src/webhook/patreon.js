@@ -45,10 +45,8 @@ export default async (req, res) => {
     },
     included,
   } = req.body;
-  if (!email) {
-    return;
-  }
-  if (patron_status === "active_patron") {
+
+  if (email && patron_status === "active_patron") {
     const rewardTierID = included
       .filter((e) => e.type === "tier")
       .sort((a, b) => b.attributes.amount - a.attributes.amount)
