@@ -1,0 +1,284 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: api.trace.moe
+  description: api.trace.moe
+servers:
+  - description: Production Server
+    url: https://api.trace.moe/
+
+components:
+  securitySchemes:
+    ApiKeyInHeader:
+      type: apiKey
+      name: x-trace-key
+      description: API Key (if any)
+      in: header
+    ApiKeyInQuery:
+      type: apiKey
+      description: API Key (if any)
+      name: key
+      in: query
+  parameters:
+    url:
+      name: url
+      description: Image URL
+      in: query
+      required: true
+      allowEmptyValue: false
+      schema:
+        type: string
+    cutBorders:
+      name: cutBorders
+      description: Cut black borders
+      in: query
+      required: false
+      allowEmptyValue: true
+      schema:
+        type: string
+        pattern: ^$
+    anilistInfo:
+      name: anilistInfo
+      description: Include Anilist info
+      in: query
+      required: false
+      allowEmptyValue: true
+      schema:
+        type: string
+        pattern: ^$
+    anilistID:
+      name: anilistID
+      description: Filter by Anilist ID
+      in: query
+      required: false
+      allowEmptyValue: false
+      schema:
+        type: integer
+  responses:
+    User:
+      description: A user response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/User"
+    ErrorBadRequest:
+      description: Image is malformed, or some params are incorrect
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorPaymentRequired:
+      description: Search quota or concurrency limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorUnauthorized:
+      description: API key is invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorForbidden:
+      description: No permission to access
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorNotFound:
+      description: The requested resourse is not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorMethodNotAllowed:
+      description: Wrong HTTP method used
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorTooManyRequests:
+      description: HTTP rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorInternalServerError:
+      description: Database error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorServiceUnavailable:
+      description: Database is overloaded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorGatewayTimeout:
+      description: Database is not responding
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Success:
+      description: A search response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SearchResult"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: IP address (guest) or email address (user)
+        priority:
+          type: integer
+          description: Your priority in search queue
+        concurrency:
+          type: integer
+          description: Number of parallel search requests you can make
+        quota:
+          type: integer
+          description: Search quota you have for this month
+        quotaUsed:
+          type: integer
+          description: Search quota you have used this month
+    SearchResult:
+      type: object
+      properties:
+        frameCount:
+          type: integer
+          description: frames compared for image search
+        error:
+          type: string
+          description: Error message
+        result:
+          type: array
+          description: Search results
+          items:
+            $ref: "#/components/schemas/Result"
+    Result:
+      type: object
+      properties:
+        anilist:
+          type: integer
+          description: The matching Anilist ID or Anilist info
+        filename:
+          type: string
+          description: The filename of file where the match is found
+        episode:
+          type: string
+          description: The extracted episode number from filename
+        from:
+          type: number
+          description: Starting time of the matching scene (seconds)
+        to:
+          type: number
+          description: Ending time of the matching scene (seconds)
+        similarity:
+          type: number
+          description: Similarity compared to the search image
+        video:
+          type: string
+          description: URL to the preview video of the matching scene
+        image:
+          type: string
+          description: URL to the preview image of the matching scene
+
+security:
+  - ApiKeyInHeader: []
+  - ApiKeyInQuery: []
+
+paths:
+  /search:
+    get:
+      summary: Get search result of an anime screeshot
+      parameters:
+        - $ref: "#/components/parameters/anilistInfo"
+        - $ref: "#/components/parameters/cutBorders"
+        - $ref: "#/components/parameters/url"
+        - $ref: "#/components/parameters/anilistID"
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/ErrorBadRequest"
+        "402":
+          $ref: "#/components/responses/ErrorPaymentRequired"
+        "403":
+          $ref: "#/components/responses/ErrorForbidden"
+        "404":
+          $ref: "#/components/responses/ErrorNotFound"
+        "405":
+          $ref: "#/components/responses/ErrorMethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/ErrorTooManyRequests"
+        "500":
+          $ref: "#/components/responses/ErrorInternalServerError"
+        "503":
+          $ref: "#/components/responses/ErrorServiceUnavailable"
+        "504":
+          $ref: "#/components/responses/ErrorGatewayTimeout"
+    post:
+      summary: Get search result of an anime screeshot
+      parameters:
+        - $ref: "#/components/parameters/anilistInfo"
+        - $ref: "#/components/parameters/cutBorders"
+        - $ref: "#/components/parameters/anilistID"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/ErrorBadRequest"
+        "402":
+          $ref: "#/components/responses/ErrorPaymentRequired"
+        "403":
+          $ref: "#/components/responses/ErrorForbidden"
+        "404":
+          $ref: "#/components/responses/ErrorNotFound"
+        "405":
+          $ref: "#/components/responses/ErrorMethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/ErrorTooManyRequests"
+        "500":
+          $ref: "#/components/responses/ErrorInternalServerError"
+        "503":
+          $ref: "#/components/responses/ErrorServiceUnavailable"
+        "504":
+          $ref: "#/components/responses/ErrorGatewayTimeout"
+
+  /me:
+    get:
+      summary: Get info about your account
+      responses:
+        "200":
+          $ref: "#/components/responses/User"
+        "400":
+          $ref: "#/components/responses/ErrorBadRequest"
+        "403":
+          $ref: "#/components/responses/ErrorForbidden"
+        "404":
+          $ref: "#/components/responses/ErrorNotFound"
+        "405":
+          $ref: "#/components/responses/ErrorMethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/ErrorTooManyRequests"
