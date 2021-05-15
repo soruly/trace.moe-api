@@ -20,6 +20,17 @@ await fetch(
 ).then((e) => e.json());
 ```
 
+#### **python**
+
+```python
+import requests
+import urllib.parse
+requests
+.get("https://api.trace.moe/search?url={}"
+  .format(urllib.parse.quote_plus("https://foobar/baz.jpg"))
+).json()
+```
+
 <!-- tabs:end -->
 
 This method is the easiest if your image is already hosted somewhere in public. Otherwise, you must upload the image.
@@ -37,12 +48,22 @@ curl -F "image=@your_search_image.jpg" https://api.trace.moe/search
 #### **javascript**
 
 ```javascript
+// If using nodejs, you need to require or import node-fetch and form-data
 const formData = new FormData();
 formData.append("image", imageBlob);
-const res = await fetch("https://api.trace.moe/search", {
+await fetch("https://api.trace.moe/search", {
   method: "POST",
   body: formData,
-});
+}).then((e) => e.json());
+```
+
+#### **python**
+
+```python
+import requests
+requests.post("https://api.trace.moe/search",
+  files={"image": open("baz.jpg", "rb")}
+).json()
 ```
 
 <!-- tabs:end -->
@@ -69,6 +90,17 @@ await fetch(
 ).then((e) => e.json());
 ```
 
+#### **python**
+
+```python
+import requests
+import urllib.parse
+requests
+.get("https://api.trace.moe/search?cutBorders&url={}"
+  .format(urllib.parse.quote_plus("https://foobar/baz.jpg"))
+).json()
+```
+
 <!-- tabs:end -->
 
 ### Filter by Anilist ID
@@ -91,6 +123,17 @@ curl https://api.trace.moe/search?anilistID=1&url=https%3A%2F%2Ffoobar%2Fbaz.jpg
 await fetch(
   `https://api.trace.moe/search?anilistID=1&url=${encodeURIComponent("https://foobar/baz.jpg")}`
 ).then((e) => e.json());
+```
+
+#### **python**
+
+```python
+import requests
+import urllib.parse
+requests
+.get("https://api.trace.moe/search?anilistID=1&url={}"
+  .format(urllib.parse.quote_plus("https://foobar/baz.jpg"))
+).json()
 ```
 
 <!-- tabs:end -->
@@ -169,6 +212,17 @@ await fetch(
 ).then((e) => e.json());
 ```
 
+#### **python**
+
+```python
+import requests
+import urllib.parse
+requests
+.get("https://api.trace.moe/search?anilistInfo&url={}"
+  .format(urllib.parse.quote_plus("https://foobar/baz.jpg"))
+).json()
+```
+
 <!-- tabs:end -->
 
 Example response
@@ -242,6 +296,13 @@ curl https://api.trace.moe/me
 await fetch("https://api.trace.moe/me").then((e) => e.json());
 ```
 
+#### **python**
+
+```python
+import requests
+requests.get("https://api.trace.moe/me").json()
+```
+
 <!-- tabs:end -->
 
 Example Response
@@ -290,6 +351,15 @@ await fetch("https://api.trace.moe/me", {
 }).then((e) => e.json());
 ```
 
+#### **python**
+
+```python
+import requests
+requests.get("https://api.trace.moe/me", headers={
+  "x-trace-key": "xxxxxxxxxxxxxxxxxxxxxxx"
+}).json()
+```
+
 <!-- tabs:end -->
 
 ### Using API Keys in query string
@@ -308,6 +378,13 @@ curl https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx
 
 ```javascript
 await fetch("https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx").then((e) => e.json());
+```
+
+#### **python**
+
+```python
+import requests
+requests.get("https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx").json()
 ```
 
 <!-- tabs:end -->
