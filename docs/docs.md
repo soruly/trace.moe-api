@@ -1,5 +1,7 @@
 # API Docs
 
+You may also refer to swagger docs on [SwaggerHub](https://app.swaggerhub.com/apis/soruly/api.trace.moe/1.0.0#/)
+
 ## /search
 
 ### Search by image URL
