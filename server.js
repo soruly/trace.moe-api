@@ -202,7 +202,7 @@ let coreList = [];
 if (fs.existsSync("core-list.json")) {
   coreList = JSON.parse(fs.readFileSync("core-list.json", "utf8"));
 } else {
-  const coreList = await getSolrCoreList();
+  coreList = await getSolrCoreList();
   fs.outputFileSync("core-list.json", JSON.stringify(coreList, null, 2));
 }
 app.locals.coreList = coreList;
