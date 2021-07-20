@@ -1,7 +1,7 @@
 {
   "name": "trace.moe-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "API server of trace.moe",
   "main": "server.js",
   "type": "module",
   "scripts": {

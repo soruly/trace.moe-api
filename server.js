@@ -46,13 +46,18 @@ const {
   SOLA_DB_PWD,
   SOLA_DB_NAME,
   SOLA_SOLR_LIST,
+  REDIS_HOST,
+  REDIS_PORT,
   SERVER_PORT,
   SERVER_ADDR,
   SERVER_WS_PORT,
   TRACE_API_SECRET,
 } = process.env;
 
-const client = redis.createClient();
+const client = redis.createClient({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+});
 const flushallAsync = util.promisify(client.flushall).bind(client);
 await flushallAsync();
 

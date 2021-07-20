@@ -11,16 +11,27 @@ import Knex from "knex";
 import * as redis from "redis";
 import { performance } from "perf_hooks";
 
-const client = redis.createClient();
+const {
+  SOLA_DB_HOST,
+  SOLA_DB_PORT,
+  SOLA_DB_USER,
+  SOLA_DB_PWD,
+  SOLA_DB_NAME,
+  REDIS_HOST,
+  REDIS_PORT,
+  TRACE_MEDIA_SALT,
+} = process.env;
+
+const client = redis.createClient({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+});
 const delAsync = util.promisify(client.del).bind(client);
 const mgetAsync = util.promisify(client.mget).bind(client);
 const keysAsync = util.promisify(client.keys).bind(client);
 const incrAsync = util.promisify(client.incr).bind(client);
 const decrAsync = util.promisify(client.decr).bind(client);
 const expireAsync = util.promisify(client.expire).bind(client);
-
-const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME, TRACE_MEDIA_SALT } =
-  process.env;
 
 const knex = Knex({
   client: "mysql",
