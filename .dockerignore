@@ -1,0 +1,7 @@
+*
+!*.js
+!/package.json
+!/package-lock.json
+!/lib/
+!/script/
+!/src/
