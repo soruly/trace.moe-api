@@ -191,11 +191,20 @@ server.on("upgrade", (request, socket) => {
 
 let ws;
 const closeHandle = async () => {
+  console.log(`Connecting to ws://${SERVER_WS_HOST}:${SERVER_WS_PORT}`);
   ws = new WebSocket(`ws://${SERVER_WS_HOST}:${SERVER_WS_PORT}`, {
     headers: { "x-trace-secret": TRACE_API_SECRET, "x-trace-worker-type": "master" },
   });
   app.locals.ws = ws;
-  ws.on("close", async () => {
+  ws.on("open", async (e) => {
+    console.log(`Connected to ws://${SERVER_WS_HOST}:${SERVER_WS_PORT}`);
+  });
+  ws.on("error", async (e) => {
+    console.log(e);
+  });
+  ws.on("close", async (e) => {
+    console.log(`WebSocket closed (Code: ${e})`);
+    console.log("Reconnecting in 5 seconds");
     await new Promise((resolve) => setTimeout(resolve, 5000));
     closeHandle();
   });

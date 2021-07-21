@@ -140,6 +140,7 @@ const lookForJobs = async (ws) => {
 
 wss.on("connection", async (ws, request) => {
   const type = request.headers["x-trace-worker-type"];
+  console.log(`${type} worker: I'm ready`);
   if (type === "hash" || type === "load") {
     workerPool.set(ws, { status: STATE.READY, type, file: "" });
     await lookForJobs(ws);
@@ -149,6 +150,7 @@ wss.on("connection", async (ws, request) => {
   }
   if (type === "master") {
     ws.on("message", async (message) => {
+      console.log(`Master: ${message}`);
       if (message === "getWorkerPool") {
         ws.send(JSON.stringify(Array.from(workerPool)));
       }
