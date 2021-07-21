@@ -19,6 +19,7 @@ const {
   SOLA_DB_NAME,
   REDIS_HOST,
   REDIS_PORT,
+  TRACE_MEDIA_URL,
   TRACE_MEDIA_SALT,
 } = process.env;
 
@@ -412,11 +413,11 @@ export default async (req, res) => {
       from,
       to,
       similarity: (100 - d) / 100,
-      video: `https://media.trace.moe/video/${anilist_id}/${encodeURIComponent(filename)}?${[
+      video: `${TRACE_MEDIA_URL}/video/${anilist_id}/${encodeURIComponent(filename)}?${[
         `t=${mid}`,
         `token=${token}`,
       ].join("&")}`,
-      image: `https://media.trace.moe/image/${anilist_id}/${encodeURIComponent(filename)}?${[
+      image: `${TRACE_MEDIA_URL}/image/${anilist_id}/${encodeURIComponent(filename)}?${[
         `t=${mid}`,
         `token=${token}`,
       ].join("&")}`,
