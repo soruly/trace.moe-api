@@ -49,6 +49,7 @@ const {
   REDIS_HOST,
   REDIS_PORT,
   SERVER_PORT,
+  SERVER_WS_HOST,
   SERVER_WS_PORT,
   TRACE_API_SECRET,
 } = process.env;
@@ -59,6 +60,17 @@ const client = redis.createClient({
 });
 const flushallAsync = util.promisify(client.flushall).bind(client);
 await flushallAsync();
+
+console.log("Creating SQL database if not exist");
+await Knex({
+  client: "mysql",
+  connection: {
+    host: SOLA_DB_HOST,
+    port: SOLA_DB_PORT,
+    user: SOLA_DB_USER,
+    password: SOLA_DB_PWD,
+  },
+}).raw(`CREATE DATABASE IF NOT EXISTS ${SOLA_DB_NAME} CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
 
 const knex = Knex({
   client: "mysql",
