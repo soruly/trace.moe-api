@@ -49,7 +49,6 @@ const {
   REDIS_HOST,
   REDIS_PORT,
   SERVER_PORT,
-  SERVER_ADDR,
   SERVER_WS_PORT,
   TRACE_API_SECRET,
 } = process.env;
@@ -167,11 +166,11 @@ await knex.raw(`CREATE TABLE IF NOT EXISTS ${TRACE_ALGO} (
     KEY updated (updated)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
 
-const server = app.listen(SERVER_PORT, SERVER_ADDR, () =>
+const server = app.listen(SERVER_PORT, "0.0.0.0", () =>
   console.log(`API server listening on port ${SERVER_PORT}`)
 );
 
-const wsProxy = createProxyMiddleware({ target: `ws://127.0.0.1:${SERVER_WS_PORT}` });
+const wsProxy = createProxyMiddleware({ target: `ws://${SERVER_WS_HOST}:${SERVER_WS_PORT}` });
 
 app.use("/ws", wsProxy);
 
@@ -186,7 +185,7 @@ server.on("upgrade", (request, socket) => {
 
 let ws;
 const closeHandle = async () => {
-  ws = new WebSocket(`ws://127.0.0.1:${SERVER_WS_PORT}`, {
+  ws = new WebSocket(`ws://${SERVER_WS_HOST}:${SERVER_WS_PORT}`, {
     headers: { "x-trace-secret": TRACE_API_SECRET, "x-trace-worker-type": "master" },
   });
   app.locals.ws = ws;

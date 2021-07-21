@@ -26,7 +26,7 @@ const knex = Knex({
   },
 });
 
-const wss = new WebSocket.Server({ host: "127.0.0.1", port: SERVER_WS_PORT });
+const wss = new WebSocket.Server({ host: "0.0.0.0", port: SERVER_WS_PORT });
 
 const STATE = { READY: "READY", BUSY: "BUSY" };
 
