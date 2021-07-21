@@ -99,6 +99,7 @@ app.use((req, res, next) => {
 app.use(
   new rateLimit({
     store: new rateLimitRedis({
+      redisURL: `//${REDIS_HOST}:${REDIS_PORT}`,
       expiry: 60,
     }),
     max: 60, // limit each IP to 60 requests per 60 seconds
