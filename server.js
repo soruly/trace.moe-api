@@ -80,6 +80,7 @@ const knex = Knex({
     user: SOLA_DB_USER,
     password: SOLA_DB_PWD,
     database: SOLA_DB_NAME,
+    multipleStatements: true,
   },
 });
 
@@ -168,16 +169,8 @@ app.all("/", async (req, res) => {
 });
 
 console.log("Creating SQL table if not exist");
-await knex.raw(`CREATE TABLE IF NOT EXISTS ${TRACE_ALGO} (
-    path varchar(768) COLLATE utf8mb4_unicode_ci NOT NULL,
-    status enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') COLLATE utf8mb4_unicode_ci NOT NULL,
-    created datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (path),
-    KEY status (status),
-    KEY created (created),
-    KEY updated (updated)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+await knex.raw(fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO));
+await knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
 
 const server = app.listen(SERVER_PORT, "0.0.0.0", () =>
   console.log(`API server listening on port ${SERVER_PORT}`)
