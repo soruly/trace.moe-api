@@ -50,13 +50,7 @@ const unload = (relativePath, coreList) =>
   });
 
 console.log("Loading solr core list...");
-let coreList = [];
-if (fs.existsSync("core-list.json")) {
-  coreList = JSON.parse(fs.readFileSync("core-list.json", "utf8"));
-} else {
-  const coreList = await getSolrCoreList();
-  fs.outputFileSync("core-list.json", JSON.stringify(coreList, null, 2));
-}
+const coreList = getSolrCoreList();
 console.log(
   `Loaded ${coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
 );

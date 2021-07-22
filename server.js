@@ -212,14 +212,7 @@ const closeHandle = async () => {
 closeHandle();
 
 console.log("Loading solr core list...");
-let coreList = [];
-if (fs.existsSync("core-list.json")) {
-  coreList = JSON.parse(fs.readFileSync("core-list.json", "utf8"));
-} else {
-  coreList = await getSolrCoreList();
-  fs.outputFileSync("core-list.json", JSON.stringify(coreList, null, 2));
-}
-app.locals.coreList = coreList;
+app.locals.coreList = getSolrCoreList();
 console.log(
   `Loaded ${app.locals.coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
 );
