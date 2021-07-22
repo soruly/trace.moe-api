@@ -23,7 +23,10 @@ CREATE TABLE IF NOT EXISTS `anilist_chinese` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-CREATE TABLE IF NOT EXISTS `TRACE_ALGO` (
+CREATE TABLE IF NOT EXISTS `anilist_view` (`id` int(10) unsigned, `json` longtext);
+
+
+CREATE TABLE IF NOT EXISTS `cl` (
   `path` varchar(768) COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') COLLATE utf8mb4_unicode_ci NOT NULL,
   `created` datetime NOT NULL DEFAULT current_timestamp(),
@@ -111,26 +114,37 @@ CREATE TABLE IF NOT EXISTS `webhook` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+DROP TABLE IF EXISTS `anilist_view`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `anilist_view` AS select `anilist`.`id` AS `id`,json_merge_preserve(`anilist`.`json`,ifnull(`anilist_chinese`.`json`,json_object('title',json_object('chinese',NULL),'synonyms_chinese',json_array()))) AS `json` from (`anilist` left join `anilist_chinese` on(`anilist`.`id` = `anilist_chinese`.`id`));
 
+DROP TABLE IF EXISTS `log_daily`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_daily` AS select cast(`log`.`time` as date) AS `period`,count(0) AS `total`,sum(if(`log`.`status` = 200,1,0)) AS `200`,sum(if(`log`.`status` = 400,1,0)) AS `400`,sum(if(`log`.`status` = 402,1,0)) AS `402`,sum(if(`log`.`status` = 405,1,0)) AS `405`,sum(if(`log`.`status` = 503,1,0)) AS `503` from `log` where `log`.`time` >= current_timestamp() + interval -30 day group by cast(`log`.`time` as date);
 
+DROP TABLE IF EXISTS `log_hourly`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_hourly` AS select date_format(`log`.`time`,'%Y-%m-%d %H00') AS `period`,count(0) AS `total`,sum(if(`log`.`status` = 200,1,0)) AS `200`,sum(if(`log`.`status` = 400,1,0)) AS `400`,sum(if(`log`.`status` = 402,1,0)) AS `402`,sum(if(`log`.`status` = 405,1,0)) AS `405`,sum(if(`log`.`status` = 503,1,0)) AS `503` from `log` where `log`.`time` >= current_timestamp() + interval -36 day_hour group by date_format(`log`.`time`,'%Y-%m-%d %H00');
 
+DROP TABLE IF EXISTS `log_monthly`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_monthly` AS select date_format(`log`.`time`,'%Y-%m') AS `period`,count(0) AS `total`,sum(if(`log`.`status` = 200,1,0)) AS `200`,sum(if(`log`.`status` = 400,1,0)) AS `400`,sum(if(`log`.`status` = 402,1,0)) AS `402`,sum(if(`log`.`status` = 405,1,0)) AS `405`,sum(if(`log`.`status` = 503,1,0)) AS `503` from `log` where `log`.`time` >= current_timestamp() + interval -365 day group by date_format(`log`.`time`,'%Y-%m');
 
+DROP TABLE IF EXISTS `log_speed_daily`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_speed_daily` AS select distinct cast(`log`.`time` as date) AS `period`,round(percentile_cont(0) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p0`,round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p10`,round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p25`,round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p50`,round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p75`,round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p90`,round(percentile_cont(1) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -30 day;
 
+DROP TABLE IF EXISTS `log_speed_hourly`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_speed_hourly` AS select distinct date_format(`log`.`time`,'%Y-%m-%d %H00') AS `period`,round(percentile_cont(0) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p0`,round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p10`,round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p25`,round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p50`,round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p75`,round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p90`,round(percentile_cont(1) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -36 day_hour;
 
+DROP TABLE IF EXISTS `log_speed_monthly`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_speed_monthly` AS select distinct date_format(`log`.`time`,'%Y-%m') AS `period`,round(percentile_cont(0) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p0`,round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p10`,round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p25`,round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p50`,round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p75`,round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p90`,round(percentile_cont(1) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -365 day;
 
+DROP TABLE IF EXISTS `log_view`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_view` AS select `log`.`uid` AS `uid`,count(0) AS `count` from `log` group by `log`.`uid` order by count(0) desc;
 
+DROP TABLE IF EXISTS `status`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `status` AS select `cl`.`status` AS `status`,count(0) AS `COUNT(*)` from `cl` group by `cl`.`status`;
 
+DROP TABLE IF EXISTS `user_quota`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `user_quota` AS select `log`.`uid` AS `uid`,count(0) AS `count` from `log` where `log`.`status` = 200 and `log`.`time` >= date_format(current_timestamp(),'%Y-%m-01 00:00:00') group by `log`.`uid`;
 
+DROP TABLE IF EXISTS `user_view`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `user_view` AS select `user`.`id` AS `id`,`user`.`email` AS `email`,`user`.`api_key` AS `api_key`,`user`.`tier` AS `tier`,`tier`.`priority` AS `priority`,`tier`.`concurrency` AS `concurrency`,`tier`.`quota` AS `quota` from (`user` left join `tier` on(`user`.`tier` = `tier`.`id`));
 
--- 2021-07-21 09:00:46
+-- 2021-07-22 08:15:39
