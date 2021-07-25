@@ -21,6 +21,7 @@ const {
   REDIS_PORT,
   TRACE_MEDIA_URL,
   TRACE_MEDIA_SALT,
+  TRACE_ACCURACY = 100,
 } = process.env;
 
 const client = redis.createClient({
@@ -52,7 +53,7 @@ const search = (coreList, image, candidates, anilistID) =>
         `${coreURL}/lireq?${[
           "field=cl_ha",
           "ms=false",
-          `accuracy=2`,
+          `accuracy=${TRACE_ACCURACY}`,
           `candidates=${candidates}`,
           "rows=30",
           anilistID ? `fq=id:${anilistID}/*` : "",
