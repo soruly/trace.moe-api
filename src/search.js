@@ -28,6 +28,8 @@ const client = redis.createClient({
   host: REDIS_HOST,
   port: REDIS_PORT,
 });
+const setAsync = util.promisify(client.set).bind(client);
+const getAsync = util.promisify(client.get).bind(client);
 const delAsync = util.promisify(client.del).bind(client);
 const mgetAsync = util.promisify(client.mget).bind(client);
 const keysAsync = util.promisify(client.keys).bind(client);
@@ -108,12 +110,15 @@ export default async (req, res) => {
       uid = req.query.uid ?? rows[0].id;
     }
   }
-  const searchCount = (
-    await knex("log")
-      .count({ count: "time" })
-      .where("time", ">", new Date().toISOString().replace(/(\d+-\d+).+/, "$1-01T00:00:00.000Z"))
-      .andWhere({ status: 200, uid })
-  )[0].count;
+
+  const searchCount =
+    Number(await getAsync(`s:${uid}`)) ||
+    (
+      await knex("log")
+        .count({ count: "time" })
+        .where("time", ">", new Date().toISOString().replace(/(\d+-\d+).+/, "$1-01T00:00:00.000Z"))
+        .andWhere({ status: 200, uid })
+    )[0].count;
 
   if (searchCount >= quota) {
     await knex("log").insert({ time: knex.fn.now(), uid, status: 402 });
@@ -459,6 +464,7 @@ export default async (req, res) => {
   }
 
   await logAndDequeue(uid, priority, 200, searchTime);
+  await setAsync(`s:${uid}`, searchCount + 1);
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",
