@@ -144,12 +144,13 @@ wss.on("connection", async (ws, request) => {
   if (type === "hash" || type === "load") {
     workerPool.set(ws, { status: STATE.READY, type, file: "" });
     await lookForJobs(ws);
-    ws.on("message", async (message) => {
+    ws.on("message", async (data) => {
       await lookForJobs(ws);
     });
   }
   if (type === "master") {
-    ws.on("message", async (message) => {
+    ws.on("message", async (data) => {
+      const message = data.toString();
       console.log(`Master: ${message}`);
       if (message === "getWorkerPool") {
         ws.send(JSON.stringify(Array.from(workerPool)));
