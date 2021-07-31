@@ -1,5 +1,5 @@
 import "dotenv/config";
-import WebSocket from "ws";
+import WebSocket, { WebSocketServer } from "ws";
 import Knex from "knex";
 import fetch from "node-fetch";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
@@ -26,7 +26,7 @@ const knex = Knex({
   },
 });
 
-const wss = new WebSocket.Server({ host: "0.0.0.0", port: SERVER_WS_PORT });
+const wss = new WebSocketServer({ host: "0.0.0.0", port: SERVER_WS_PORT });
 
 const STATE = { READY: "READY", BUSY: "BUSY" };
 
