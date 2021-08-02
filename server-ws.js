@@ -32,19 +32,13 @@ const STATE = { READY: "READY", BUSY: "BUSY" };
 
 const workerPool = new Map();
 
-console.log("Loading solr core list...");
-const coreList = await getSolrCoreList();
-console.log(
-  `Loaded ${coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
-);
-
 const selectCore = (function* (arr) {
   let index = 0;
   while (true) {
     yield arr[index % arr.length];
     index++;
   }
-})(coreList);
+})(getSolrCoreList());
 
 const getLeastPopulatedCore = async () =>
   (
@@ -109,7 +103,7 @@ const lookForLoadJobs = async (ws) => {
     await knex(TRACE_ALGO).where("path", file).update({ status: "LOADING" });
     workerPool.set(ws, { status: STATE.BUSY, type: "load", file });
     let selectedCore = "";
-    if (rows.length < coreList.length) {
+    if (rows.length < getSolrCoreList().length) {
       console.log("Finding least populated core");
       selectedCore = await getLeastPopulatedCore();
     } else {

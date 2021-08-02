@@ -22,7 +22,6 @@ import uploaded from "./src/uploaded.js";
 import putHash from "./src/put-hash.js";
 import getHash from "./src/get-hash.js";
 import getWorkers from "./src/get-workers.js";
-import getSolrCoreList from "./lib/get-solr-core-list.js";
 import loaded from "./src/loaded.js";
 import unload from "./src/unload.js";
 import putAnilistChinese from "./src/put-anilist-chinese.js";
@@ -208,9 +207,3 @@ const closeHandle = async () => {
   });
 };
 closeHandle();
-
-console.log("Loading solr core list...");
-app.locals.coreList = getSolrCoreList();
-console.log(
-  `Loaded ${app.locals.coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
-);

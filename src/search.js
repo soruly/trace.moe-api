@@ -10,6 +10,7 @@ import cv from "opencv4nodejs";
 import Knex from "knex";
 import * as redis from "redis";
 import { performance } from "perf_hooks";
+import getSolrCoreList from "../lib/get-solr-core-list.js";
 
 const {
   SOLA_DB_HOST,
@@ -48,9 +49,9 @@ const knex = Knex({
   },
 });
 
-const search = (coreList, image, candidates, anilistID) =>
+const search = (image, candidates, anilistID) =>
   Promise.all(
-    coreList.map((coreURL) =>
+    getSolrCoreList().map((coreURL) =>
       fetch(
         `${coreURL}/lireq?${[
           "field=cl_ha",
@@ -274,23 +275,11 @@ export default async (req, res) => {
   }
   // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
 
-  if (!req.app.locals.coreList || req.app.locals.coreList.length === 0) {
-    await logAndDequeue(uid, priority, 500);
-    return res.status(500).json({
-      error: "Database is offline",
-    });
-  }
-
   let candidates = 1000000;
   const startTime = performance.now();
   let solrResponse = null;
   try {
-    solrResponse = await search(
-      req.app.locals.coreList,
-      searchImage,
-      candidates,
-      Number(req.query.anilistID)
-    );
+    solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
   } catch (e) {
     await logAndDequeue(uid, priority, 503);
     return res.status(503).json({
@@ -311,12 +300,7 @@ export default async (req, res) => {
     // found cluster has more candidates than expected
     // search again with increased candidates count
     candidates = maxRawDocsCount;
-    solrResponse = await search(
-      req.app.locals.coreList,
-      searchImage,
-      candidates,
-      Number(req.query.anilistID)
-    );
+    solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
     if (solrResponse.find((e) => e.status >= 500)) {
       const r = solrResponse.find((e) => e.status >= 500);
       await logAndDequeue(uid, priority, r.status);
