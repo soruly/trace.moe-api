@@ -363,13 +363,6 @@ export default async (req, res) => {
     .sort((a, b) => a.d - b.d) // sort in ascending order of difference
     .slice(0, 10); // return only top 10 results
 
-  const anilistDB = await knex("anilist_view")
-    .select("id", "json")
-    .havingIn(
-      "id",
-      result.map((result) => result.anilist_id)
-    );
-
   result = result.map(({ anilist_id, filename, t, from, to, d }) => {
     const mid = from + (to - from) / 2;
     const token = crypto
@@ -378,26 +371,8 @@ export default async (req, res) => {
       .digest("base64")
       .replace(/[^0-9A-Za-z]/g, "");
 
-    let anilistInfo = anilist_id;
-    if (!anilistDB.find((e) => e.id === anilist_id)) {
-      console.log(`${anilist_id}/${filename} should be deleted from DB`);
-    } else {
-      const src = JSON.parse(anilistDB.find((e) => e.id === anilist_id).json);
-      if (req.query.info === "basic") {
-        // for legacy API, to be deprecated
-        anilistInfo = {
-          id: src.id,
-          idMal: src.idMal,
-          isAdult: src.isAdult,
-          synonyms: src.synonyms,
-          synonyms_chinese: src.synonyms_chinese,
-          title: src.title,
-        };
-      }
-    }
-
     return {
-      anilist: anilistInfo,
+      anilist: anilist_id,
       filename,
       episode: aniep(filename),
       from,
