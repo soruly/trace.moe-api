@@ -1,5 +1,7 @@
 import "dotenv/config";
 import { performance } from "perf_hooks";
+import fetch from "node-fetch";
+import WebSocket, { WebSocketServer } from "ws";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import rateLimitRedis from "rate-limit-redis";
@@ -7,11 +9,11 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import multer from "multer";
 import Knex from "knex";
-import WebSocket from "ws";
 import fs from "fs-extra";
-import { createProxyMiddleware } from "http-proxy-middleware";
 import * as redis from "redis";
 import util from "util";
+
+import getSolrCoreList from "./lib/get-solr-core-list.js";
 
 import checkSecret from "./src/check-secret.js";
 import getMe from "./src/get-me.js";
@@ -38,18 +40,16 @@ console.log(
 
 const {
   TRACE_ALGO,
+  TRACE_API_SECRET,
   SOLA_DB_HOST,
   SOLA_DB_PORT,
   SOLA_DB_USER,
   SOLA_DB_PWD,
   SOLA_DB_NAME,
-  SOLA_SOLR_LIST,
   REDIS_HOST,
   REDIS_PORT,
   SERVER_PORT,
-  SERVER_WS_HOST,
-  SERVER_WS_PORT,
-  TRACE_API_SECRET,
+  SOLA_SOLR_LIST,
 } = process.env;
 
 const client = redis.createClient({
@@ -169,41 +169,148 @@ console.log("Creating SQL table if not exist");
 await knex.raw(fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO));
 await knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
 
+const workerPool = new Map();
+
+app.locals.workerPool = workerPool;
+
+const selectCore = (function* (arr) {
+  let index = 0;
+  while (true) {
+    yield arr[index % arr.length];
+    index++;
+  }
+})(getSolrCoreList());
+
+const getLeastPopulatedCore = async () =>
+  (
+    await Promise.all(
+      SOLA_SOLR_LIST.split(",").map((solrUrl) =>
+        fetch(`${solrUrl}admin/cores?wt=json`)
+          .then((res) => res.json())
+          .then(({ status }) => {
+            return Object.values(status).map((e) => ({
+              name: `${solrUrl}${e.name}`,
+              numDocs: e.index.numDocs,
+            }));
+          })
+      )
+    )
+  )
+    .flat()
+    .sort((a, b) => a.numDocs - b.numDocs)[0].name;
+
+let mutexA = 0;
+let mutexB = 0;
+
+const lookForHashJobs = async (ws) => {
+  if (mutexA > 0) {
+    await new Promise((resolve) => {
+      const i = setInterval(() => {
+        if (mutexA === 0) {
+          clearInterval(i);
+          resolve();
+        }
+      }, 10);
+    });
+  }
+  mutexA = 1; // lock mutexA
+  const rows = await knex(TRACE_ALGO).where("status", "UPLOADED");
+  if (rows.length) {
+    const file = rows[0].path;
+    await knex(TRACE_ALGO).where("path", file).update({ status: "HASHING" });
+    workerPool.set(ws, { status: "BUSY", type: "hash", file });
+    ws.send(JSON.stringify({ file, algo: TRACE_ALGO }));
+  } else {
+    workerPool.set(ws, { status: "READY", type: "hash", file: "" });
+  }
+  mutexA = 0; // unlock mutexA
+};
+
+const lookForLoadJobs = async (ws) => {
+  if (mutexB > 0) {
+    await new Promise((resolve) => {
+      const i = setInterval(() => {
+        if (mutexB === 0) {
+          clearInterval(i);
+          resolve();
+        }
+      }, 10);
+    });
+  }
+  mutexB = 1; // lock mutexB
+  const rows = await knex(TRACE_ALGO).where("status", "HASHED");
+  if (rows.length) {
+    const file = rows[0].path;
+    await knex(TRACE_ALGO).where("path", file).update({ status: "LOADING" });
+    workerPool.set(ws, { status: "BUSY", type: "load", file });
+    let selectedCore = "";
+    if (rows.length < getSolrCoreList().length) {
+      console.log("Finding least populated core");
+      selectedCore = await getLeastPopulatedCore();
+    } else {
+      console.log("Choosing next core (round-robin)");
+      selectedCore = selectCore.next().value;
+    }
+    console.log(`Loading ${file} to ${selectedCore}`);
+    ws.send(JSON.stringify({ file, core: selectedCore }));
+  } else {
+    workerPool.set(ws, { status: "READY", type: "load", file: "" });
+  }
+  mutexB = 0; // unlock mutexB
+};
+
+const lookForJobs = async (ws) => {
+  if (workerPool.get(ws).type === "hash") {
+    await lookForHashJobs(ws);
+  } else if (workerPool.get(ws).type === "load") {
+    await lookForLoadJobs(ws);
+  }
+  console.log(
+    Array.from(workerPool)
+      .map(([_, { status, type, file }]) => `${type},${status},${file}`)
+      .sort()
+  );
+};
+
+const wss = new WebSocketServer({ noServer: true, path: "/ws" });
 const server = app.listen(SERVER_PORT, "0.0.0.0", () =>
   console.log(`API server listening on port ${SERVER_PORT}`)
 );
 
-const wsProxy = createProxyMiddleware({ target: `ws://${SERVER_WS_HOST}:${SERVER_WS_PORT}` });
-
-app.use("/ws", wsProxy);
-
-server.on("upgrade", (request, socket) => {
+server.on("upgrade", (request, socket, head) => {
   if (request.headers["x-trace-secret"] !== TRACE_API_SECRET) {
     socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
     socket.destroy();
     return;
   }
-  wsProxy.upgrade(request, socket);
+  wss.handleUpgrade(request, socket, head, (websocket) => {
+    wss.emit("connection", websocket, request);
+  });
 });
 
-let ws;
-const closeHandle = async () => {
-  console.log(`Connecting to ws://${SERVER_WS_HOST}:${SERVER_WS_PORT}`);
-  ws = new WebSocket(`ws://${SERVER_WS_HOST}:${SERVER_WS_PORT}`, {
-    headers: { "x-trace-secret": TRACE_API_SECRET, "x-trace-worker-type": "master" },
-  });
-  app.locals.ws = ws;
-  ws.on("open", async (e) => {
-    console.log(`Connected to ws://${SERVER_WS_HOST}:${SERVER_WS_PORT}`);
-  });
-  ws.on("error", async (e) => {
-    console.log(e);
-  });
-  ws.on("close", async (e) => {
-    console.log(`WebSocket closed (Code: ${e})`);
-    console.log("Reconnecting in 5 seconds");
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    closeHandle();
-  });
+app.locals.checkDB = async () => {
+  for (const [ws] of Array.from(workerPool).filter(
+    ([_, { status, type, file }]) => status === "READY"
+  )) {
+    await lookForJobs(ws);
+  }
 };
-closeHandle();
+
+wss.on("connection", async (ws, request) => {
+  const type = request.headers["x-trace-worker-type"];
+  console.log(`${type} worker: I'm ready`);
+  workerPool.set(ws, { status: "READY", type, file: "" });
+  await lookForJobs(ws);
+  ws.on("message", async (data) => {
+    await lookForJobs(ws);
+  });
+  ws.on("close", (code) => {
+    workerPool.delete(ws);
+  });
+});
+
+setInterval(() => {
+  for (const client of Array.from(wss.clients).filter((e) => e.readyState === WebSocket.OPEN)) {
+    client.ping();
+  }
+}, 30000); // prevent cloudflare timeout

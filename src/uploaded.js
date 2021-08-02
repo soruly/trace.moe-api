@@ -26,6 +26,6 @@ export default async (req, res) => {
       .toString()
       .replace(/^insert/i, "insert ignore")
   );
-  req.app.locals.ws.send("checkDB");
+  await req.app.locals.checkDB();
   res.sendStatus(204);
 };

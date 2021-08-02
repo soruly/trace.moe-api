@@ -28,7 +28,7 @@ export default async (req, res) => {
   const { anilistID, filename } = req.params;
   console.log(`Loaded ${anilistID}/${filename}`);
   await knex(TRACE_ALGO).where("path", `${anilistID}/${filename}`).update({ status: "LOADED" });
-  req.app.locals.ws.send("checkDB");
+  await req.app.locals.checkDB();
   res.sendStatus(204);
 
   if (TELEGRAM_ID && TELEGRAM_URL) {
