@@ -7,25 +7,6 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 SET NAMES utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `anilist` (
-  `id` int(10) unsigned NOT NULL,
-  `json` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `CONSTRAINT_1` CHECK (json_valid(`json`))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
-CREATE TABLE IF NOT EXISTS `anilist_chinese` (
-  `id` int(10) unsigned NOT NULL,
-  `json` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `CONSTRAINT_1` CHECK (json_valid(`json`))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
-CREATE TABLE IF NOT EXISTS `anilist_view` (`id` int(10) unsigned, `json` longtext);
-
-
 CREATE TABLE IF NOT EXISTS `cl` (
   `path` varchar(768) COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -112,10 +93,6 @@ CREATE TABLE IF NOT EXISTS `webhook` (
   `json` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   CONSTRAINT `CONSTRAINT_1` CHECK (json_valid(`json`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
-DROP TABLE IF EXISTS `anilist_view`;
-CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `anilist_view` AS select `anilist`.`id` AS `id`,json_merge_preserve(`anilist`.`json`,ifnull(`anilist_chinese`.`json`,json_object('title',json_object('chinese',NULL),'synonyms_chinese',json_array()))) AS `json` from (`anilist` left join `anilist_chinese` on(`anilist`.`id` = `anilist_chinese`.`id`));
 
 DROP TABLE IF EXISTS `log_daily`;
 CREATE OR REPLACE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_daily` AS select cast(`log`.`time` as date) AS `period`,count(0) AS `total`,sum(if(`log`.`status` = 200,1,0)) AS `200`,sum(if(`log`.`status` = 400,1,0)) AS `400`,sum(if(`log`.`status` = 402,1,0)) AS `402`,sum(if(`log`.`status` = 405,1,0)) AS `405`,sum(if(`log`.`status` = 503,1,0)) AS `503` from `log` where `log`.`time` >= current_timestamp() + interval -30 day group by cast(`log`.`time` as date);
