@@ -1,4 +1,5 @@
 import Knex from "knex";
+import sendWorkerJobs from "../lib/send-worker-jobs.js";
 
 const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME, TRACE_ALGO } =
   process.env;
@@ -26,6 +27,6 @@ export default async (req, res) => {
       .toString()
       .replace(/^insert/i, "insert ignore")
   );
-  await req.app.locals.checkDB();
+  await sendWorkerJobs(req.app.locals.workerPool);
   res.sendStatus(204);
 };

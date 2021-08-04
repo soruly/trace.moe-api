@@ -1,6 +1,7 @@
 import Knex from "knex";
 import path from "path";
 import fs from "fs-extra";
+import sendWorkerJobs from "../lib/send-worker-jobs.js";
 
 const {
   SOLA_DB_HOST,
@@ -36,7 +37,7 @@ export default async (req, res) => {
   req.on("end", async () => {
     await knex(TRACE_ALGO).where("path", `${anilistID}/${filename}`).update({ status: "HASHED" });
     console.log(`Saved ${hashFilePath}`);
-    await req.app.locals.checkDB();
+    await sendWorkerJobs(req.app.locals.workerPool);
     return res.sendStatus(204);
   });
 };

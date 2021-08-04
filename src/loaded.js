@@ -1,5 +1,6 @@
 import Knex from "knex";
 import fetch from "node-fetch";
+import sendWorkerJobs from "../lib/send-worker-jobs.js";
 
 const {
   SOLA_DB_HOST,
@@ -28,7 +29,7 @@ export default async (req, res) => {
   const { anilistID, filename } = req.params;
   console.log(`Loaded ${anilistID}/${filename}`);
   await knex(TRACE_ALGO).where("path", `${anilistID}/${filename}`).update({ status: "LOADED" });
-  await req.app.locals.checkDB();
+  await sendWorkerJobs(req.app.locals.workerPool);
   res.sendStatus(204);
 
   if (TELEGRAM_ID && TELEGRAM_URL) {
