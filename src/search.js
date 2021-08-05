@@ -191,7 +191,7 @@ export default async (req, res) => {
 
   const tempFilePath = path.join(os.tmpdir(), `queryFile${process.hrtime().join("")}`);
   const tempImagePath = path.join(os.tmpdir(), `queryImage${process.hrtime().join("")}.jpg`);
-  fs.writeFileSync(tempFilePath, searchFile);
+  await fs.outputFile(tempFilePath, searchFile);
   child_process.spawnSync(
     "ffmpeg",
     [
@@ -212,15 +212,15 @@ export default async (req, res) => {
     ],
     { encoding: "utf-8" }
   );
-  if (!fs.existsSync(tempImagePath)) {
+  if (!(await fs.pathExists(tempImagePath))) {
     await logAndDequeue(uid, priority, 400);
     return res.status(400).json({
       error: `Failed to process image`,
     });
   }
-  let searchImage = fs.readFileSync(tempImagePath);
-  fs.removeSync(tempFilePath);
-  fs.removeSync(tempImagePath);
+  let searchImage = await fs.readFile(tempImagePath);
+  await fs.remove(tempFilePath);
+  await fs.remove(tempImagePath);
 
   if ("cutBorders" in req.query) {
     // auto black border cropping
@@ -263,17 +263,17 @@ export default async (req, res) => {
         h = h >= height ? height : h;
 
         searchImage = cv.imencode(".jpg", image.getRegion(new cv.Rect(x, y, w, h)));
-        // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
+        // await fs.outputFile(`temp/${new Date().toISOString()}.jpg`, searchImage);
       }
     } catch (e) {
-      // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
+      // await fs.outputFile(`temp/${new Date().toISOString()}.jpg`, searchImage);
       await logAndDequeue(uid, priority, 400);
       return res.status(400).json({
         error: "OpenCV: Failed to detect and cut borders",
       });
     }
   }
-  // fs.outputFileSync(`temp/${new Date().toISOString()}.jpg`, searchImage);
+  // await fs.outputFile(`temp/${new Date().toISOString()}.jpg`, searchImage);
 
   let candidates = 1000000;
   const startTime = performance.now();
