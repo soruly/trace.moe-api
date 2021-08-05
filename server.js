@@ -188,6 +188,7 @@ wss.on("connection", async (ws, request) => {
   app.locals.workerPool.set(ws, { status: "READY", type, file: "" });
   await sendWorkerJobs(app.locals.workerPool);
   ws.on("message", async (data) => {
+    app.locals.workerPool.set(ws, { status: "READY", type, file: "" });
     await sendWorkerJobs(app.locals.workerPool);
   });
   ws.on("close", (code) => {
