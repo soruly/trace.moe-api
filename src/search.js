@@ -317,10 +317,11 @@ export default async (req, res) => {
   let rawDocsSearchTimeList = [];
   let reRankSearchTimeList = [];
 
-  if (solrResults.Error) {
+  if (solrResults.find((e) => e.Error)) {
+    console.log(solrResults.find((e) => e.Error));
     await logAndDequeue(uid, priority, 500);
     return res.status(500).json({
-      error: solrResults.Error,
+      error: solrResults.find((e) => e.Error).Error,
     });
   }
 
