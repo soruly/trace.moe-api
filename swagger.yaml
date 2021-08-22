@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 1.0.0
+  version: 1.0.1
   title: api.trace.moe
   description: api.trace.moe
 servers:
@@ -135,6 +135,8 @@ components:
         error:
           type: string
           description: Error message
+      required:
+        - error
     User:
       type: object
       properties:
@@ -153,6 +155,12 @@ components:
         quotaUsed:
           type: integer
           description: Search quota you have used this month
+      required:
+        - id
+        - priority
+        - concurrency
+        - quota
+        - quotaUsed
     SearchResult:
       type: object
       properties:
@@ -167,18 +175,33 @@ components:
           description: Search results
           items:
             $ref: "#/components/schemas/Result"
+      required:
+        - frameCount
+        - error
+        - result
     Result:
       type: object
       properties:
         anilist:
-          type: integer
           description: The matching Anilist ID or Anilist info
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/Anilist"
         filename:
           type: string
           description: The filename of file where the match is found
         episode:
-          type: string
           description: The extracted episode number from filename
+          oneOf:
+            - type: number
+              nullable: true
+            - type: string
+              nullable: true
+            - type: array
+              items:
+                oneOf:
+                  - type: number
+                  - type: string
         from:
           type: number
           description: Starting time of the matching scene (seconds)
@@ -194,6 +217,57 @@ components:
         image:
           type: string
           description: URL to the preview image of the matching scene
+      required:
+        - anilist
+        - filename
+        - episode
+        - from
+        - to
+        - similarity
+        - video
+        - image
+    Anilist:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Anilist ID
+        idMal:
+          type: integer
+          description: MyAnimeList ID
+          nullable: true
+        isAdult:
+          type: boolean
+          description: Adult anime or not
+        synonyms:
+          type: array
+          description: Alias titles
+          items:
+            type: string
+        title:
+          type: object
+          properties:
+            native:
+              type: string
+              description: Native title
+              nullable: true
+            romaji:
+              type: string
+              description: Romaji title
+            english:
+              type: string
+              description: English title
+              nullable: true
+          required:
+            - native
+            - romaji
+            - english
+      required:
+        - id
+        - idMal
+        - isAdult
+        - synonyms
+        - title
 
 security:
   - ApiKeyInHeader: []
