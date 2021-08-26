@@ -44,6 +44,18 @@ export default async (req, res) => {
     });
   }
   res.set("Content-Type", "text/xml");
+  res.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'none'",
+      "style-src 'unsafe-inline'",
+      "img-src data:",
+      "base-uri 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'none'",
+      "block-all-mixed-content",
+    ].join("; ")
+  );
   return res.send(
     feed
       .xml({ indent: true })
