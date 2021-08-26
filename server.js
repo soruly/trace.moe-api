@@ -30,6 +30,7 @@ import create from "./src/user/create.js";
 import login from "./src/user/login.js";
 import resetKey from "./src/user/reset-key.js";
 import resetPassword from "./src/user/reset-password.js";
+import rss from "./src/rss.js";
 
 import v8 from "v8";
 console.log(
@@ -158,6 +159,7 @@ app.all("/user/login", login);
 app.all("/user/create", create);
 app.all("/user/reset-key", resetKey);
 app.all("/user/reset-password", resetPassword);
+app.all("/rss.xml", rss);
 app.all("/", async (req, res) => {
   res.send("ok");
 });

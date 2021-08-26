@@ -44,6 +44,7 @@
     "opencv4nodejs": "^5.6.0",
     "rate-limit-redis": "^2.1.0",
     "redis": "^3.1.2",
+    "rss": "^1.2.2",
     "ws": "^8.2.0"
   }
 }
