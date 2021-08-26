@@ -57,7 +57,8 @@ export default async (req, res) => {
       )[0].id;
       const rows = await knex("user").select("*").where("email", email).limit(1);
       if (!rows.length) {
-        await createNewUser(email, tier, false, full_name);
+        const result = await createNewUser(email, tier, full_name);
+        console.log(result);
       } else {
         await knex("user").where("email", email).update({ tier });
       }
