@@ -1,6 +1,5 @@
 import "dotenv/config";
 import Knex from "knex";
-import createNewUser from "../lib/create-new-user.js";
 
 const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
 
@@ -37,15 +36,16 @@ for (const row of rows) {
       )[0].id;
       const rows = await knex("user").select("*").where("email", email).limit(1);
       if (!rows.length) {
-        await createNewUser(email, tier, false, full_name);
+        console.log("new", email);
+        // await createNewUser(email, tier, false, full_name);
       } else {
-        await knex("user").where("email", email).update({ tier });
+        console.log("changed", email);
+        // await knex("user").where("email", email).update({ tier });
       }
     }
   } else if (patron_status === "declined_patron") {
-    await knex("user").where("email", email).update({ tier: 0 });
+    console.log("declined", email);
+    // await knex("user").where("email", email).update({ tier: 0 });
   }
 }
 knex.destroy();
-
-// await createNewUser("soruly@gmail.com", 1, true, "soruly");
