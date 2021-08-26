@@ -139,7 +139,7 @@ app.use(
     },
   })
 );
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 app.get("/me", getMe);
 app.get("/status", getStatus);
