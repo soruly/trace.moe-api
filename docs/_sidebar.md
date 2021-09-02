@@ -1,3 +1,4 @@
+- [Terms and Agreements](terms.md)
 - [API Docs](docs.md)
 - [Account and Limits](limits.md)
 - [Migrate from old API](migrate.md)
