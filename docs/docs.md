@@ -11,14 +11,16 @@ You may also refer to swagger docs on [SwaggerHub](https://app.swaggerhub.com/ap
 #### **cURL**
 
 ```bash
-curl https://api.trace.moe/search?url=https%3A%2F%2Ffoobar%2Fbaz.jpg
+curl "https://api.trace.moe/search?url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
 #### **javascript**
 
 ```javascript
 await fetch(
-  `https://api.trace.moe/search?url=${encodeURIComponent("https://foobar/baz.jpg")}`
+  `https://api.trace.moe/search?url=${encodeURIComponent(
+    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+  )}`
 ).then((e) => e.json());
 ```
 
@@ -29,7 +31,7 @@ import requests
 import urllib.parse
 requests
 .get("https://api.trace.moe/search?url={}"
-  .format(urllib.parse.quote_plus("https://foobar/baz.jpg"))
+  .format(urllib.parse.quote_plus("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"))
 ).json()
 ```
 
@@ -44,13 +46,61 @@ This method is the easiest if your image is already hosted somewhere in public. 
 #### **cURL**
 
 ```
-curl -F "image=@your_search_image.jpg" https://api.trace.moe/search
+curl --data-binary "@demo.jpg" https://api.trace.moe/search
 ```
 
 #### **javascript**
 
 ```javascript
-// If using nodejs, you need to require or import node-fetch and form-data
+// For nodejs only
+import fs from "fs";
+import fetch from "node-fetch";
+await fetch("https://api.trace.moe/search", {
+  method: "POST",
+  body: fs.readFileSync("demo.jpg"),
+  headers: {
+    "Content-type": "image/jpeg",
+  },
+}).then((e) => e.json());
+```
+
+#### **python**
+
+```python
+import requests
+requests.post("https://api.trace.moe/search",
+  data=open("demo.jpg", "rb"),
+  headers={"Content-Type": "image/jpeg"}
+).json()
+```
+
+<!-- tabs:end -->
+
+Supported Content-Types are `image/*`, `video/*` and `application/*`
+
+### Search by FORM POST (multipart/form-data)
+
+<!-- tabs:start -->
+
+#### **HTML**
+
+```html
+<form action="https://api.trace.moe/search" method="POST" enctype="multipart/form-data">
+  <input type="file" name="image" />
+  <input type="submit" />
+</form>
+```
+
+#### **cURL**
+
+```
+curl -F "image=@demo.jpg" https://api.trace.moe/search
+```
+
+#### **javascript**
+
+```javascript
+// For web browsers only
 const formData = new FormData();
 formData.append("image", imageBlob);
 await fetch("https://api.trace.moe/search", {
@@ -64,7 +114,7 @@ await fetch("https://api.trace.moe/search", {
 ```python
 import requests
 requests.post("https://api.trace.moe/search",
-  files={"image": open("baz.jpg", "rb")}
+  files={"image": open("demo.jpg", "rb")}
 ).json()
 ```
 
@@ -81,14 +131,16 @@ To enable black border crop, add `cutBorders` to the query string. e.g.
 #### **cURL**
 
 ```bash
-curl https://api.trace.moe/search?cutBorders&url=https%3A%2F%2Ffoobar%2Fbaz.jpg
+curl "https://api.trace.moe/search?cutBorders&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
 #### **javascript**
 
 ```javascript
 await fetch(
-  `https://api.trace.moe/search?cutBorders&url=${encodeURIComponent("https://foobar/baz.jpg")}`
+  `https://api.trace.moe/search?cutBorders&url=${encodeURIComponent(
+    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+  )}`
 ).then((e) => e.json());
 ```
 
@@ -99,7 +151,7 @@ import requests
 import urllib.parse
 requests
 .get("https://api.trace.moe/search?cutBorders&url={}"
-  .format(urllib.parse.quote_plus("https://foobar/baz.jpg"))
+  .format(urllib.parse.quote_plus("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"))
 ).json()
 ```
 
@@ -116,14 +168,16 @@ First you have to look for the Anilist ID of your anime from [AniList](https://a
 #### **cURL**
 
 ```bash
-curl https://api.trace.moe/search?anilistID=1&url=https%3A%2F%2Ffoobar%2Fbaz.jpg
+curl "https://api.trace.moe/search?anilistID=1&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
 #### **javascript**
 
 ```javascript
 await fetch(
-  `https://api.trace.moe/search?anilistID=1&url=${encodeURIComponent("https://foobar/baz.jpg")}`
+  `https://api.trace.moe/search?anilistID=1&url=${encodeURIComponent(
+    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+  )}`
 ).then((e) => e.json());
 ```
 
@@ -134,7 +188,7 @@ import requests
 import urllib.parse
 requests
 .get("https://api.trace.moe/search?anilistID=1&url={}"
-  .format(urllib.parse.quote_plus("https://foobar/baz.jpg"))
+  .format(urllib.parse.quote_plus("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"))
 ).json()
 ```
 
@@ -203,14 +257,16 @@ Only ask for it when you need nothing more than `idMal`, `title`, `synonyms`, `i
 #### **cURL**
 
 ```bash
-curl https://api.trace.moe/search?anilistInfo&url=https%3A%2F%2Ffoobar%2Fbaz.jpg
+curl "https://api.trace.moe/search?anilistInfo&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
 #### **javascript**
 
 ```javascript
 await fetch(
-  `https://api.trace.moe/search?anilistInfo&url=${encodeURIComponent("https://foobar/baz.jpg")}`
+  `https://api.trace.moe/search?anilistInfo&url=${encodeURIComponent(
+    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+  )}`
 ).then((e) => e.json());
 ```
 
@@ -221,7 +277,7 @@ import requests
 import urllib.parse
 requests
 .get("https://api.trace.moe/search?anilistInfo&url={}"
-  .format(urllib.parse.quote_plus("https://foobar/baz.jpg"))
+  .format(urllib.parse.quote_plus("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"))
 ).json()
 ```
 
@@ -340,7 +396,7 @@ When searching with API Keys, it would count towards your account quota and limi
 #### **cURL**
 
 ```bash
-curl https://api.trace.moe/me -H "x-trace-key: xxxxxxxxxxxxxxxxxxxxxxx"
+curl "https://api.trace.moe/me" -H "x-trace-key: xxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
 #### **javascript**
@@ -373,7 +429,7 @@ If you're lazy and doesn't mind your API Key being exposed to browser history or
 #### **cURL**
 
 ```bash
-curl https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx
+curl "https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
 #### **javascript**
