@@ -4,7 +4,6 @@ import WebSocket, { WebSocketServer } from "ws";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import rateLimitRedis from "rate-limit-redis";
-import bodyParser from "body-parser";
 import cors from "cors";
 import multer from "multer";
 import Knex from "knex";
@@ -133,9 +132,9 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({ credentials: true, origin: true }));
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false }));
 app.use(
-  bodyParser.json({
+  express.json({
     verify: (req, res, buf) => {
       req.rawBody = buf;
     },
