@@ -151,7 +151,7 @@ export default async (req, res) => {
     });
   }
 
-  let searchFile;
+  let searchFile = new Buffer.alloc(0);
   if (req.query.url) {
     // console.log(req.query.url);
     try {
@@ -180,8 +180,8 @@ export default async (req, res) => {
       });
     }
     searchFile = await response.buffer();
-  } else if (req.file) {
-    searchFile = req.file.buffer;
+  } else if (req.files?.length) {
+    searchFile = req.files[0].buffer;
   } else {
     await logAndDequeue(uid, priority, 405);
     return res.status(405).json({

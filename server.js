@@ -140,7 +140,6 @@ app.use(
     },
   })
 );
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 app.get("/me", getMe);
 app.get("/status", getStatus);
@@ -153,7 +152,11 @@ app.get("/unload/:anilistID/:filename", checkSecret, unload);
 app.get("/workers", checkSecret, getWorkers);
 app.all("/webhook/github", github);
 app.all("/webhook/patreon", patreon);
-app.all("/search", upload.single("image"), search);
+app.all(
+  "/search",
+  multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }).any(),
+  search
+);
 app.all("/user/login", login);
 app.all("/user/create", create);
 app.all("/user/reset-key", resetKey);
