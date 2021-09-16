@@ -182,6 +182,8 @@ export default async (req, res) => {
     searchFile = await response.buffer();
   } else if (req.files?.length) {
     searchFile = req.files[0].buffer;
+  } else if (req.rawBody?.length) {
+    searchFile = req.rawBody;
   } else {
     await logAndDequeue(uid, priority, 405);
     return res.status(405).json({
