@@ -14,6 +14,12 @@ You may also refer to swagger docs on [SwaggerHub](https://app.swaggerhub.com/ap
 curl "https://api.trace.moe/search?url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
+#### **PowerShell**
+
+```powershell
+Invoke-RestMethod "https://api.trace.moe/search?url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+```
+
 #### **javascript**
 
 ```javascript
@@ -49,6 +55,12 @@ This method is the easiest if your image is already hosted somewhere in public. 
 curl --data-binary "@demo.jpg" https://api.trace.moe/search
 ```
 
+#### **PowerShell**
+
+```powershell
+Invoke-RestMethod -Method Post -InFile .\demo.jpg https://api.trace.moe/search
+```
+
 #### **javascript**
 
 ```javascript
@@ -58,9 +70,7 @@ import fetch from "node-fetch";
 await fetch("https://api.trace.moe/search", {
   method: "POST",
   body: fs.readFileSync("demo.jpg"),
-  headers: {
-    "Content-type": "image/jpeg",
-  },
+  headers: { "Content-type": "image/jpeg" },
 }).then((e) => e.json());
 ```
 
@@ -77,6 +87,8 @@ requests.post("https://api.trace.moe/search",
 <!-- tabs:end -->
 
 Supported Content-Types are `image/*`, `video/*` and `application/*`
+
+File size is limited to 25MB. The server would throw HTTP 413 Payload Too Large if it is too large.
 
 ### Search by FORM POST (multipart/form-data)
 
@@ -97,6 +109,13 @@ Supported Content-Types are `image/*`, `video/*` and `application/*`
 curl -F "image=@demo.jpg" https://api.trace.moe/search
 ```
 
+#### **PowerShell**
+
+```powershell
+// Requires PowerShell 7.x
+Invoke-RestMethod -Method Post -Form @{image=Get-Item -Path "demo.jpg"} https://api.trace.moe/search
+```
+
 #### **javascript**
 
 ```javascript
@@ -108,6 +127,8 @@ await fetch("https://api.trace.moe/search", {
   body: formData,
 }).then((e) => e.json());
 ```
+
+File size is limited to 25MB. The server would throw HTTP 413 Payload Too Large if it is too large.
 
 #### **python**
 
@@ -132,6 +153,12 @@ To enable black border crop, add `cutBorders` to the query string. e.g.
 
 ```bash
 curl "https://api.trace.moe/search?cutBorders&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+```
+
+#### **PowerShell**
+
+```powershell
+Invoke-RestMethod "https://api.trace.moe/search?cutBorders&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
 #### **javascript**
@@ -169,6 +196,12 @@ First you have to look for the Anilist ID of your anime from [AniList](https://a
 
 ```bash
 curl "https://api.trace.moe/search?anilistID=1&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+```
+
+#### **PowerShell**
+
+```powershell
+Invoke-RestMethod "https://api.trace.moe/search?anilistID=1&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
 #### **javascript**
@@ -260,6 +293,12 @@ Only ask for it when you need nothing more than `idMal`, `title`, `synonyms`, `i
 curl "https://api.trace.moe/search?anilistInfo&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
+#### **PowerShell**
+
+```powershell
+Invoke-RestMethod "https://api.trace.moe/search?anilistInfo&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+```
+
 #### **javascript**
 
 ```javascript
@@ -345,7 +384,13 @@ Let you check the search quota and limit for your account (with API key) or IP a
 #### **cURL**
 
 ```bash
-curl https://api.trace.moe/me
+curl "https://api.trace.moe/me"
+```
+
+#### **PowerShell**
+
+```powershell
+Invoke-RestMethod "https://api.trace.moe/me"
 ```
 
 #### **javascript**
@@ -396,7 +441,13 @@ When searching with API Keys, it would count towards your account quota and limi
 #### **cURL**
 
 ```bash
-curl "https://api.trace.moe/me" -H "x-trace-key: xxxxxxxxxxxxxxxxxxxxxxx"
+curl -H "x-trace-key: xxxxxxxxxxxxxxxxxxxxxxx" "https://api.trace.moe/me"
+```
+
+#### **PowerShell**
+
+```powershell
+Invoke-RestMethod -Headers @{"x-trace-key" = "xxxxxxxxxxxxxxxxxxxxxxx"} https://api.trace.moe/me
 ```
 
 #### **javascript**
@@ -430,6 +481,12 @@ If you're lazy and doesn't mind your API Key being exposed to browser history or
 
 ```bash
 curl "https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+#### **PowerShell**
+
+```powershell
+Invoke-RestMethod "https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
 #### **javascript**
