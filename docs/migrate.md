@@ -18,7 +18,7 @@ This is a list of notable changes compared to the old, beta version of API of tr
 
 ## Search
 
-- The `base64` image is no longer supported,the  image must be sent in `blob`. Reason for this being `base64` has always been an inefficient way. Addiotionally, this means `HTTP POST` of `Form/JSON` with the base64 image is removed as well.
+- The `base64` image is no longer supported,the  image must be sent in `blob`. Reason for this being `base64` has always been an inefficient way. Additionally, this means `HTTP POST` of `Form/JSON` with the base64 image is removed as well.
 - The `filter` param has been renamed to `anilistID`.
 - Use the `cutBorders` param to turn on automatic black borders cutting. This has been always on for the old API, however it's now turned off by default.
 
