@@ -134,7 +134,7 @@ app.use((req, res, next) => {
 app.use(cors({ credentials: true, origin: true }));
 app.use(
   express.raw({
-    type: ["application/*", "image/*", "video/*"],
+    type: ["application/octet-stream", "application/x-www-form-urlencoded", "image/*", "video/*"],
     limit: 25 * 1024 * 1024,
     verify: (req, res, buf) => {
       req.rawBody = buf;

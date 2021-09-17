@@ -86,7 +86,7 @@ requests.post("https://api.trace.moe/search",
 
 <!-- tabs:end -->
 
-Supported Content-Types are `image/*`, `video/*` and `application/*`
+Supported Content-Types are `image/*`, `video/*`, `application/octet-stream` and `application/x-www-form-urlencoded`
 
 File size is limited to 25MB. The server would throw HTTP 413 Payload Too Large if it is too large.
 
