@@ -3,11 +3,8 @@
     {
       "name": "trace.moe-api",
       "script": "server.js",
-      "instances": 4,
-      "node_args": "--max-old-space-size=256",
-      "max_memory_restart": "500M",
-      "autorestart": true,
-      "exec_mode": "cluster"
+      "instances": 1,
+      "exec_mode": "fork"
     }
   ]
 }
