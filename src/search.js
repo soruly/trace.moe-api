@@ -1,10 +1,7 @@
 import crypto from "crypto";
-import os from "os";
-import path from "path";
 import child_process from "child_process";
 import util from "util";
 import fetch from "node-fetch";
-import fs from "fs-extra";
 import aniep from "aniep";
 import cv from "opencv4nodejs";
 import Knex from "knex";
@@ -196,38 +193,39 @@ export default async (req, res) => {
     });
   }
 
-  const tempFilePath = path.join(os.tmpdir(), `queryFile${process.hrtime().join("")}`);
-  const tempImagePath = path.join(os.tmpdir(), `queryImage${process.hrtime().join("")}.jpg`);
-  await fs.outputFile(tempFilePath, searchFile);
-  child_process.spawnSync(
+  const ffmpeg = child_process.spawnSync(
     "ffmpeg",
     [
       "-hide_banner",
       "-loglevel",
-      "warning",
+      "error",
       "-nostats",
       "-y",
+      "-i",
+      "pipe:0",
       "-ss",
       "00:00:00",
-      "-i",
-      tempFilePath,
-      "-vframes",
-      "1",
+      "-map_metadata",
+      "-1",
       "-vf",
       "scale=320:-2",
-      tempImagePath,
+      "-c:v",
+      "mjpeg",
+      "-vframes",
+      "1",
+      "-f",
+      "image2pipe",
+      "pipe:1",
     ],
-    { encoding: "utf-8" }
+    { input: searchFile }
   );
-  if (!(await fs.pathExists(tempImagePath))) {
+  if (!ffmpeg.stdout.length) {
     await logAndDequeue(uid, priority, 400);
     return res.status(400).json({
-      error: `Failed to process image`,
+      error: `Failed to process image. ${ffmpeg.stderr.toString()}`,
     });
   }
-  let searchImage = await fs.readFile(tempImagePath);
-  await fs.remove(tempFilePath);
-  await fs.remove(tempImagePath);
+  let searchImage = ffmpeg.stdout;
 
   if ("cutBorders" in req.query) {
     // auto black border cropping
@@ -270,17 +268,14 @@ export default async (req, res) => {
         h = h >= height ? height : h;
 
         searchImage = cv.imencode(".jpg", image.getRegion(new cv.Rect(x, y, w, h)));
-        // await fs.outputFile(`temp/${new Date().toISOString()}.jpg`, searchImage);
       }
     } catch (e) {
-      // await fs.outputFile(`temp/${new Date().toISOString()}.jpg`, searchImage);
       await logAndDequeue(uid, priority, 400);
       return res.status(400).json({
         error: "OpenCV: Failed to detect and cut borders",
       });
     }
   }
-  // await fs.outputFile(`temp/${new Date().toISOString()}.jpg`, searchImage);
 
   let candidates = 1000000;
   const startTime = performance.now();
