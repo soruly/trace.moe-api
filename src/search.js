@@ -1,7 +1,10 @@
 import crypto from "crypto";
+import os from "os";
+import path from "path";
 import child_process from "child_process";
 import util from "util";
 import fetch from "node-fetch";
+import fs from "fs-extra";
 import aniep from "aniep";
 import cv from "opencv4nodejs";
 import Knex from "knex";
@@ -192,33 +195,31 @@ export default async (req, res) => {
       error: "Method Not Allowed",
     });
   }
-
-  const ffmpeg = child_process.spawnSync(
-    "ffmpeg",
-    [
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-nostats",
-      "-y",
-      "-i",
-      "pipe:0",
-      "-ss",
-      "00:00:00",
-      "-map_metadata",
-      "-1",
-      "-vf",
-      "scale=320:-2",
-      "-c:v",
-      "mjpeg",
-      "-vframes",
-      "1",
-      "-f",
-      "image2pipe",
-      "pipe:1",
-    ],
-    { input: searchFile }
-  );
+  const tempFilePath = path.join(os.tmpdir(), `queryFile${process.hrtime().join("")}`);
+  await fs.outputFile(tempFilePath, searchFile);
+  const ffmpeg = child_process.spawnSync("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-nostats",
+    "-y",
+    "-i",
+    tempFilePath,
+    "-ss",
+    "00:00:00",
+    "-map_metadata",
+    "-1",
+    "-vf",
+    "scale=320:-2",
+    "-c:v",
+    "mjpeg",
+    "-vframes",
+    "1",
+    "-f",
+    "image2pipe",
+    "pipe:1",
+  ]);
+  await fs.remove(tempFilePath);
   if (!ffmpeg.stdout.length) {
     await logAndDequeue(uid, priority, 400);
     return res.status(400).json({
