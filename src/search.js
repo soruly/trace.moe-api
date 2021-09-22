@@ -22,7 +22,7 @@ const {
   REDIS_PORT,
   TRACE_MEDIA_URL,
   TRACE_MEDIA_SALT,
-  TRACE_ACCURACY = 100,
+  TRACE_ACCURACY = 1,
 } = process.env;
 
 const client = redis.createClient({
