@@ -199,9 +199,6 @@ app.locals.workerPool = new Map();
 
 wss.on("connection", async (ws, request) => {
   const type = request.headers["x-trace-worker-type"];
-  console.log(`${type} worker: I'm ready`);
-  app.locals.workerPool.set(ws, { status: "READY", type, file: "" });
-  await sendWorkerJobs(app.locals.workerPool);
   ws.on("message", async (data) => {
     app.locals.workerPool.set(ws, { status: "READY", type, file: "" });
     await sendWorkerJobs(app.locals.workerPool);
