@@ -6,7 +6,7 @@ import util from "util";
 import fetch from "node-fetch";
 import fs from "fs-extra";
 import aniep from "aniep";
-import cv from "opencv4nodejs";
+import cv from "opencv4nodejs-prebuilt";
 import Knex from "knex";
 import * as redis from "redis";
 import { performance } from "perf_hooks";
