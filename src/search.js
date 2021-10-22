@@ -70,6 +70,16 @@ const search = (image, candidates, anilistID) =>
   );
 
 const logAndDequeue = async (uid, priority, status, searchTime) => {
+  if (status === 200) {
+    const searchCountCache = await knex("search_count").where({ uid: `${uid}` });
+    if (searchCountCache.length) {
+      await knex("search_count")
+        .update({ count: searchCountCache[0].count + 1 })
+        .where({ uid: `${uid}` });
+    } else {
+      await knex("search_count").insert({ uid, count: 1 });
+    }
+  }
   if (searchTime) {
     await knex("log").insert({ time: knex.fn.now(), uid, status, search_time: searchTime });
   } else {
@@ -112,14 +122,9 @@ export default async (req, res) => {
     }
   }
 
-  const searchCount =
-    Number(await getAsync(`s:${uid}`)) ||
-    (
-      await knex("log")
-        .count({ count: "time" })
-        .where("time", ">", new Date().toISOString().replace(/(\d+-\d+).+/, "$1-01T00:00:00.000Z"))
-        .andWhere({ status: 200, uid })
-    )[0].count;
+  let searchCount = 0;
+  const searchCountCache = await knex("search_count").where({ uid: `${uid}` });
+  if (searchCountCache.length) searchCount = searchCountCache[0].count;
 
   if (searchCount >= quota) {
     await knex("log").insert({ time: knex.fn.now(), uid, status: 402 });
@@ -433,6 +438,4 @@ export default async (req, res) => {
     error: "",
     result,
   });
-
-  // console.log(`searchTime: ${searchTime}`);
 };

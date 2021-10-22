@@ -86,6 +86,12 @@ CREATE TABLE IF NOT EXISTS `user_quota` (`uid` varchar(45), `count` bigint(21));
 
 CREATE TABLE IF NOT EXISTS `user_view` (`id` int(10) unsigned, `email` varchar(256), `api_key` varchar(128), `tier` tinyint(3) unsigned, `priority` tinyint(3) unsigned, `concurrency` tinyint(3) unsigned, `quota` int(10) unsigned);
 
+CREATE TABLE IF NOT EXISTS `search_count` (
+  `uid` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`uid`),
+  KEY `uid` (`uid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `webhook` (
   `time` datetime DEFAULT current_timestamp(),
