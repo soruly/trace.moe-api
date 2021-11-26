@@ -181,7 +181,7 @@ export default async (req, res) => {
         error: `Failed to fetch image ${req.query.url}`,
       });
     }
-    searchFile = await response.buffer();
+    searchFile = Buffer.from(await response.arrayBuffer());
   } else if (req.files?.length) {
     searchFile = req.files[0].buffer;
   } else if (req.rawBody?.length) {
