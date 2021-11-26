@@ -1,41 +1,44 @@
-import util from "util";
-import * as redis from "redis";
+import "dotenv/config";
+import { createClient } from "redis";
 
-const client = redis.createClient();
-const keysAsync = util.promisify(client.keys).bind(client);
-const getAsync = util.promisify(client.get).bind(client);
-const mgetAsync = util.promisify(client.mget).bind(client);
+const { REDIS_HOST, REDIS_PORT } = process.env;
 
-const keys = await keysAsync("*");
+const redis = createClient({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+});
+await redis.connect();
+
+const keys = await redis.keys("*");
 
 console.table(
   await Promise.all(
-    keys.filter((key) => key.startsWith("s:")).map((key) => Promise.all([key, getAsync(key)]))
+    keys.filter((key) => key.startsWith("s:")).map((key) => Promise.all([key, redis.get(key)]))
   )
 );
 
 console.table(
   await Promise.all(
-    keys.filter((key) => key.startsWith("rl:")).map((key) => Promise.all([key, getAsync(key)]))
+    keys.filter((key) => key.startsWith("rl:")).map((key) => Promise.all([key, redis.get(key)]))
   )
 );
 console.table(
   await Promise.all(
-    keys.filter((key) => key.startsWith("q:")).map((key) => Promise.all([key, getAsync(key)]))
+    keys.filter((key) => key.startsWith("q:")).map((key) => Promise.all([key, redis.get(key)]))
   )
 );
 console.table(
   await Promise.all(
-    keys.filter((key) => key.startsWith("c:")).map((key) => Promise.all([key, getAsync(key)]))
+    keys.filter((key) => key.startsWith("c:")).map((key) => Promise.all([key, redis.get(key)]))
   )
 );
-console.log(await getAsync("queue"));
+console.log(await redis.get("queue"));
 
 const priority = 0;
 
-const queueKeys = await keysAsync("q:*");
+const queueKeys = await redis.keys("q:*");
 const higherPriorityKeys = queueKeys.filter((e) => Number(e.split(":")[1]) >= priority);
-const higherPriorityQueues = higherPriorityKeys.length ? await mgetAsync(higherPriorityKeys) : [];
+const higherPriorityQueues = higherPriorityKeys.length ? await redis.mGet(higherPriorityKeys) : [];
 const higherPriorityQueuesLength = higherPriorityQueues
   .map((e) => Number(e))
   .reduce((a, b) => a + b, 0);

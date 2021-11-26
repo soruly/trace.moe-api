@@ -2,13 +2,12 @@ import crypto from "crypto";
 import os from "os";
 import path from "path";
 import child_process from "child_process";
-import util from "util";
 import fetch from "node-fetch";
 import fs from "fs-extra";
 import aniep from "aniep";
 import cv from "opencv4nodejs-prebuilt";
 import Knex from "knex";
-import * as redis from "redis";
+import { createClient } from "redis";
 import { performance } from "perf_hooks";
 import getSolrCoreList from "../lib/get-solr-core-list.js";
 
@@ -25,18 +24,11 @@ const {
   TRACE_ACCURACY = 1,
 } = process.env;
 
-const client = redis.createClient({
+const redis = createClient({
   host: REDIS_HOST,
   port: REDIS_PORT,
 });
-const setAsync = util.promisify(client.set).bind(client);
-const getAsync = util.promisify(client.get).bind(client);
-const delAsync = util.promisify(client.del).bind(client);
-const mgetAsync = util.promisify(client.mget).bind(client);
-const keysAsync = util.promisify(client.keys).bind(client);
-const incrAsync = util.promisify(client.incr).bind(client);
-const decrAsync = util.promisify(client.decr).bind(client);
-const expireAsync = util.promisify(client.expire).bind(client);
+await redis.connect();
 
 const knex = Knex({
   client: "mysql",
@@ -85,13 +77,13 @@ const logAndDequeue = async (uid, priority, status, searchTime) => {
   } else {
     await knex("log").insert({ time: knex.fn.now(), uid, status });
   }
-  const c = await decrAsync(`c:${uid}`);
+  const c = await redis.decr(`c:${uid}`);
   if (c < 0) {
-    await delAsync(`c:${uid}`);
+    await redis.del(`c:${uid}`);
   }
-  const q = await decrAsync(`q:${priority}`);
+  const q = await redis.decr(`q:${priority}`);
   if (q < 0) {
-    await delAsync(`q:${priority}`);
+    await redis.del(`q:${priority}`);
   }
 };
 
@@ -133,8 +125,8 @@ export default async (req, res) => {
     });
   }
 
-  const concurrentCount = await incrAsync(`c:${uid}`);
-  await expireAsync(`c:${uid}`, 60);
+  const concurrentCount = await redis.incr(`c:${uid}`);
+  await redis.expire(`c:${uid}`, 60);
   if (concurrentCount > concurrency) {
     await logAndDequeue(uid, priority, 402);
     return res.status(402).json({
@@ -142,11 +134,11 @@ export default async (req, res) => {
     });
   }
 
-  await incrAsync(`q:${priority}`);
-  await expireAsync(`q:${priority}`, 60);
-  const queueKeys = await keysAsync("q:*");
+  await redis.incr(`q:${priority}`);
+  await redis.expire(`q:${priority}`, 60);
+  const queueKeys = await redis.keys("q:*");
   const priorityKeys = queueKeys.filter((e) => Number(e.split(":")[1]) >= priority);
-  const priorityQueues = priorityKeys.length ? await mgetAsync(priorityKeys) : [];
+  const priorityQueues = priorityKeys.length ? await redis.mGet(priorityKeys) : [];
   const priorityQueuesLength = priorityQueues.map((e) => Number(e)).reduce((a, b) => a + b, 0);
 
   if (priorityQueuesLength >= 5) {
@@ -432,7 +424,7 @@ export default async (req, res) => {
   }
 
   await logAndDequeue(uid, priority, 200, searchTime);
-  await setAsync(`s:${uid}`, searchCount + 1);
+  await redis.set(`s:${uid}`, `${searchCount + 1}`);
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",

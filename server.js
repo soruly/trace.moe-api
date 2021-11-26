@@ -8,8 +8,7 @@ import cors from "cors";
 import multer from "multer";
 import Knex from "knex";
 import fs from "fs-extra";
-import * as redis from "redis";
-import util from "util";
+import { createClient } from "redis";
 
 import sendWorkerJobs from "./lib/send-worker-jobs.js";
 import checkSecret from "./src/check-secret.js";
@@ -49,12 +48,12 @@ const {
   SERVER_PORT,
 } = process.env;
 
-const client = redis.createClient({
+const redis = createClient({
   host: REDIS_HOST,
   port: REDIS_PORT,
 });
-const flushallAsync = util.promisify(client.flushall).bind(client);
-await flushallAsync();
+await redis.connect();
+await redis.flushAll();
 
 console.log("Creating SQL database if not exist");
 await Knex({
