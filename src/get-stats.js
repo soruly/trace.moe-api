@@ -21,14 +21,31 @@ const knex = Knex({
   },
 });
 
+let lastUpdate = "";
+let mediaCount = 0;
+let mediaFramesTotal = 0;
+let mediaDurationTotal = 0;
+
 export default async (req, res) => {
   const { type, period } = req.query;
   if (type === "media") {
+    const [updated] = await knex("mediainfo").orderBy("updated", "desc").select("updated").limit(1);
+    if (lastUpdate !== updated.updated.toISOString()) {
+      const [mediainfo, media_frames_total, media_duration_total] = await Promise.all([
+        knex("mediainfo").count("* as sum"),
+        knex("media_frames_total"),
+        knex("media_duration_total").select("seconds"),
+      ]);
+      mediaCount = mediainfo[0].sum;
+      mediaFramesTotal = media_frames_total[0].sum;
+      mediaDurationTotal = media_duration_total[0].seconds;
+      lastUpdate = updated.updated.toISOString();
+    }
     return res.json({
-      mediaCount: (await knex("mediainfo").count("* as sum"))[0].sum,
-      mediaFramesTotal: (await knex("media_frames_total"))[0].sum,
-      mediaDurationTotal: (await knex("media_duration_total"))[0],
-      lastUpdate: (await knex("mediainfo").orderBy("updated", "desc").select("updated"))[0].updated,
+      mediaCount,
+      mediaFramesTotal,
+      mediaDurationTotal,
+      lastUpdate,
     });
   }
   if (!["hourly", "monthly", "daily"].includes(period)) {
