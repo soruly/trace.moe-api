@@ -23,6 +23,14 @@ const knex = Knex({
 
 export default async (req, res) => {
   const { type, period } = req.query;
+  if (type === "media") {
+    return res.json({
+      mediaCount: (await knex("mediainfo").count("* as sum"))[0].sum,
+      mediaFramesTotal: (await knex("media_frames_total"))[0].sum,
+      mediaDurationTotal: (await knex("media_duration_total"))[0],
+      lastUpdate: (await knex("mediainfo").orderBy("updated", "desc").select("updated"))[0].updated,
+    });
+  }
   if (!["hourly", "monthly", "daily"].includes(period)) {
     return res.status(400).json({
       error: "Invalid period",
