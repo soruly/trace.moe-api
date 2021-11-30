@@ -88,18 +88,6 @@ app.use((req, res, next) => {
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type, x-trace-secret");
-  res.set("Referrer-Policy", "no-referrer");
-  res.set("X-Content-Type-Options", "nosniff");
-  res.set(
-    "Content-Security-Policy",
-    [
-      "default-src 'none'",
-      "base-uri 'none'",
-      "frame-ancestors 'none'",
-      "form-action 'none'",
-      "block-all-mixed-content",
-    ].join("; ")
-  );
   next();
 });
 
