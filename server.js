@@ -2,6 +2,7 @@ import "dotenv/config";
 import WebSocket, { WebSocketServer } from "ws";
 import Knex from "knex";
 import fs from "fs-extra";
+import Knex from "knex";
 import { createClient } from "redis";
 
 import sendWorkerJobs from "./lib/send-worker-jobs.js";
@@ -20,17 +21,10 @@ const {
   SOLA_DB_USER,
   SOLA_DB_PWD,
   SOLA_DB_NAME,
+  SERVER_PORT,
   REDIS_HOST,
   REDIS_PORT,
-  SERVER_PORT,
 } = process.env;
-
-const redis = createClient({
-  host: REDIS_HOST,
-  port: REDIS_PORT,
-});
-await redis.connect();
-// await redis.flushAll();
 
 console.log("Creating SQL database if not exist");
 await Knex({
@@ -43,7 +37,14 @@ await Knex({
   },
 }).raw(`CREATE DATABASE IF NOT EXISTS ${SOLA_DB_NAME} CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
 
-const knex = Knex({
+app.locals.redis = createClient({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+});
+await app.locals.redis.connect();
+await app.locals.redis.flushAll();
+
+app.locals.knex = Knex({
   client: "mysql",
   connection: {
     host: SOLA_DB_HOST,
@@ -56,8 +57,10 @@ const knex = Knex({
 });
 
 console.log("Creating SQL table if not exist");
-await knex.raw(fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO));
-await knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
+await app.locals.knex.raw(
+  fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO)
+);
+await app.locals.knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
 
 const wss = new WebSocketServer({ noServer: true, path: "/ws" });
 const server = app.listen(SERVER_PORT, "0.0.0.0", () =>
