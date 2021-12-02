@@ -1,32 +1,11 @@
-import Knex from "knex";
-
-const {
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-  HASH_PATH,
-  TRACE_ALGO,
-} = process.env;
-
-const knex = Knex({
-  client: "mysql",
-  connection: {
-    host: SOLA_DB_HOST,
-    port: SOLA_DB_PORT,
-    user: SOLA_DB_USER,
-    password: SOLA_DB_PWD,
-    database: SOLA_DB_NAME,
-  },
-});
-
 let lastUpdate = "";
 let mediaCount = 0;
 let mediaFramesTotal = 0;
 let mediaDurationTotal = 0;
 
 export default async (req, res) => {
+  const knex = app.locals.knex;
+
   const { type, period } = req.query;
   if (type === "media") {
     const [updated] = await knex("mediainfo").orderBy("updated", "desc").select("updated").limit(1);

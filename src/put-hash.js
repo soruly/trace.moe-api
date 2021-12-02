@@ -1,30 +1,12 @@
-import Knex from "knex";
 import path from "path";
 import fs from "fs-extra";
 import sendWorkerJobs from "../lib/send-worker-jobs.js";
 
-const {
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-  HASH_PATH,
-  TRACE_ALGO,
-} = process.env;
-
-const knex = Knex({
-  client: "mysql",
-  connection: {
-    host: SOLA_DB_HOST,
-    port: SOLA_DB_PORT,
-    user: SOLA_DB_USER,
-    password: SOLA_DB_PWD,
-    database: SOLA_DB_NAME,
-  },
-});
+const { HASH_PATH, TRACE_ALGO } = process.env;
 
 export default async (req, res) => {
+  const knex = app.locals.knex;
+
   const { anilistID, filename } = req.params;
   const hashFilePath = path.join(HASH_PATH, anilistID, `${filename}.xml.xz`);
   if (!hashFilePath.startsWith(HASH_PATH)) {

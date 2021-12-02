@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit";
 import rateLimitRedis from "rate-limit-redis";
 import cors from "cors";
 import multer from "multer";
+import Knex from "knex";
 
 import checkSecret from "./check-secret.js";
 import getMe from "./get-me.js";
@@ -24,9 +25,28 @@ import resetKey from "./user/reset-key.js";
 import resetPassword from "./user/reset-password.js";
 import rss from "./rss.js";
 
-const { REDIS_HOST, REDIS_PORT } = process.env;
+const {
+  SOLA_DB_HOST,
+  SOLA_DB_PORT,
+  SOLA_DB_USER,
+  SOLA_DB_PWD,
+  SOLA_DB_NAME,
+  REDIS_HOST,
+  REDIS_PORT,
+} = process.env;
 
 const app = express();
+
+app.locals.knex = Knex({
+  client: "mysql",
+  connection: {
+    host: SOLA_DB_HOST,
+    port: SOLA_DB_PORT,
+    user: SOLA_DB_USER,
+    password: SOLA_DB_PWD,
+    database: SOLA_DB_NAME,
+  },
+});
 
 app.disable("x-powered-by");
 
