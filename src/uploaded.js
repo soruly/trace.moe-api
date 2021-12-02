@@ -3,7 +3,7 @@ import sendWorkerJobs from "../lib/send-worker-jobs.js";
 const { TRACE_ALGO } = process.env;
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   const { anilistID, filename } = req.params;
   console.log(`Uploaded ${anilistID}/${filename}`);
@@ -16,6 +16,6 @@ export default async (req, res) => {
       .toString()
       .replace(/^insert/i, "insert ignore")
   );
-  await sendWorkerJobs(req.app.locals.workerPool);
+  await sendWorkerJobs(req.app.locals.knex, req.app.locals.workerPool);
   res.sendStatus(204);
 };

@@ -3,7 +3,7 @@ import RSS from "rss";
 const { TRACE_ALGO } = process.env;
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   const { offset = 0, limit = 100 } = req.query;
 

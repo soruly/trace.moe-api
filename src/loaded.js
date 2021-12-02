@@ -4,12 +4,12 @@ import sendWorkerJobs from "../lib/send-worker-jobs.js";
 const { TRACE_ALGO, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   const { anilistID, filename } = req.params;
   console.log(`Loaded ${anilistID}/${filename}`);
   await knex(TRACE_ALGO).where("path", `${anilistID}/${filename}`).update({ status: "LOADED" });
-  await sendWorkerJobs(req.app.locals.workerPool);
+  await sendWorkerJobs(req.app.locals.knex, req.app.locals.workerPool);
   res.sendStatus(204);
 
   if (TELEGRAM_ID && TELEGRAM_URL) {

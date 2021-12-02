@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 const { TRACE_ALGO } = process.env;
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   const { anilistID, filename } = req.params;
   console.log(`Unloading ${anilistID}/${filename}`);

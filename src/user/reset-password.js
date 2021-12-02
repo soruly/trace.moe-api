@@ -3,7 +3,7 @@ import crypto from "crypto";
 const { TRACE_API_SALT } = process.env;
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (!apiKey) {

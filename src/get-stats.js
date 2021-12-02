@@ -4,7 +4,7 @@ let mediaFramesTotal = 0;
 let mediaDurationTotal = 0;
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   const { type, period } = req.query;
   if (type === "media") {

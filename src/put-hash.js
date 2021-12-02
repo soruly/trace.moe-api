@@ -5,7 +5,7 @@ import sendWorkerJobs from "../lib/send-worker-jobs.js";
 const { HASH_PATH, TRACE_ALGO } = process.env;
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   const { anilistID, filename } = req.params;
   const hashFilePath = path.join(HASH_PATH, anilistID, `${filename}.xml.xz`);
@@ -19,7 +19,7 @@ export default async (req, res) => {
   req.on("end", async () => {
     await knex(TRACE_ALGO).where("path", `${anilistID}/${filename}`).update({ status: "HASHED" });
     console.log(`Saved ${hashFilePath}`);
-    await sendWorkerJobs(req.app.locals.workerPool);
+    await sendWorkerJobs(req.app.locals.knex, req.app.locals.workerPool);
     return res.sendStatus(204);
   });
 };

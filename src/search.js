@@ -58,8 +58,8 @@ const logAndDequeue = async (knex, redis, uid, priority, status, searchTime) => 
 };
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
-  const redis = app.locals.redis;
+  const knex = req.app.locals.knex;
+  const redis = req.app.locals.redis;
 
   const rows = await knex("tier").select("concurrency", "quota", "priority").where("id", 0);
   let quota = rows[0].quota;

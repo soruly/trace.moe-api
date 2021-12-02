@@ -84,7 +84,7 @@ wss.on("connection", async (ws, request) => {
   const type = request.headers["x-trace-worker-type"];
   ws.on("message", async (data) => {
     app.locals.workerPool.set(ws, { status: "READY", type, file: "" });
-    await sendWorkerJobs(app.locals.workerPool);
+    await sendWorkerJobs(app.locals.knex, app.locals.workerPool);
   });
   ws.on("close", (code) => {
     app.locals.workerPool.delete(ws);

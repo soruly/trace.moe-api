@@ -1,5 +1,5 @@
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   let uid = "";
   let email = "";

@@ -3,7 +3,7 @@ import crypto from "crypto";
 const { WEBHOOK_GITHUB_SECRET } = process.env;
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   const signature = req.header("X-Hub-Signature-256");
   if (!signature || !req.rawBody) {

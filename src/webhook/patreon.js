@@ -4,7 +4,7 @@ import createNewUser from "../../lib/create-new-user.js";
 const { WEBHOOK_PATREON_SECRET } = process.env;
 
 export default async (req, res) => {
-  const knex = app.locals.knex;
+  const knex = req.app.locals.knex;
 
   const signature = req.header("X-Patreon-Signature");
   if (!signature || !req.rawBody) {
