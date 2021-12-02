@@ -27,7 +27,10 @@ export default async (req, res) => {
       lastUpdate,
     });
   }
-  if (!["hourly", "monthly", "daily"].includes(period)) {
+  if (
+    ["traffic", "performance"].includes(type) &&
+    !["hourly", "monthly", "daily"].includes(period)
+  ) {
     return res.status(400).json({
       error: "Invalid period",
     });
