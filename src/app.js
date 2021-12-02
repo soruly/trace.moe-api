@@ -43,21 +43,21 @@ app.use(
   })
 );
 
-app.use((req, res, next) => {
-  const startTime = performance.now();
-  console.log("=>", new Date().toISOString(), req.ip, req.path);
-  res.on("finish", () => {
-    console.log(
-      "<=",
-      new Date().toISOString(),
-      req.ip,
-      req.path,
-      res.statusCode,
-      `${(performance.now() - startTime).toFixed(0)}ms`
-    );
-  });
-  next();
-});
+// app.use((req, res, next) => {
+//   const startTime = performance.now();
+//   console.log("=>", new Date().toISOString(), req.ip, req.path);
+//   res.on("finish", () => {
+//     console.log(
+//       "<=",
+//       new Date().toISOString(),
+//       req.ip,
+//       req.path,
+//       res.statusCode,
+//       `${(performance.now() - startTime).toFixed(0)}ms`
+//     );
+//   });
+//   next();
+// });
 
 app.use(cors({ credentials: true, origin: true }));
 app.use(

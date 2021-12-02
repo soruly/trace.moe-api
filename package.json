@@ -14,7 +14,8 @@
     "prettier": "prettier",
     "format": "prettier --write \"**/*.js\"",
     "lint": "prettier --check \"**/*.js\"",
-    "test": "prettier --check \"**/*.js\""
+    "test": "prettier --check \"**/*.js\"",
+    "jest": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
   },
   "repository": {
     "type": "git",
@@ -27,7 +28,9 @@
   },
   "homepage": "https://github.com/soruly/trace.moe-api#readme",
   "devDependencies": {
-    "prettier": "^2.5.0"
+    "jest": "^27.4.3",
+    "prettier": "^2.5.0",
+    "supertest": "^6.1.6"
   },
   "dependencies": {
     "aniep": "^0.2.2",
