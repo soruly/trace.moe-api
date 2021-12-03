@@ -2,7 +2,6 @@
 !*.js
 !/package.json
 !/package-lock.json
-!/lib/
 !/script/
 !/sql/
 !/src/

@@ -7,7 +7,7 @@ import fs from "fs-extra";
 import aniep from "aniep";
 import cv from "opencv4nodejs-prebuilt";
 import { performance } from "perf_hooks";
-import getSolrCoreList from "../lib/get-solr-core-list.js";
+import getSolrCoreList from "./lib/get-solr-core-list.js";
 
 const { TRACE_MEDIA_URL, TRACE_MEDIA_SALT, TRACE_ACCURACY = 1 } = process.env;
 

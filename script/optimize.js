@@ -1,6 +1,6 @@
 import "dotenv/config";
 import fetch from "node-fetch";
-import getSolrCoreList from "../lib/get-solr-core-list.js";
+import getSolrCoreList from "../src/lib/get-solr-core-list.js";
 
 for (const coreURLs of getSolrCoreList().reduce(
   (acc, cur, index, array) => (index % 4 ? acc : [...acc, array.slice(index, index + 4)]),

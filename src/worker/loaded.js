@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import sendWorkerJobs from "../lib/send-worker-jobs.js";
+import sendWorkerJobs from "./send-worker-jobs.js";
 
 const { TRACE_ALGO, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;
 

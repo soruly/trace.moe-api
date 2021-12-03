@@ -1,4 +1,4 @@
-import sendWorkerJobs from "../lib/send-worker-jobs.js";
+import sendWorkerJobs from "./send-worker-jobs.js";
 
 const { TRACE_ALGO } = process.env;
 

@@ -4,17 +4,17 @@ import rateLimit from "express-rate-limit";
 import cors from "cors";
 import multer from "multer";
 
-import checkSecret from "./check-secret.js";
+import checkSecret from "./worker/check-secret.js";
 import getMe from "./get-me.js";
 import getStatus from "./get-status.js";
 import getStats from "./get-stats.js";
 import search from "./search.js";
-import uploaded from "./uploaded.js";
-import putHash from "./put-hash.js";
-import getHash from "./get-hash.js";
-import getWorkers from "./get-workers.js";
-import loaded from "./loaded.js";
-import unload from "./unload.js";
+import uploaded from "./worker/uploaded.js";
+import putHash from "./worker/put-hash.js";
+import getHash from "./worker/get-hash.js";
+import getWorkers from "./worker/get-workers.js";
+import loaded from "./worker/loaded.js";
+import unload from "./worker/unload.js";
 import github from "./webhook/github.js";
 import patreon from "./webhook/patreon.js";
 import create from "./user/create.js";
@@ -43,21 +43,21 @@ app.use(
   })
 );
 
-// app.use((req, res, next) => {
-//   const startTime = performance.now();
-//   console.log("=>", new Date().toISOString(), req.ip, req.path);
-//   res.on("finish", () => {
-//     console.log(
-//       "<=",
-//       new Date().toISOString(),
-//       req.ip,
-//       req.path,
-//       res.statusCode,
-//       `${(performance.now() - startTime).toFixed(0)}ms`
-//     );
-//   });
-//   next();
-// });
+app.use((req, res, next) => {
+  const startTime = performance.now();
+  console.log("=>", new Date().toISOString(), req.ip, req.path);
+  res.on("finish", () => {
+    console.log(
+      "<=",
+      new Date().toISOString(),
+      req.ip,
+      req.path,
+      res.statusCode,
+      `${(performance.now() - startTime).toFixed(0)}ms`
+    );
+  });
+  next();
+});
 
 app.use(cors({ credentials: true, origin: true }));
 app.use(

@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import getSolrCoreList from "./get-solr-core-list.js";
+import getSolrCoreList from "../lib/get-solr-core-list.js";
 
 const { TRACE_ALGO, SOLA_SOLR_LIST } = process.env;
 

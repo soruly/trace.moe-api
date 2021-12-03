@@ -1,4 +1,4 @@
-import generateAPIKey from "../../lib/generate-api-key.js";
+import generateAPIKey from "../lib/generate-api-key.js";
 
 export default async (req, res) => {
   const knex = req.app.locals.knex;

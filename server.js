@@ -1,11 +1,10 @@
 import "dotenv/config";
 import WebSocket, { WebSocketServer } from "ws";
-import Knex from "knex";
 import fs from "fs-extra";
 import Knex from "knex";
 import { createClient } from "redis";
 
-import sendWorkerJobs from "./lib/send-worker-jobs.js";
+import sendWorkerJobs from "./src/worker/send-worker-jobs.js";
 import app from "./src/app.js";
 
 import v8 from "v8";

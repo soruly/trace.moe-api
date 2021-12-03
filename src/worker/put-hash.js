@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs-extra";
-import sendWorkerJobs from "../lib/send-worker-jobs.js";
+import sendWorkerJobs from "./send-worker-jobs.js";
 
 const { HASH_PATH, TRACE_ALGO } = process.env;
 
