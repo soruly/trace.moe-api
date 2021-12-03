@@ -33,6 +33,7 @@ beforeAll(async () => {
       multipleStatements: true,
     },
   });
+  app.locals.apiKey = (await app.locals.knex("user").select("api_key").where("id", 100))[0].api_key;
 });
 
 afterAll(async () => {
@@ -52,9 +53,7 @@ test("GET /me", async () => {
 });
 
 test("GET /me with API key in URL", async () => {
-  const response = await request(app)
-    .get("/me")
-    .query({ key: "ZQDut2W0OqGeSme4Iil6YjIXH0r4Hlq5qq1DEoHDnQ" });
+  const response = await request(app).get("/me").query({ key: app.locals.apiKey });
   expect(response.statusCode).toBe(200);
   expect(response.headers["content-type"]).toMatch(/^application\/json/);
   expect(response.body.id).toMatch(/.+@.+/);
@@ -65,9 +64,7 @@ test("GET /me with API key in URL", async () => {
 });
 
 test("GET /me with API key in HTTP header", async () => {
-  const response = await request(app)
-    .get("/me")
-    .set({ "x-trace-key": "ZQDut2W0OqGeSme4Iil6YjIXH0r4Hlq5qq1DEoHDnQ" });
+  const response = await request(app).get("/me").set({ "x-trace-key": app.locals.apiKey });
   expect(response.statusCode).toBe(200);
   expect(response.headers["content-type"]).toMatch(/^application\/json/);
   expect(response.body.id).toMatch(/.+@.+/);

@@ -35,6 +35,7 @@ beforeAll(async () => {
       multipleStatements: true,
     },
   });
+  app.locals.apiKey = (await app.locals.knex("user").select("api_key").where("id", 100))[0].api_key;
 });
 
 afterAll(async () => {
@@ -171,7 +172,7 @@ describe("with API Key", () => {
   test("/search by image URL with API Key", async () => {
     const response = await request(app).get("/search").query({
       url: "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg",
-      key: "ZQDut2W0OqGeSme4Iil6YjIXH0r4Hlq5qq1DEoHDnQ",
+      key: app.locals.apiKey,
     });
     expect(response.statusCode).toBe(200);
     expect(response.headers["content-type"]).toMatch(/^application\/json/);
@@ -210,8 +211,8 @@ describe("invalid input", () => {
   });
   test("/search by image URL with inaccessible image URL", async () => {
     // Failed to fetch image
-    const response = await request(app).get("/search").query({ url: "https://0.0.0.0" });
-    expect(response.statusCode).toBe(400);
+    const response = await request(app).get("/search").query({ url: "https://0.0.0.0/a" });
+    expect(response.statusCode).toBeGreaterThanOrEqual(400);
     expect(response.headers["content-type"]).toMatch(/^application\/json/);
     expect(typeof response.body.error).toBe("string");
   });
