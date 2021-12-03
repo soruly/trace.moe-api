@@ -18,7 +18,7 @@ export default async (req, res) => {
     });
   }
   if (!req.body.password || req.body.password.length < 8) {
-    return res.status(403).json({
+    return res.status(400).json({
       error: "Password must be at least 8 characters long",
     });
   }

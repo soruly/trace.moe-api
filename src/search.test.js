@@ -39,8 +39,7 @@ beforeAll(async () => {
   await app.locals.knex("user").insert({
     id: 101,
     email: "test@trace.moe",
-    password:
-      "/P+XU5DOdyeJhb52bByQLSmmHvuE5qO5r55/g6BSEvf89NKrrtKMfZm9NcUDfuw01MRWQTCvsMij8T5UrDxqWg==",
+    password: "password",
     api_key: "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g",
     tier: 9,
     notes: "Test Account",

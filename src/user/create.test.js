@@ -21,41 +21,49 @@ beforeAll(async () => {
   await app.locals.knex("user").insert({
     id: 101,
     email: "test@trace.moe",
-    password:
-      "/P+XU5DOdyeJhb52bByQLSmmHvuE5qO5r55/g6BSEvf89NKrrtKMfZm9NcUDfuw01MRWQTCvsMij8T5UrDxqWg==",
+    password: "password",
     api_key: "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g",
     tier: 9,
     notes: "Test Account",
   });
   app.locals.apiKey = "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g";
+  await app.locals.knex("user").where("email", "user@trace.moe").del();
+  await app.locals.knex("user").insert({
+    id: 1000,
+    email: "user@trace.moe",
+    password: "password",
+    api_key: "2zd3HL8cfKqdc4BVsTwuw4QhNa7diKYjweE3zlP",
+    tier: 9,
+    notes: "Test Account",
+  });
+  app.locals.userApiKey = "2zd3HL8cfKqdc4BVsTwuw4QhNa7diKYjweE3zlP";
   await app.locals.knex("user").where("email", "admin@trace.moe").del();
 });
 
 afterAll(async () => {
   await app.locals.knex("user").where("email", "admin@trace.moe").del();
+  await app.locals.knex("user").where("email", "user@trace.moe").del();
   await app.locals.knex("user").where("email", "test@trace.moe").del();
   await app.locals.knex.destroy();
 });
 
 describe("Create user without valid system API key", () => {
-  test("/create without API Key", async () => {
+  test("/user/create without API Key", async () => {
     const response = await request(app).post("/user/create");
     expect(response.statusCode).toBe(403);
     expect(response.headers["content-type"]).toMatch(/^application\/json/);
     expect(typeof response.body.error).toBe("string");
   });
 
-  test("/create with invalid API Key", async () => {
+  test("/user/create with invalid API Key", async () => {
     const response = await request(app).post("/user/create").query({ key: "A" });
     expect(response.statusCode).toBe(403);
     expect(response.headers["content-type"]).toMatch(/^application\/json/);
     expect(typeof response.body.error).toBe("string");
   });
 
-  test("/create with non-system API Key", async () => {
-    const response = await request(app)
-      .post("/user/create")
-      .query({ key: "CASPwPwW7MJBUTQ7iSA8TyORgp7o094yXfF91xc4" });
+  test("/user/create with non-system API Key", async () => {
+    const response = await request(app).post("/user/create").query({ key: app.locals.userApiKey });
     expect(response.statusCode).toBe(403);
     expect(response.headers["content-type"]).toMatch(/^application\/json/);
     expect(typeof response.body.error).toBe("string");
