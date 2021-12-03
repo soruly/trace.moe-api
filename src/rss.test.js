@@ -29,3 +29,24 @@ test("GET /rss.xml", async () => {
   expect(response.headers["content-type"]).toMatch(/^text\/xml/);
   expect(typeof response.text).toBe("string");
 });
+
+test("GET /rss.xml with invalid offset", async () => {
+  const response = await request(app).get("/rss.xml").query({ offset: "A" });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]).toMatch(/^text\/xml/);
+  expect(typeof response.text).toBe("string");
+});
+
+test("GET /rss.xml with invalid limit", async () => {
+  const response = await request(app).get("/rss.xml").query({ limit: 0 });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]).toMatch(/^text\/xml/);
+  expect(typeof response.text).toBe("string");
+});
+
+test("GET /rss.xml with very large limit", async () => {
+  const response = await request(app).get("/rss.xml").query({ limit: 9999 });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]).toMatch(/^text\/xml/);
+  expect(typeof response.text).toBe("string");
+});
