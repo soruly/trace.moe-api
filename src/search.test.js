@@ -35,10 +35,21 @@ beforeAll(async () => {
       multipleStatements: true,
     },
   });
-  app.locals.apiKey = (await app.locals.knex("user").select("api_key").where("id", 100))[0].api_key;
+  await app.locals.knex("user").where("email", "test@trace.moe").del();
+  await app.locals.knex("user").insert({
+    id: 101,
+    email: "test@trace.moe",
+    password:
+      "/P+XU5DOdyeJhb52bByQLSmmHvuE5qO5r55/g6BSEvf89NKrrtKMfZm9NcUDfuw01MRWQTCvsMij8T5UrDxqWg==",
+    api_key: "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g",
+    tier: 9,
+    notes: "Test Account",
+  });
+  app.locals.apiKey = "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g";
 });
 
 afterAll(async () => {
+  await app.locals.knex("user").where("email", "test@trace.moe").del();
   await app.locals.redis.disconnect();
   await app.locals.knex.destroy();
 });

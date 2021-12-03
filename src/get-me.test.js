@@ -1,27 +1,11 @@
 import "dotenv/config";
 import { default as request } from "supertest";
 import Knex from "knex";
-import { createClient } from "redis";
 import app from "./app.js";
 
-const {
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-  REDIS_HOST,
-  REDIS_PORT,
-} = process.env;
+const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
 
 beforeAll(async () => {
-  app.locals.redis = createClient({
-    host: REDIS_HOST,
-    port: REDIS_PORT,
-  });
-  await app.locals.redis.connect();
-  // await app.locals.redis.flushAll();
-
   app.locals.knex = Knex({
     client: "mysql",
     connection: {
@@ -33,11 +17,21 @@ beforeAll(async () => {
       multipleStatements: true,
     },
   });
-  app.locals.apiKey = (await app.locals.knex("user").select("api_key").where("id", 100))[0].api_key;
+  await app.locals.knex("user").where("email", "test@trace.moe").del();
+  await app.locals.knex("user").insert({
+    id: 101,
+    email: "test@trace.moe",
+    password:
+      "/P+XU5DOdyeJhb52bByQLSmmHvuE5qO5r55/g6BSEvf89NKrrtKMfZm9NcUDfuw01MRWQTCvsMij8T5UrDxqWg==",
+    api_key: "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g",
+    tier: 9,
+    notes: "Test Account",
+  });
+  app.locals.apiKey = "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g";
 });
 
 afterAll(async () => {
-  await app.locals.redis.disconnect();
+  await app.locals.knex("user").where("email", "test@trace.moe").del();
   await app.locals.knex.destroy();
 });
 
