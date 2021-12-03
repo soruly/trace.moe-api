@@ -17,33 +17,66 @@ beforeAll(async () => {
       multipleStatements: true,
     },
   });
+  await app.locals.knex("user").where("email", "admin@trace.moe").del();
+  app.locals.apiKey = (await app.locals.knex("user").select("api_key").where("id", 100))[0].api_key;
 });
 
 afterAll(async () => {
+  await app.locals.knex("user").where("email", "admin@trace.moe").del();
   await app.locals.knex.destroy();
 });
 
-describe("without API Key", () => {
-  test("/search by image URL", async () => {
-    // const response = await request(app)
-    //   .get("/search")
-    //   .query({ url: "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg" });
-    // expect(response.statusCode).toBe(200);
-    // expect(response.headers["content-type"]).toMatch(/^application\/json/);
-    // expect(typeof response.body.frameCount).toBe("number");
-    // expect(typeof response.body.error).toBe("string");
-    // expect(Array.isArray(response.body.result)).toBeTruthy();
-    // const topResult = response.body.result[0];
-    // expect(typeof topResult.anilist).toBe("number");
-    // expect(typeof topResult.filename).toBe("string");
-    // expect(typeof topResult.episode).toBe("number");
-    // expect(typeof topResult.from).toBe("number");
-    // expect(typeof topResult.to).toBe("number");
-    // expect(typeof topResult.similarity).toBe("number");
-    // expect(typeof topResult.video).toBe("string");
-    // expect(typeof topResult.image).toBe("string");
-    // expect(topResult.anilist).toBe(21034);
-    // expect(topResult.episode).toBe(1);
-    expect(1).toBe(1);
+describe("Create user without valid system API key", () => {
+  test("/create without API Key", async () => {
+    const response = await request(app).post("/user/create");
+    expect(response.statusCode).toBe(403);
+    expect(response.headers["content-type"]).toMatch(/^application\/json/);
+    expect(typeof response.body.error).toBe("string");
   });
+
+  test("/create with invalid API Key", async () => {
+    const response = await request(app).post("/user/create").query({ key: "A" });
+    expect(response.statusCode).toBe(403);
+    expect(response.headers["content-type"]).toMatch(/^application\/json/);
+    expect(typeof response.body.error).toBe("string");
+  });
+
+  test("/create with non-system API Key", async () => {
+    const response = await request(app)
+      .post("/user/create")
+      .query({ key: "CASPwPwW7MJBUTQ7iSA8TyORgp7o094yXfF91xc4" });
+    expect(response.statusCode).toBe(403);
+    expect(response.headers["content-type"]).toMatch(/^application\/json/);
+    expect(typeof response.body.error).toBe("string");
+  });
+});
+
+describe("Create user with valid system API key", () => {
+  describe.each([
+    ["No email address", { email: "" }],
+    ["Invalid email address", { email: "email" }],
+    ["Missing tier", { email: "admin@trace.moe" }],
+    ["Invalid tier", { email: "admin@trace.moe", tier: -1 }],
+    ["Already existed email", { email: "soruly@trace.moe", tier: 1 }],
+  ])("%s", (_, data) => {
+    test("POST /create", async () => {
+      const response = await request(app)
+        .post("/user/create")
+        .query({ key: app.locals.apiKey })
+        .send(data);
+      expect(response.statusCode).toBe(400);
+      expect(response.headers["content-type"]).toMatch(/^application\/json/);
+      expect(typeof response.body.error).toBe("string");
+    });
+  });
+
+  test("POST /create", async () => {
+    const response = await request(app)
+      .post("/user/create")
+      .query({ key: app.locals.apiKey })
+      .send({ email: "admin@trace.moe", tier: 1 });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toMatch(/^application\/json/);
+    expect(typeof response.body).toBe("object");
+  }, 10000);
 });
