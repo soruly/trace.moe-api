@@ -4,8 +4,7 @@ import { createClient } from "redis";
 const { REDIS_HOST, REDIS_PORT } = process.env;
 
 const redis = createClient({
-  host: REDIS_HOST,
-  port: REDIS_PORT,
+  url: `redis://${REDIS_HOST}:${REDIS_PORT}`,
 });
 await redis.connect();
 

@@ -37,8 +37,7 @@ await Knex({
 }).raw(`CREATE DATABASE IF NOT EXISTS ${SOLA_DB_NAME} CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
 
 app.locals.redis = createClient({
-  host: REDIS_HOST,
-  port: REDIS_PORT,
+  url: `redis://${REDIS_HOST}:${REDIS_PORT}`,
 });
 await app.locals.redis.connect();
 await app.locals.redis.flushAll();

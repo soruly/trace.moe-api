@@ -20,8 +20,7 @@ const {
 
 beforeAll(async () => {
   app.locals.redis = createClient({
-    host: "redis",
-    port: REDIS_PORT,
+    url: `redis://${REDIS_HOST}:${REDIS_PORT}`,
   });
   await app.locals.redis.connect();
   // await app.locals.redis.flushAll();
