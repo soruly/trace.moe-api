@@ -2,6 +2,7 @@
 
 [![License](https://img.shields.io/github/license/soruly/trace.moe-api.svg?style=flat-square)](https://github.com/soruly/trace.moe-api/blob/master/LICENSE)
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/soruly/trace.moe-api/Docker%20Image%20CI?style=flat-square)](https://github.com/soruly/trace.moe-api/actions)
+[![Codecov](https://img.shields.io/codecov/c/github/soruly/trace.moe-api?style=flat-square&token=8C25WLSEDJ)](https://codecov.io/gh/soruly/trace.moe-api)
 [![Docker](https://img.shields.io/docker/pulls/soruly/trace.moe-api?style=flat-square)](https://hub.docker.com/r/soruly/trace.moe-api)
 [![Docker Image Size](https://img.shields.io/docker/image-size/soruly/trace.moe-api/latest?style=flat-square)](https://hub.docker.com/r/soruly/trace.moe-api)
 [![Discord](https://img.shields.io/discord/437578425767559188.svg?style=flat-square)](https://discord.gg/K9jn6Kj)
