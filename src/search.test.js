@@ -12,13 +12,15 @@ const {
   SOLA_DB_USER,
   SOLA_DB_PWD,
   SOLA_DB_NAME,
+  SOLA_SOLR_LIST,
+  TRACE_ALGO,
   REDIS_HOST,
   REDIS_PORT,
 } = process.env;
 
 beforeAll(async () => {
   app.locals.redis = createClient({
-    host: REDIS_HOST,
+    host: "redis",
     port: REDIS_PORT,
   });
   await app.locals.redis.connect();
@@ -45,9 +47,22 @@ beforeAll(async () => {
     notes: "Test Account",
   });
   app.locals.apiKey = "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g";
+  await fetch(`${SOLA_SOLR_LIST}${TRACE_ALGO}_0/update?wt=json&commit=true`, {
+    method: "POST",
+    headers: { "Content-Type": "text/xml" },
+    body: '<add><doc><field name="id">21034/Gochuumon wa Usagi Desuka 2 - 01 (BD 1280x720 x264 AAC).mp4/278.5000</field><field name="cl_hi">FQYdEg4VDQcLFg8NDw0WEBQTEBEQEQ4iEBAREQwlEBAOEBA=</field><field name="cl_ha">3eb d3c 20c 736 9d9 317 649 91a 582 db5 c5f c01 6af ccf 44f 96d 5f 26 b8b ed2 6a8 18d 369 59f bc5 b78 ac3 f9 44d d15 c9b 155 1d8 26f 3b3 11a 4cd 331 603 43d 1fb ed1 2c7 446 b92 ee6 848 c6e 8ec 85f 409 b9e aa 7b6 901 9f9 96f c28 d52 2bb 7f2 96c 561 a44 6ae e38 7a9 590 503 5eb c30 da1 632 16c f83 dbd 152 2ea 5f ac1 c2c 4cf aee f21 357 a02 9e 3a0 419 827 c1 a67 65d d2a 9a5 84b a05 d75 f78 c30</field></doc></add>',
+  });
+  await app.locals.knex(TRACE_ALGO).truncate();
+  await app.locals.knex(TRACE_ALGO).insert({
+    path: "21034/Gochuumon wa Usagi Desuka 2 - 01 (BD 1280x720 x264 AAC).mp4",
+    status: "LOADED",
+    created: new Date(),
+    updated: new Date(),
+  });
 });
 
 afterAll(async () => {
+  await app.locals.knex(TRACE_ALGO).truncate();
   await app.locals.knex("user").where("email", "test@trace.moe").del();
   await app.locals.redis.disconnect();
   await app.locals.knex.destroy();

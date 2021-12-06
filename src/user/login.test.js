@@ -22,7 +22,7 @@ beforeAll(async () => {
     id: 101,
     email: "test@trace.moe",
     password:
-      "/NkTzp68WWIaT30OYsGG/2zd3HL8cfKqdc4BVsTwuw4QhNa7diKYjweE3zlP/vxDWZ12MOFJ9YdylvkPDvJ6ww==",
+      "Aen/RAPgJH+qWQRVHxa+umFSO/wCS7d4eTlSY+pF6eFa3n83131XSK5zuiu5T9LPzumL/60Wu3syEc1lu6HPLA==",
     api_key: "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g",
     tier: 9,
     notes: "Test Account",
@@ -79,7 +79,7 @@ describe("/user/login with valid email and password", () => {
   test("should return apiKey", async () => {
     const response = await request(app)
       .post("/user/login")
-      .send({ email: "test@trace.moe", password: "password" });
+      .send({ email: "test@trace.moe", password: "nFMP0Fal8aPdu7nWmwfwwQ" });
     expect(response.statusCode).toBe(200);
     expect(response.headers["content-type"]).toMatch(/^application\/json/);
     expect(typeof response.body.key).toBe("string");

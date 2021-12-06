@@ -3,7 +3,8 @@ import { default as request } from "supertest";
 import Knex from "knex";
 import app from "./app.js";
 
-const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
+const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME, TRACE_ALGO } =
+  process.env;
 
 beforeAll(async () => {
   app.locals.knex = Knex({
@@ -17,9 +18,17 @@ beforeAll(async () => {
       multipleStatements: true,
     },
   });
+  await app.locals.knex(TRACE_ALGO).truncate();
+  await app.locals.knex(TRACE_ALGO).insert({
+    path: "21034/Gochuumon wa Usagi Desuka 2 - 01 (BD 1280x720 x264 AAC).mp4",
+    status: "LOADED",
+    created: new Date(),
+    updated: new Date(),
+  });
 });
 
 afterAll(async () => {
+  await app.locals.knex(TRACE_ALGO).truncate();
   await app.locals.knex.destroy();
 });
 

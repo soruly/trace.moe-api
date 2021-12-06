@@ -76,7 +76,7 @@ describe("Create user with valid system API key", () => {
     ["Invalid email address", { email: "email" }],
     ["Missing tier", { email: "admin@trace.moe" }],
     ["Invalid tier", { email: "admin@trace.moe", tier: -1 }],
-    ["Already existed email", { email: "soruly@trace.moe", tier: 1 }],
+    ["Already existed email", { email: "test@trace.moe", tier: 1 }],
   ])("%s", (_, data) => {
     test("POST /create", async () => {
       const response = await request(app)
