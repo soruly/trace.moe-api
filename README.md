@@ -15,20 +15,17 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 - serve image search request
 - crop black borders on search images
 - rate limiting and user management
-- serve server and database status
-- create solr cores
+- serve index and database status
 - store and serve compressed hash files
-- serve workers and mange video and hash status
+- distribute hash jobs to workers
 
 ### Prerequisites
 
 - Node.js 14.x
 - mariaDB 10.4.x
-- apache solr 7.x
 - redis
-- git
-- g++, cmake (for compiling OpenCV)
-- [pm2](https://pm2.keymetrics.io/)
+- [liresolr](https://github.com/soruly/liresolr)
+- g++, cmake (if you need to compile OpenCV)
 
 ### Install
 
@@ -47,7 +44,7 @@ npm install
 
 ### Start server
 
-You can use pm2 to run this in background in cluster mode.
+You can use [pm2](https://pm2.keymetrics.io/) to run this in background in cluster mode.
 
 Use below commands to start / restart / stop server.
 
