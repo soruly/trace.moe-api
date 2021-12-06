@@ -1,0 +1,70 @@
+name: e2e Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+      mariadb:
+        image: mariadb
+        env:
+          MARIADB_ROOT_PASSWORD: sola
+        ports:
+          - 3306:3306
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: run liresolr
+        run: |
+          sudo mkdir /tmp/solr
+          sudo chown 8983:8983 /tmp/solr
+          docker run -d -p 8983:8983 -v /tmp/solr:/var/solr soruly/liresolr:latest solr-precreate cl_0 /opt/solr/server/solr/configsets/liresolr
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ffmpeg --fix-missing
+      - run: npm ci
+      - run: npm run jest
+        env:
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          SOLA_DB_HOST: 127.0.0.1
+          SOLA_DB_PORT: 3306
+          SOLA_DB_USER: root
+          SOLA_DB_PWD: sola
+          SOLA_DB_NAME: test
+          TRACE_ALGO: cl
+          SOLA_SOLR_LIST: http://127.0.0.1:8983/solr/
+          SOLA_SOLR_SIZE: 1
+          TRACE_MEDIA_URL: http://127.0.0.1
+          TRACE_MEDIA_SALT: TRACE_MEDIA_SALT
+          TRACE_ACCURACY: 0.02
+          TRACE_API_SALT: YOUR_TRACE_API_SALT
+          TRACE_API_SECRET: TRACE_API_SECRET
+          EMAIL_SMTP: ${{ secrets.EMAIL_SMTP }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+      - name: Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
