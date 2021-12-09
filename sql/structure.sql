@@ -7,8 +7,7 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 SET NAMES utf8mb4;
 
-DROP TABLE IF EXISTS `cl`;
-CREATE TABLE `cl` (
+CREATE TABLE IF NOT EXISTS `cl` (
   `path` varchar(768) COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') COLLATE utf8mb4_unicode_ci NOT NULL,
   `created` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -20,8 +19,7 @@ CREATE TABLE `cl` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-DROP TABLE IF EXISTS `log`;
-CREATE TABLE `log` (
+CREATE TABLE IF NOT EXISTS `log` (
   `time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE current_timestamp(),
   `uid` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` smallint(5) unsigned NOT NULL,
@@ -58,8 +56,7 @@ DROP VIEW IF EXISTS `log_view`;
 CREATE TABLE `log_view` (`uid` varchar(45), `count` bigint(21));
 
 
-DROP TABLE IF EXISTS `mediainfo`;
-CREATE TABLE `mediainfo` (
+CREATE TABLE IF NOT EXISTS `mediainfo` (
   `path` varchar(768) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `created` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   `updated` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
@@ -143,8 +140,7 @@ DROP VIEW IF EXISTS `media_width_height`;
 CREATE TABLE `media_width_height` (`width` longtext, `height` longtext, `count` bigint(21));
 
 
-DROP TABLE IF EXISTS `search_count`;
-CREATE TABLE `search_count` (
+CREATE TABLE IF NOT EXISTS `search_count` (
   `uid` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
   `count` int(10) unsigned NOT NULL,
   PRIMARY KEY (`uid`),
@@ -156,8 +152,7 @@ DROP VIEW IF EXISTS `status`;
 CREATE TABLE `status` (`status` enum('UPLOADED','HASHING','HASHED','LOADING','LOADED'), `COUNT(*)` bigint(21));
 
 
-DROP TABLE IF EXISTS `tier`;
-CREATE TABLE `tier` (
+CREATE TABLE IF NOT EXISTS `tier` (
   `id` tinyint(3) unsigned NOT NULL AUTO_INCREMENT,
   `priority` tinyint(3) unsigned NOT NULL,
   `concurrency` tinyint(3) unsigned NOT NULL,
@@ -168,8 +163,7 @@ CREATE TABLE `tier` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
+CREATE TABLE IF NOT EXISTS `user` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `password` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -195,8 +189,7 @@ DROP VIEW IF EXISTS `user_view`;
 CREATE TABLE `user_view` (`id` int(10) unsigned, `email` varchar(256), `api_key` varchar(128), `tier` tinyint(3) unsigned, `priority` tinyint(3) unsigned, `concurrency` tinyint(3) unsigned, `quota` int(10) unsigned);
 
 
-DROP TABLE IF EXISTS `webhook`;
-CREATE TABLE `webhook` (
+CREATE TABLE IF NOT EXISTS `webhook` (
   `time` timestamp NULL DEFAULT current_timestamp(),
   `type` varchar(16) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `json` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
