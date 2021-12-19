@@ -36,7 +36,7 @@
     "aniep": "^0.2.2",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
-    "express": "^4.17.1",
+    "express": "^4.17.2",
     "express-rate-limit": "^5.5.1",
     "fs-extra": "^10.0.0",
     "knex": "^0.95.14",
