@@ -147,7 +147,9 @@ export default async (req, res) => {
       ].includes(new URL(req.query.url).hostname)
         ? req.query.url
         : `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
-    );
+    ).catch((e) => {
+      return { status: 400 };
+    });
     if (response.status >= 400) {
       await logAndDequeue(knex, redis, uid, priority, 400);
       return res.status(response.status).json({
