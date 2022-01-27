@@ -37,7 +37,7 @@ app.use((req, res, next) => {
 });
 
 app.use(
-  new rateLimit({
+  rateLimit({
     max: 60, // limit each IP to 60 requests per 60 seconds
     delayMs: 0, // disable delaying - full speed until the max limit is reached
   })
