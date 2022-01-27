@@ -45,7 +45,6 @@
     "node-fetch": "^3.2.0",
     "nodemailer": "^6.7.2",
     "opencv4nodejs-prebuilt": "^5.3.4",
-    "rate-limit-redis": "^2.1.0",
     "redis": "^4.0.2",
     "rss": "^1.2.2",
     "ws": "^8.4.2"
