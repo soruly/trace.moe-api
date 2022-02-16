@@ -473,7 +473,7 @@ requests.get("https://api.trace.moe/me", headers={
 
 ### Using API Keys in query string
 
-If you're lazy and doesn't mind your API Key being exposed to browser history or logs. Just put your key in key in query string
+If you're lazy and don't mind your API Key being exposed to browser history or logs. Just put your key in key in query string
 
 <!-- tabs:start -->
 
