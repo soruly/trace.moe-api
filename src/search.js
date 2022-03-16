@@ -31,7 +31,7 @@ const search = (image, candidates, anilistID) =>
     )
   );
 
-const logAndDequeue = async (knex, redis, uid, priority, status, searchTime) => {
+const logAndDequeue = async (knex, redis, uid, priority, status, searchTime, accuracy) => {
   if (status === 200) {
     const searchCountCache = await knex("search_count").where({ uid: `${uid}` });
     if (searchCountCache.length) {
@@ -42,8 +42,18 @@ const logAndDequeue = async (knex, redis, uid, priority, status, searchTime) => 
       await knex("search_count").insert({ uid, count: 1 });
     }
   }
-  if (searchTime) {
+  if (searchTime && accuracy) {
+    await knex("log").insert({
+      time: knex.fn.now(),
+      uid,
+      status,
+      search_time: searchTime,
+      accuracy,
+    });
+  } else if (searchTime) {
     await knex("log").insert({ time: knex.fn.now(), uid, status, search_time: searchTime });
+  } else if (accuracy) {
+    await knex("log").insert({ time: knex.fn.now(), uid, status, accuracy });
   } else {
     await knex("log").insert({ time: knex.fn.now(), uid, status });
   }
@@ -398,7 +408,7 @@ export default async (req, res) => {
     }
   }
 
-  await logAndDequeue(knex, redis, uid, priority, 200, searchTime);
+  await logAndDequeue(knex, redis, uid, priority, 200, searchTime, result[0]?.similarity);
   await redis.set(`s:${uid}`, `${searchCount + 1}`);
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),

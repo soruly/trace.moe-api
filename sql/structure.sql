@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS `log` (
   `uid` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` smallint(5) unsigned NOT NULL,
   `search_time` int(6) unsigned DEFAULT NULL,
+  `accuracy` float(20) unsigned DEFAULT NULL,
   KEY `time_uid_status` (`time`,`uid`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
