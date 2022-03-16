@@ -28,7 +28,7 @@ export default async (req, res) => {
     });
   }
   if (
-    ["traffic", "performance"].includes(type) &&
+    ["traffic", "performance", "accuracy"].includes(type) &&
     !["hourly", "monthly", "daily"].includes(period)
   ) {
     return res.status(400).json({
@@ -41,6 +41,10 @@ export default async (req, res) => {
   }
   if (type === "performance") {
     const rows = await knex(`log_speed_${period}`);
+    return res.json(rows.slice(-36));
+  }
+  if (type === "accuracy") {
+    const rows = await knex(`log_accuracy_${period}`);
     return res.json(rows.slice(-36));
   }
   return res.status(400).json({

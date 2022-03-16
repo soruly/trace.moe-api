@@ -73,3 +73,10 @@ test("GET /stats?type=performance&period=hourly", async () => {
   expect(response.headers["content-type"]).toMatch(/^application\/json/);
   expect(Array.isArray(response.body)).toBeTruthy();
 });
+
+test("GET /stats?type=accuracy&period=hourly", async () => {
+  const response = await request(app).get("/stats").query({ type: "accuracy", period: "hourly" });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]).toMatch(/^application\/json/);
+  expect(Array.isArray(response.body)).toBeTruthy();
+});
