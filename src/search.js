@@ -351,9 +351,14 @@ export default async (req, res) => {
 
   result = result.map(({ anilist_id, filename, t, from, to, d }) => {
     const mid = from + (to - from) / 2;
-    const token = crypto
+    const videoToken = crypto
       .createHash("sha1")
       .update([anilist_id, filename, mid, TRACE_MEDIA_SALT].join(""))
+      .digest("base64")
+      .replace(/[^0-9A-Za-z]/g, "");
+    const imageToken = crypto
+      .createHash("sha1")
+      .update([anilist_id, `${filename}.jpg`, mid, TRACE_MEDIA_SALT].join(""))
       .digest("base64")
       .replace(/[^0-9A-Za-z]/g, "");
 
@@ -366,11 +371,11 @@ export default async (req, res) => {
       similarity: (100 - d) / 100,
       video: `${TRACE_MEDIA_URL}/video/${anilist_id}/${encodeURIComponent(filename)}?${[
         `t=${mid}`,
-        `token=${token}`,
+        `token=${videoToken}`,
       ].join("&")}`,
       image: `${TRACE_MEDIA_URL}/image/${anilist_id}/${encodeURIComponent(filename)}.jpg?${[
         `t=${mid}`,
-        `token=${token}`,
+        `token=${imageToken}`,
       ].join("&")}`,
     };
   });
