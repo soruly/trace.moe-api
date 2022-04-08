@@ -368,7 +368,7 @@ export default async (req, res) => {
         `t=${mid}`,
         `token=${token}`,
       ].join("&")}`,
-      image: `${TRACE_MEDIA_URL}/image/${anilist_id}/${encodeURIComponent(filename)}?${[
+      image: `${TRACE_MEDIA_URL}/image/${anilist_id}/${encodeURIComponent(filename)}.jpg?${[
         `t=${mid}`,
         `token=${token}`,
       ].join("&")}`,
