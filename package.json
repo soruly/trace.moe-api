@@ -38,7 +38,7 @@
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
     "express-rate-limit": "^6.3.0",
-    "fs-extra": "^10.0.1",
+    "fs-extra": "^10.1.0",
     "knex": "^1.0.7",
     "multer": "^1.4.4",
     "mysql": "^2.18.1",
