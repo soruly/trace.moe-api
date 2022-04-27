@@ -13,6 +13,7 @@ const {
   SOLA_DB_NAME,
   TRACE_ALGO,
   HASH_PATH,
+  VIDEO_PATH,
   SOLA_SOLR_LIST,
 } = process.env;
 
@@ -64,7 +65,7 @@ for (const row of rows) {
       console.log(`Hash not found: ${row.path}`);
     }
   }
-  const mp4FilePath = path.join("/mnt/nfs/shuvi/anilist", row.path);
+  const mp4FilePath = path.join(VIDEO_PATH, row.path);
   const hashFilePath = path.join(HASH_PATH, `${row.path}.xml.xz`);
   if (!fs.existsSync(mp4FilePath)) {
     console.log(`Found ${mp4FilePath} deleted`);
