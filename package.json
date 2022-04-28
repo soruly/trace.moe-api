@@ -30,7 +30,7 @@
   "devDependencies": {
     "jest": "^28.0.2",
     "prettier": "^2.6.2",
-    "supertest": "^6.2.2"
+    "supertest": "^6.2.3"
   },
   "dependencies": {
     "aniep": "^0.3.0",
