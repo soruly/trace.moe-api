@@ -35,7 +35,7 @@
   "dependencies": {
     "aniep": "^0.3.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.0",
+    "dotenv": "^16.0.1",
     "express": "^4.18.1",
     "express-rate-limit": "^6.4.0",
     "fs-extra": "^10.1.0",
