@@ -37,15 +37,15 @@ export default async (req, res) => {
   }
   if (type === "traffic") {
     const rows = await knex(`log_${period}`);
-    return res.json(rows.slice(-36));
+    return res.json(rows);
   }
   if (type === "performance") {
     const rows = await knex(`log_speed_${period}`);
-    return res.json(rows.slice(-36));
+    return res.json(rows);
   }
   if (type === "accuracy") {
     const rows = await knex(`log_accuracy_${period}`);
-    return res.json(rows.slice(-36));
+    return res.json(rows);
   }
   return res.status(400).json({
     error: "Invalid param",
