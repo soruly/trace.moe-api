@@ -353,6 +353,28 @@ The data inside the anilist object is an unmodified response from Anilist API. T
 
 Some title variants would be null. Please read [this section on Anilist API Docs](https://anilist.gitbook.io/anilist-apiv2-docs/overview/migrating-from-apiv1#media-titles) for explanations. It is recommended to have some fallback when selecting your preferred title.
 
+### Error codes
+
+Example Error response
+
+```json
+{
+  "error": "Concurrency limit exceeded"
+}
+```
+
+| HTTP Status | Possible Causes                                                                        |
+| ----------- | -------------------------------------------------------------------------------------- |
+| 400         | Invalid image url / Failed to process image / OpenCV: Failed to detect and cut borders |
+| 402         | Search quota depleted / Concurrency limit exceeded                                     |
+| 403         | Invalid API key                                                                        |
+| 405         | Method Not Allowed                                                                     |
+| 500         | Internal Server Error                                                                  |
+| 503         | Search queue is full / Database is not responding                                      |
+| 504         | Server is overloaded                                                                   |
+
+> the "error" value is empty string when there's no error
+
 ### Media Preview
 
 The url you obtained from `image` and `video` from search result is served by [trace.moe-media](https://github.com/soruly/trace.moe-media)
@@ -376,6 +398,17 @@ https://media.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size
 The media server would detect boundaries of the scene and cut videos at the boundaries. You cannot specify the length of video preview.
 
 > Do not attempt to parse and modify the urls except documented above. The urls are not permanent and may change without notice.
+
+Error codes
+
+| HTTP Status | Meaning                                         |
+| ----------- | ----------------------------------------------- |
+| 200         | OK                                              |
+| 400         | Invalid url param                               |
+| 403         | Invalid token                                   |
+| 404         | File not found                                  |
+| 410         | Token Expired                                   |
+| >=500       | Server Error (Maybe broken video or overloaded) |
 
 ## /me
 
