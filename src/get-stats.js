@@ -27,12 +27,9 @@ export default async (req, res) => {
       lastUpdate,
     });
   }
-  if (
-    ["traffic", "speed", "accuracy"].includes(type) &&
-    !["hourly", "monthly", "daily", "hour", "day", "month", "year"].includes(period)
-  ) {
+  if (!["traffic", "speed", "accuracy"].includes(type)) {
     return res.status(400).json({
-      error: "Invalid period",
+      error: "Invalid type",
     });
   }
 
@@ -44,6 +41,11 @@ export default async (req, res) => {
     );
 
   if (type === "traffic") {
+    if (!["hour", "day", "month", "year"].includes(period)) {
+      return res.status(400).json({
+        error: "Invalid period",
+      });
+    }
     const [lastCached] = await knex("stat_count_hour").orderBy("time", "desc");
     const thisHour = periodFloor(new Date());
     const lastHour = periodFloor(new Date(thisHour.valueOf() - 1000 * 60 * 60));
@@ -119,15 +121,42 @@ export default async (req, res) => {
     }
 
     return res.json(history);
-  } else if (type === "speed") {
-    const [lastCached] = await knex(`stat_speed_${period}`).orderBy("time", "desc");
+  } else if (type === "speed" || type === "accuracy") {
+    if (!["hour", "day"].includes(period)) {
+      return res.status(400).json({
+        error: "Invalid period",
+      });
+    }
+
+    const sqlSelectStr =
+      type === "speed"
+        ? [
+            "round(percentile_cont(0) within group ( order by `search_time`) over (),0) AS `p0`",
+            "round(percentile_cont(0.1) within group ( order by `search_time`) over (),0) AS `p10`",
+            "round(percentile_cont(0.25) within group ( order by `search_time`) over (),0) AS `p25`",
+            "round(percentile_cont(0.5) within group ( order by `search_time`) over (),0) AS `p50`",
+            "round(percentile_cont(0.75) within group ( order by `search_time`) over (),0) AS `p75`",
+            "round(percentile_cont(0.9) within group ( order by `search_time`) over (),0) AS `p90`",
+            "round(percentile_cont(1) within group ( order by `search_time`) over (),0) AS `p100`",
+          ].map((e) => knex.raw(e))
+        : [
+            "percentile_cont(0) within group ( order by `accuracy`) over () AS `p0`",
+            "percentile_cont(0.1) within group ( order by `accuracy`) over () AS `p10`",
+            "percentile_cont(0.25) within group ( order by `accuracy`) over () AS `p25`",
+            "percentile_cont(0.5) within group ( order by `accuracy`) over () AS `p50`",
+            "percentile_cont(0.75) within group ( order by `accuracy`) over () AS `p75`",
+            "percentile_cont(0.9) within group ( order by `accuracy`) over () AS `p90`",
+            "percentile_cont(1) within group ( order by `accuracy`) over () AS `p100`",
+          ].map((e) => knex.raw(e));
+
+    const [lastCached] = await knex(`stat_${type}_${period}`).orderBy("time", "desc");
     const thisPeriod = periodFloor(new Date(), period);
     const lastPeriod = periodFloor(
       new Date(thisPeriod.valueOf() - 1000 * 60 * 60 * (period === "day" ? 24 : 1)),
       period
     );
     if (!lastCached || lastCached.time.valueOf() < lastPeriod.valueOf()) {
-      const cached = (await knex(`stat_speed_${period}`).distinct("time")).map((e) =>
+      const cached = (await knex(`stat_${type}_${period}`).distinct("time")).map((e) =>
         e.time.valueOf()
       );
       const [firstRecord] = await knex("log").orderBy("time", "asc").limit(1);
@@ -140,82 +169,58 @@ export default async (req, res) => {
           const [rows] = await knex("log")
             .where("time", ">=", start)
             .andWhere("time", "<", end)
-            .andWhere("status", 200)
-            .select([
-              knex.raw(
-                "round(percentile_cont(0) within group ( order by `log`.`search_time`) over (),0) AS `p0`"
-              ),
-              knex.raw(
-                "round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over (),0) AS `p10`"
-              ),
-              knex.raw(
-                "round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over (),0) AS `p25`"
-              ),
-              knex.raw(
-                "round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over (),0) AS `p50`"
-              ),
-              knex.raw(
-                "round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over (),0) AS `p75`"
-              ),
-              knex.raw(
-                "round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over (),0) AS `p90`"
-              ),
-              knex.raw(
-                "round(percentile_cont(1) within group ( order by `log`.`search_time`) over (),0) AS `p100`"
-              ),
-            ])
+            .whereNotNull(type === "speed" ? "search_time" : "accuracy")
+            .select(sqlSelectStr)
             .limit(1);
 
-          if (rows) {
-            await knex(`stat_speed_${period}`).insert({
-              time: start,
-              ...rows,
-            });
-          }
+          await knex(`stat_${type}_${period}`).insert(
+            rows
+              ? {
+                  time: start,
+                  ...rows,
+                }
+              : {
+                  time: start,
+                  p0: 0,
+                  p10: 0,
+                  p25: 0,
+                  p50: 0,
+                  p75: 0,
+                  p90: 0,
+                  p100: 0,
+                }
+          );
         }
       }
     }
 
-    const history = await knex(`stat_speed_${period}`).orderBy("time", "desc");
+    const history = await knex(`stat_${type}_${period}`)
+      .orderBy("time", "desc")
+      .limit(period === "day" ? 30 : 48);
     const [latest] = await knex("log")
       .where("time", ">=", thisPeriod)
       .andWhere("status", 200)
-      .select([
-        knex.raw(
-          "round(percentile_cont(0) within group ( order by `log`.`search_time`) over (),0) AS `p0`"
-        ),
-        knex.raw(
-          "round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over (),0) AS `p10`"
-        ),
-        knex.raw(
-          "round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over (),0) AS `p25`"
-        ),
-        knex.raw(
-          "round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over (),0) AS `p50`"
-        ),
-        knex.raw(
-          "round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over (),0) AS `p75`"
-        ),
-        knex.raw(
-          "round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over (),0) AS `p90`"
-        ),
-        knex.raw(
-          "round(percentile_cont(1) within group ( order by `log`.`search_time`) over (),0) AS `p100`"
-        ),
-      ])
+      .select(sqlSelectStr)
       .limit(1);
 
-    if (latest) {
-      history.unshift({
-        time: thisPeriod,
-        ...latest,
-      });
-    }
+    history.unshift(
+      latest
+        ? {
+            time: thisPeriod,
+            ...latest,
+          }
+        : {
+            time: thisPeriod,
+            p0: 0,
+            p10: 0,
+            p25: 0,
+            p50: 0,
+            p75: 0,
+            p90: 0,
+            p100: 0,
+          }
+    );
     return res.json(history);
-  }
-  if (type === "accuracy") {
-    const rows = await knex(`log_accuracy_${period}`);
-    return res.json(rows);
   }
   return res.status(400).json({
     error: "Invalid param",

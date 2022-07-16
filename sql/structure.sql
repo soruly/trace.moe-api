@@ -42,25 +42,49 @@ CREATE TABLE IF NOT EXISTS `stat_count_hour` (
 
 CREATE TABLE IF NOT EXISTS `stat_speed_hour` (
   `time` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `p0` double(17,0) NOT NULL,
-  `p10` double(17,0) NOT NULL,
-  `p25` double(17,0) NOT NULL,
-  `p50` double(17,0) NOT NULL,
-  `p75` double(17,0) NOT NULL,
-  `p90` double(17,0) NOT NULL,
-  `p100` double(17,0) NOT NULL,
+  `p0` int(11) NOT NULL,
+  `p10` int(11) NOT NULL,
+  `p25` int(11) NOT NULL,
+  `p50` int(11) NOT NULL,
+  `p75` int(11) NOT NULL,
+  `p90` int(11) NOT NULL,
+  `p100` int(11) NOT NULL,
   PRIMARY KEY (`time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `stat_speed_day` (
   `time` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `p0` double(17,0) NOT NULL,
-  `p10` double(17,0) NOT NULL,
-  `p25` double(17,0) NOT NULL,
-  `p50` double(17,0) NOT NULL,
-  `p75` double(17,0) NOT NULL,
-  `p90` double(17,0) NOT NULL,
-  `p100` double(17,0) NOT NULL,
+  `p0` int(11) NOT NULL,
+  `p10` int(11) NOT NULL,
+  `p25` int(11) NOT NULL,
+  `p50` int(11) NOT NULL,
+  `p75` int(11) NOT NULL,
+  `p90` int(11) NOT NULL,
+  `p100` int(11) NOT NULL,
+  PRIMARY KEY (`time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `stat_accuracy_hour` (
+  `time` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `p0` FLOAT NOT NULL,
+  `p10` FLOAT NOT NULL,
+  `p25` FLOAT NOT NULL,
+  `p50` FLOAT NOT NULL,
+  `p75` FLOAT NOT NULL,
+  `p90` FLOAT NOT NULL,
+  `p100` FLOAT NOT NULL,
+  PRIMARY KEY (`time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `stat_accuracy_day` (
+  `time` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `p0` FLOAT NOT NULL,
+  `p10` FLOAT NOT NULL,
+  `p25` FLOAT NOT NULL,
+  `p50` FLOAT NOT NULL,
+  `p75` FLOAT NOT NULL,
+  `p90` FLOAT NOT NULL,
+  `p100` FLOAT NOT NULL,
   PRIMARY KEY (`time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
