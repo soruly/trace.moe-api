@@ -99,35 +99,6 @@ CREATE TABLE `stat_count_month` (`time` datetime /* mariadb-5.3 */, `total` deci
 DROP VIEW IF EXISTS `stat_count_year`;
 CREATE TABLE `stat_count_year` (`time` datetime /* mariadb-5.3 */, `total` decimal(32,0), `200` decimal(32,0), `400` decimal(32,0), `402` decimal(32,0), `405` decimal(32,0), `500` decimal(32,0), `503` decimal(32,0));
 
-
-DROP VIEW IF EXISTS `log_speed_daily`;
-CREATE TABLE `log_speed_daily` (`period` date, `p0` double(17,0), `p10` double(17,0), `p25` double(17,0), `p50` double(17,0), `p75` double(17,0), `p90` double(17,0), `p100` double(17,0));
-
-
-DROP VIEW IF EXISTS `log_speed_hourly`;
-CREATE TABLE `log_speed_hourly` (`period` varchar(20), `p0` double(17,0), `p10` double(17,0), `p25` double(17,0), `p50` double(17,0), `p75` double(17,0), `p90` double(17,0), `p100` double(17,0));
-
-
-DROP VIEW IF EXISTS `log_speed_monthly`;
-CREATE TABLE `log_speed_monthly` (`period` varchar(7), `p0` double(17,0), `p10` double(17,0), `p25` double(17,0), `p50` double(17,0), `p75` double(17,0), `p90` double(17,0), `p100` double(17,0));
-
-
-DROP VIEW IF EXISTS `log_accuracy_daily`;
-CREATE TABLE `log_accuracy_daily` (`period` date, `p0` double(17,0), `p10` double(17,0), `p25` double(17,0), `p50` double(17,0), `p75` double(17,0), `p90` double(17,0), `p100` double(17,0));
-
-
-DROP VIEW IF EXISTS `log_accuracy_hourly`;
-CREATE TABLE `log_accuracy_hourly` (`period` varchar(20), `p0` double(17,0), `p10` double(17,0), `p25` double(17,0), `p50` double(17,0), `p75` double(17,0), `p90` double(17,0), `p100` double(17,0));
-
-
-DROP VIEW IF EXISTS `log_accuracy_monthly`;
-CREATE TABLE `log_accuracy_monthly` (`period` varchar(7), `p0` double(17,0), `p10` double(17,0), `p25` double(17,0), `p50` double(17,0), `p75` double(17,0), `p90` double(17,0), `p100` double(17,0));
-
-
-DROP VIEW IF EXISTS `log_view`;
-CREATE TABLE `log_view` (`uid` varchar(45), `count` bigint(21));
-
-
 CREATE TABLE IF NOT EXISTS `mediainfo` (
   `path` varchar(768) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `created` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
@@ -277,27 +248,6 @@ CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `stat_count_month` AS selec
 
 DROP TABLE IF EXISTS `stat_count_year`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `stat_count_year` AS select cast(date_format(`stat_count_hour`.`time`,'%Y-01-01 00:00:00') as datetime) AS `time`,sum(`stat_count_hour`.`total`) AS `total`,sum(`stat_count_hour`.`200`) AS `200`,sum(`stat_count_hour`.`400`) AS `400`,sum(`stat_count_hour`.`402`) AS `402`,sum(`stat_count_hour`.`405`) AS `405`,sum(`stat_count_hour`.`500`) AS `500`,sum(`stat_count_hour`.`503`) AS `503` from `stat_count_hour` group by date_format(`stat_count_hour`.`time`,'%Y-01-01 00:00:00');
-
-DROP TABLE IF EXISTS `log_speed_daily`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_speed_daily` AS select distinct cast(`log`.`time` as date) AS `period`,round(percentile_cont(0) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p0`,round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p10`,round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p25`,round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p50`,round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p75`,round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p90`,round(percentile_cont(1) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -30 day;
-
-DROP TABLE IF EXISTS `log_speed_hourly`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_speed_hourly` AS select distinct date_format(`log`.`time`,'%Y-%m-%d %H00') AS `period`,round(percentile_cont(0) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p0`,round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p10`,round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p25`,round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p50`,round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p75`,round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p90`,round(percentile_cont(1) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')),0) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -48 day_hour;
-
-DROP TABLE IF EXISTS `log_speed_monthly`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_speed_monthly` AS select distinct date_format(`log`.`time`,'%Y-%m') AS `period`,round(percentile_cont(0) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p0`,round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p10`,round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p25`,round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p50`,round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p75`,round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p90`,round(percentile_cont(1) within group ( order by `log`.`search_time`) over ( partition by date_format(`log`.`time`,'%Y-%m')),0) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -365 day;
-
-DROP TABLE IF EXISTS `log_accuracy_daily`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_accuracy_daily` AS select distinct cast(`log`.`time` as date) AS `period`,percentile_cont(0) within group ( order by `log`.`accuracy`) over ( partition by cast(`log`.`time` as date)) AS `p0`,percentile_cont(0.1) within group ( order by `log`.`accuracy`) over ( partition by cast(`log`.`time` as date)) AS `p10`,percentile_cont(0.25) within group ( order by `log`.`accuracy`) over ( partition by cast(`log`.`time` as date)) AS `p25`,percentile_cont(0.5) within group ( order by `log`.`accuracy`) over ( partition by cast(`log`.`time` as date)) AS `p50`,percentile_cont(0.75) within group ( order by `log`.`accuracy`) over ( partition by cast(`log`.`time` as date)) AS `p75`,percentile_cont(0.9) within group ( order by `log`.`accuracy`) over ( partition by cast(`log`.`time` as date)) AS `p90`,percentile_cont(1) within group ( order by `log`.`accuracy`) over ( partition by cast(`log`.`time` as date)) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -30 day;
-
-DROP TABLE IF EXISTS `log_accuracy_hourly`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_accuracy_hourly` AS select distinct date_format(`log`.`time`,'%Y-%m-%d %H00') AS `period`,percentile_cont(0) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')) AS `p0`,percentile_cont(0.1) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')) AS `p10`,percentile_cont(0.25) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')) AS `p25`,percentile_cont(0.5) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')) AS `p50`,percentile_cont(0.75) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')) AS `p75`,percentile_cont(0.9) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')) AS `p90`,percentile_cont(1) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m-%d %H00')) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -48 day_hour;
-
-DROP TABLE IF EXISTS `log_accuracy_monthly`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_accuracy_monthly` AS select distinct date_format(`log`.`time`,'%Y-%m') AS `period`,percentile_cont(0) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m')) AS `p0`,percentile_cont(0.1) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m')) AS `p10`,percentile_cont(0.25) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m')) AS `p25`,percentile_cont(0.5) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m')) AS `p50`,percentile_cont(0.75) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m')) AS `p75`,percentile_cont(0.9) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m')) AS `p90`,percentile_cont(1) within group ( order by `log`.`accuracy`) over ( partition by date_format(`log`.`time`,'%Y-%m')) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -365 day;
-
-DROP TABLE IF EXISTS `log_view`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_view` AS select `log`.`uid` AS `uid`,count(0) AS `count` from `log` group by `log`.`uid` order by count(0) desc;
 
 DROP TABLE IF EXISTS `media_audio_bit_rate`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `media_audio_bit_rate` AS select ceiling(`media_info`.`audio_bit_rate` / 10000) * 10 AS `bit_rate`,count(0) AS `count` from `media_info` group by ceiling(`media_info`.`audio_bit_rate` / 10000) * 10;
