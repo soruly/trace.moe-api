@@ -46,7 +46,7 @@ export default async (knex, email, tier, full_name = "") => {
     tier,
   });
 
-  if (!EMAIL_SMTP) return;
+  if (!EMAIL_SMTP || !EMAIL_SMTP_PORT || !EMAIL_USER || !EMAIL_PASS) return;
   const transporter = nodemailer.createTransport({
     host: EMAIL_SMTP,
     port: Number(EMAIL_SMTP_PORT),
