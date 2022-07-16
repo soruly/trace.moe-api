@@ -40,6 +40,30 @@ CREATE TABLE IF NOT EXISTS `stat_count_hour` (
   PRIMARY KEY (`time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `stat_speed_hour` (
+  `time` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `p0` double(17,0) NOT NULL,
+  `p10` double(17,0) NOT NULL,
+  `p25` double(17,0) NOT NULL,
+  `p50` double(17,0) NOT NULL,
+  `p75` double(17,0) NOT NULL,
+  `p90` double(17,0) NOT NULL,
+  `p100` double(17,0) NOT NULL,
+  PRIMARY KEY (`time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `stat_speed_day` (
+  `time` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `p0` double(17,0) NOT NULL,
+  `p10` double(17,0) NOT NULL,
+  `p25` double(17,0) NOT NULL,
+  `p50` double(17,0) NOT NULL,
+  `p75` double(17,0) NOT NULL,
+  `p90` double(17,0) NOT NULL,
+  `p100` double(17,0) NOT NULL,
+  PRIMARY KEY (`time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 DROP VIEW IF EXISTS `stat_count_day`;
 CREATE TABLE `stat_count_day` (`time` datetime /* mariadb-5.3 */, `total` decimal(32,0), `200` decimal(32,0), `400` decimal(32,0), `402` decimal(32,0), `405` decimal(32,0), `500` decimal(32,0), `503` decimal(32,0));
 

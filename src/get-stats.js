@@ -28,7 +28,7 @@ export default async (req, res) => {
     });
   }
   if (
-    ["traffic", "performance", "accuracy"].includes(type) &&
+    ["traffic", "speed", "accuracy"].includes(type) &&
     !["hourly", "monthly", "daily", "hour", "day", "month", "year"].includes(period)
   ) {
     return res.status(400).json({
@@ -36,21 +36,25 @@ export default async (req, res) => {
     });
   }
 
-  const hourFloor = (date) =>
-    new Date(date.toISOString().replace(/T(\d+):(\d+):(\d+)\.\d+Z/, " $1:00:00"));
+  const periodFloor = (date, period) =>
+    new Date(
+      date
+        .toISOString()
+        .replace(/T(\d+):(\d+):(\d+)\.\d+Z/, period === "day" ? " 00:00:00" : " $1:00:00")
+    );
 
   if (type === "traffic") {
     const [lastCached] = await knex("stat_count_hour").orderBy("time", "desc");
-    const thisHour = hourFloor(new Date());
-    const lastHour = hourFloor(new Date(thisHour.valueOf() - 1000 * 60 * 60));
+    const thisHour = periodFloor(new Date());
+    const lastHour = periodFloor(new Date(thisHour.valueOf() - 1000 * 60 * 60));
     if (!lastCached || lastCached.time.valueOf() < lastHour.valueOf()) {
       const cached = (await knex("stat_count_hour").distinct("time")).map((e) => e.time.valueOf());
       const [firstRecord] = await knex("log").orderBy("time", "asc").limit(1);
-      let time = hourFloor(firstRecord ? firstRecord.time : new Date());
+      let time = periodFloor(firstRecord ? firstRecord.time : new Date());
       while (time.valueOf() <= lastHour.valueOf()) {
-        const start = hourFloor(time);
-        time = new Date(time.valueOf() + 60 * 60 * 1000);
-        const end = hourFloor(time);
+        const start = periodFloor(time);
+        time = new Date(time.valueOf() + 1000 * 60 * 60);
+        const end = periodFloor(time);
         if (!cached.includes(start.valueOf())) {
           const rows = await knex("log")
             .where("time", ">=", start)
@@ -115,10 +119,99 @@ export default async (req, res) => {
     }
 
     return res.json(history);
-  }
-  if (type === "performance") {
-    const rows = await knex(`log_speed_${period}`);
-    return res.json(rows);
+  } else if (type === "speed") {
+    const [lastCached] = await knex(`stat_speed_${period}`).orderBy("time", "desc");
+    const thisPeriod = periodFloor(new Date(), period);
+    const lastPeriod = periodFloor(
+      new Date(thisPeriod.valueOf() - 1000 * 60 * 60 * (period === "day" ? 24 : 1)),
+      period
+    );
+    if (!lastCached || lastCached.time.valueOf() < lastPeriod.valueOf()) {
+      const cached = (await knex(`stat_speed_${period}`).distinct("time")).map((e) =>
+        e.time.valueOf()
+      );
+      const [firstRecord] = await knex("log").orderBy("time", "asc").limit(1);
+      let time = periodFloor(firstRecord ? firstRecord.time : new Date(), period);
+      while (time.valueOf() <= lastPeriod.valueOf()) {
+        const start = periodFloor(time, period);
+        time = new Date(time.valueOf() + 1000 * 60 * 60 * (period === "day" ? 24 : 1));
+        const end = periodFloor(time, period);
+        if (!cached.includes(start.valueOf())) {
+          const [rows] = await knex("log")
+            .where("time", ">=", start)
+            .andWhere("time", "<", end)
+            .andWhere("status", 200)
+            .select([
+              knex.raw(
+                "round(percentile_cont(0) within group ( order by `log`.`search_time`) over (),0) AS `p0`"
+              ),
+              knex.raw(
+                "round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over (),0) AS `p10`"
+              ),
+              knex.raw(
+                "round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over (),0) AS `p25`"
+              ),
+              knex.raw(
+                "round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over (),0) AS `p50`"
+              ),
+              knex.raw(
+                "round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over (),0) AS `p75`"
+              ),
+              knex.raw(
+                "round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over (),0) AS `p90`"
+              ),
+              knex.raw(
+                "round(percentile_cont(1) within group ( order by `log`.`search_time`) over (),0) AS `p100`"
+              ),
+            ])
+            .limit(1);
+
+          if (rows) {
+            await knex(`stat_speed_${period}`).insert({
+              time: start,
+              ...rows,
+            });
+          }
+        }
+      }
+    }
+
+    const history = await knex(`stat_speed_${period}`).orderBy("time", "desc");
+    const [latest] = await knex("log")
+      .where("time", ">=", thisPeriod)
+      .andWhere("status", 200)
+      .select([
+        knex.raw(
+          "round(percentile_cont(0) within group ( order by `log`.`search_time`) over (),0) AS `p0`"
+        ),
+        knex.raw(
+          "round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over (),0) AS `p10`"
+        ),
+        knex.raw(
+          "round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over (),0) AS `p25`"
+        ),
+        knex.raw(
+          "round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over (),0) AS `p50`"
+        ),
+        knex.raw(
+          "round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over (),0) AS `p75`"
+        ),
+        knex.raw(
+          "round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over (),0) AS `p90`"
+        ),
+        knex.raw(
+          "round(percentile_cont(1) within group ( order by `log`.`search_time`) over (),0) AS `p100`"
+        ),
+      ])
+      .limit(1);
+
+    if (latest) {
+      history.unshift({
+        time: thisPeriod,
+        ...latest,
+      });
+    }
+    return res.json(history);
   }
   if (type === "accuracy") {
     const rows = await knex(`log_accuracy_${period}`);
