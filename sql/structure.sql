@@ -28,17 +28,28 @@ CREATE TABLE IF NOT EXISTS `log` (
   KEY `time_uid_status` (`time`,`uid`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `stat_count_hour` (
+  `time` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `total` int(11) NOT NULL,
+  `200` int(11) NOT NULL,
+  `400` int(11) NOT NULL,
+  `402` int(11) NOT NULL,
+  `405` int(11) NOT NULL,
+  `500` int(11) NOT NULL,
+  `503` int(11) NOT NULL,
+  PRIMARY KEY (`time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-DROP VIEW IF EXISTS `log_daily`;
-CREATE TABLE `log_daily` (`period` date, `total` bigint(21), `200` decimal(22,0), `400` decimal(22,0), `402` decimal(22,0), `405` decimal(22,0), `500` decimal(22,0), `503` decimal(22,0));
+DROP VIEW IF EXISTS `stat_count_day`;
+CREATE TABLE `stat_count_day` (`time` datetime /* mariadb-5.3 */, `total` decimal(32,0), `200` decimal(32,0), `400` decimal(32,0), `402` decimal(32,0), `405` decimal(32,0), `500` decimal(32,0), `503` decimal(32,0));
 
 
-DROP VIEW IF EXISTS `log_hourly`;
-CREATE TABLE `log_hourly` (`period` varchar(20), `total` bigint(21), `200` decimal(22,0), `400` decimal(22,0), `402` decimal(22,0), `405` decimal(22,0), `500` decimal(22,0), `503` decimal(22,0));
+DROP VIEW IF EXISTS `stat_count_month`;
+CREATE TABLE `stat_count_month` (`time` datetime /* mariadb-5.3 */, `total` decimal(32,0), `200` decimal(32,0), `400` decimal(32,0), `402` decimal(32,0), `405` decimal(32,0), `500` decimal(32,0), `503` decimal(32,0));
 
 
-DROP VIEW IF EXISTS `log_monthly`;
-CREATE TABLE `log_monthly` (`period` varchar(7), `total` bigint(21), `200` decimal(22,0), `400` decimal(22,0), `402` decimal(22,0), `405` decimal(22,0), `500` decimal(22,0), `503` decimal(22,0));
+DROP VIEW IF EXISTS `stat_count_year`;
+CREATE TABLE `stat_count_year` (`time` datetime /* mariadb-5.3 */, `total` decimal(32,0), `200` decimal(32,0), `400` decimal(32,0), `402` decimal(32,0), `405` decimal(32,0), `500` decimal(32,0), `503` decimal(32,0));
 
 
 DROP VIEW IF EXISTS `log_speed_daily`;
@@ -210,14 +221,14 @@ CREATE TABLE IF NOT EXISTS `webhook` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-DROP TABLE IF EXISTS `log_daily`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_daily` AS select cast(`log`.`time` as date) AS `period`,count(0) AS `total`,sum(if(`log`.`status` = 200,1,0)) AS `200`,sum(if(`log`.`status` = 400,1,0)) AS `400`,sum(if(`log`.`status` = 402,1,0)) AS `402`,sum(if(`log`.`status` = 405,1,0)) AS `405`,sum(if(`log`.`status` = 500,1,0)) AS `500`,sum(if(`log`.`status` = 503,1,0)) AS `503` from `log` where `log`.`time` >= current_timestamp() + interval -30 day group by cast(`log`.`time` as date);
+DROP TABLE IF EXISTS `stat_count_day`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `stat_count_day` AS select cast(date_format(`stat_count_hour`.`time`,'%Y-%m-%d 00:00:00') as datetime) AS `time`,sum(`stat_count_hour`.`total`) AS `total`,sum(`stat_count_hour`.`200`) AS `200`,sum(`stat_count_hour`.`400`) AS `400`,sum(`stat_count_hour`.`402`) AS `402`,sum(`stat_count_hour`.`405`) AS `405`,sum(`stat_count_hour`.`500`) AS `500`,sum(`stat_count_hour`.`503`) AS `503` from `stat_count_hour` group by date_format(`stat_count_hour`.`time`,'%Y-%m-%d 00:00:00');
 
-DROP TABLE IF EXISTS `log_hourly`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_hourly` AS select date_format(`log`.`time`,'%Y-%m-%d %H00') AS `period`,count(0) AS `total`,sum(if(`log`.`status` = 200,1,0)) AS `200`,sum(if(`log`.`status` = 400,1,0)) AS `400`,sum(if(`log`.`status` = 402,1,0)) AS `402`,sum(if(`log`.`status` = 405,1,0)) AS `405`,sum(if(`log`.`status` = 500,1,0)) AS `500`,sum(if(`log`.`status` = 503,1,0)) AS `503` from `log` where `log`.`time` >= current_timestamp() + interval -48 day_hour group by date_format(`log`.`time`,'%Y-%m-%d %H00');
+DROP TABLE IF EXISTS `stat_count_month`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `stat_count_month` AS select cast(date_format(`stat_count_hour`.`time`,'%Y-%m-01 00:00:00') as datetime) AS `time`,sum(`stat_count_hour`.`total`) AS `total`,sum(`stat_count_hour`.`200`) AS `200`,sum(`stat_count_hour`.`400`) AS `400`,sum(`stat_count_hour`.`402`) AS `402`,sum(`stat_count_hour`.`405`) AS `405`,sum(`stat_count_hour`.`500`) AS `500`,sum(`stat_count_hour`.`503`) AS `503` from `stat_count_hour` group by date_format(`stat_count_hour`.`time`,'%Y-%m-01 00:00:00');
 
-DROP TABLE IF EXISTS `log_monthly`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_monthly` AS select date_format(`log`.`time`,'%Y-%m') AS `period`,count(0) AS `total`,sum(if(`log`.`status` = 200,1,0)) AS `200`,sum(if(`log`.`status` = 400,1,0)) AS `400`,sum(if(`log`.`status` = 402,1,0)) AS `402`,sum(if(`log`.`status` = 405,1,0)) AS `405`,sum(if(`log`.`status` = 500,1,0)) AS `500`,sum(if(`log`.`status` = 503,1,0)) AS `503` from `log` where `log`.`time` >= current_timestamp() + interval -365 day group by date_format(`log`.`time`,'%Y-%m');
+DROP TABLE IF EXISTS `stat_count_year`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `stat_count_year` AS select cast(date_format(`stat_count_hour`.`time`,'%Y-01-01 00:00:00') as datetime) AS `time`,sum(`stat_count_hour`.`total`) AS `total`,sum(`stat_count_hour`.`200`) AS `200`,sum(`stat_count_hour`.`400`) AS `400`,sum(`stat_count_hour`.`402`) AS `402`,sum(`stat_count_hour`.`405`) AS `405`,sum(`stat_count_hour`.`500`) AS `500`,sum(`stat_count_hour`.`503`) AS `503` from `stat_count_hour` group by date_format(`stat_count_hour`.`time`,'%Y-01-01 00:00:00');
 
 DROP TABLE IF EXISTS `log_speed_daily`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `log_speed_daily` AS select distinct cast(`log`.`time` as date) AS `period`,round(percentile_cont(0) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p0`,round(percentile_cont(0.1) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p10`,round(percentile_cont(0.25) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p25`,round(percentile_cont(0.5) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p50`,round(percentile_cont(0.75) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p75`,round(percentile_cont(0.9) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p90`,round(percentile_cont(1) within group ( order by `log`.`search_time`) over ( partition by cast(`log`.`time` as date)),0) AS `p100` from `log` where `log`.`time` >= current_timestamp() + interval -30 day;
