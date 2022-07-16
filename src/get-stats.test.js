@@ -58,24 +58,74 @@ test("GET /stats?type=traffic", async () => {
   expect(typeof response.body.error).toBe("string");
 });
 
-test("GET /stats?type=traffic&period=hourly", async () => {
-  const response = await request(app).get("/stats").query({ type: "traffic", period: "hourly" });
+test("GET /stats?type=traffic&period=gg", async () => {
+  const response = await request(app).get("/stats").query({ type: "traffic", period: "gg" });
+  expect(response.statusCode).toBe(400);
+  expect(response.headers["content-type"]).toMatch(/^application\/json/);
+  expect(typeof response.body.error).toBe("string");
+});
+
+test("GET /stats?type=traffic&period=hour", async () => {
+  const response = await request(app).get("/stats").query({ type: "traffic", period: "hour" });
   expect(response.statusCode).toBe(200);
   expect(response.headers["content-type"]).toMatch(/^application\/json/);
   expect(Array.isArray(response.body)).toBeTruthy();
 });
 
-test("GET /stats?type=performance&period=hourly", async () => {
-  const response = await request(app)
-    .get("/stats")
-    .query({ type: "performance", period: "hourly" });
+test("GET /stats?type=traffic&period=day", async () => {
+  const response = await request(app).get("/stats").query({ type: "traffic", period: "day" });
   expect(response.statusCode).toBe(200);
   expect(response.headers["content-type"]).toMatch(/^application\/json/);
   expect(Array.isArray(response.body)).toBeTruthy();
 });
 
-test("GET /stats?type=accuracy&period=hourly", async () => {
-  const response = await request(app).get("/stats").query({ type: "accuracy", period: "hourly" });
+test("GET /stats?type=traffic&period=month", async () => {
+  const response = await request(app).get("/stats").query({ type: "traffic", period: "month" });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]).toMatch(/^application\/json/);
+  expect(Array.isArray(response.body)).toBeTruthy();
+});
+
+test("GET /stats?type=traffic&period=year", async () => {
+  const response = await request(app).get("/stats").query({ type: "traffic", period: "year" });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]).toMatch(/^application\/json/);
+  expect(Array.isArray(response.body)).toBeTruthy();
+});
+
+test("GET /stats?type=speed&period=gg", async () => {
+  const response = await request(app).get("/stats").query({ type: "speed", period: "gg" });
+  expect(response.statusCode).toBe(400);
+  expect(response.headers["content-type"]).toMatch(/^application\/json/);
+  expect(typeof response.body.error).toBe("string");
+});
+test("GET /stats?type=speed&period=hour", async () => {
+  const response = await request(app).get("/stats").query({ type: "speed", period: "hour" });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]).toMatch(/^application\/json/);
+  expect(Array.isArray(response.body)).toBeTruthy();
+});
+test("GET /stats?type=speed&period=day", async () => {
+  const response = await request(app).get("/stats").query({ type: "speed", period: "day" });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]).toMatch(/^application\/json/);
+  expect(Array.isArray(response.body)).toBeTruthy();
+});
+
+test("GET /stats?type=accuracy&period=gg", async () => {
+  const response = await request(app).get("/stats").query({ type: "accuracy", period: "gg" });
+  expect(response.statusCode).toBe(400);
+  expect(response.headers["content-type"]).toMatch(/^application\/json/);
+  expect(typeof response.body.error).toBe("string");
+});
+test("GET /stats?type=accuracy&period=hour", async () => {
+  const response = await request(app).get("/stats").query({ type: "accuracy", period: "hour" });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers["content-type"]).toMatch(/^application\/json/);
+  expect(Array.isArray(response.body)).toBeTruthy();
+});
+test("GET /stats?type=accuracy&period=day", async () => {
+  const response = await request(app).get("/stats").query({ type: "accuracy", period: "day" });
   expect(response.statusCode).toBe(200);
   expect(response.headers["content-type"]).toMatch(/^application\/json/);
   expect(Array.isArray(response.body)).toBeTruthy();
