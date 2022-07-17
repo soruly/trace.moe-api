@@ -38,14 +38,32 @@ beforeAll(async () => {
   });
   await app.locals.knex("user").where("email", "test@trace.moe").del();
   await app.locals.knex("user").insert({
-    id: 101,
+    id: 100,
+    email: "user@trace.moe",
+    password: "password",
+    api_key: "OwOPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt3g",
+    tier: 1,
+    notes: "Test Account",
+  });
+  app.locals.apiKeyTier0 = "OwOPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt3g";
+  await app.locals.knex("user").insert({
+    id: 1000,
+    email: "user@trace.moe",
+    password: "password",
+    api_key: "OwOPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g",
+    tier: 1,
+    notes: "Test Account",
+  });
+  app.locals.apiKeyTier1 = "OwOPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g";
+  await app.locals.knex("user").insert({
+    id: 1001,
     email: "test@trace.moe",
     password: "password",
-    api_key: "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g",
+    api_key: "OwOPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt5g",
     tier: 9,
     notes: "Test Account",
   });
-  app.locals.apiKey = "OwTPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt4g";
+  app.locals.apiKeyTier9 = "OwOPRvfpSg5kw1Gjww33ahbA3tEnu0DnseOIcHJt5g";
   await fetch(`${SOLA_SOLR_LIST}${TRACE_ALGO}_0/update?wt=json&commit=true`, {
     method: "POST",
     headers: { "Content-Type": "text/xml" },
@@ -90,7 +108,6 @@ describe("without API Key", () => {
     expect(topResult.episode).toBe(1);
     expect(topResult.similarity).toBeGreaterThan(0.9);
   });
-
   test("/search by Form Post", async () => {
     if (!fs.existsSync("32B15UXxymfSMwKGTObY5e.jpg")) {
       await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
@@ -121,7 +138,6 @@ describe("without API Key", () => {
     expect(topResult.similarity).toBeGreaterThan(0.9);
     await fs.remove("32B15UXxymfSMwKGTObY5e.jpg");
   });
-
   test("/search by file upload", async () => {
     const response = await request(app)
       .post("/search")
@@ -152,7 +168,6 @@ describe("without API Key", () => {
     expect(topResult.similarity).toBeGreaterThan(0.9);
     await fs.remove("32B15UXxymfSMwKGTObY5e.jpg");
   });
-
   test("/search by image URL with cutBorders", async () => {
     const response = await request(app)
       .get("/search?cutBorders")
@@ -175,7 +190,6 @@ describe("without API Key", () => {
     expect(topResult.episode).toBe(1);
     expect(topResult.similarity).toBeGreaterThan(0.9);
   });
-
   test("/search by image URL with anilistInfo", async () => {
     const response = await request(app)
       .get("/search?anilistInfo")
@@ -198,7 +212,6 @@ describe("without API Key", () => {
     expect(topResult.episode).toBe(1);
     expect(topResult.similarity).toBeGreaterThan(0.9);
   });
-
   test("/search by image URL with anilist filter", async () => {
     const response = await request(app)
       .get("/search")
@@ -221,13 +234,76 @@ describe("without API Key", () => {
     expect(topResult.episode).toBe(1);
     expect(topResult.similarity).toBeGreaterThan(0.9);
   });
+
+  test("/search by image concurrency limit", async () => {
+    if (!fs.existsSync("32B15UXxymfSMwKGTObY5e.jpg")) {
+      await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
+        .then((e) => e.arrayBuffer())
+        .then((arrayBuffer) =>
+          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer))
+        );
+    }
+    const res = await Promise.all(
+      [...new Array(5)].map((_) =>
+        request(app).post("/search").attach("image", "32B15UXxymfSMwKGTObY5e.jpg")
+      )
+    );
+    expect(res.map((e) => e.statusCode).includes(402)).toBe(true);
+  });
 });
 
 describe("with API Key", () => {
   test("/search by image URL with API Key", async () => {
     const response = await request(app).get("/search").query({
       url: "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg",
-      key: app.locals.apiKey,
+      key: app.locals.apiKeyTier1,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toMatch(/^application\/json/);
+    expect(typeof response.body.frameCount).toBe("number");
+    expect(typeof response.body.error).toBe("string");
+    expect(Array.isArray(response.body.result)).toBeTruthy();
+    const topResult = response.body.result[0];
+    expect(typeof topResult.anilist).toBe("number");
+    expect(typeof topResult.filename).toBe("string");
+    expect(typeof topResult.episode).toBe("number");
+    expect(typeof topResult.from).toBe("number");
+    expect(typeof topResult.to).toBe("number");
+    expect(typeof topResult.similarity).toBe("number");
+    expect(typeof topResult.video).toBe("string");
+    expect(typeof topResult.image).toBe("string");
+    expect(topResult.anilist).toBe(21034);
+    expect(topResult.episode).toBe(1);
+    expect(topResult.similarity).toBeGreaterThan(0.9);
+  });
+});
+
+describe("with system Tier 9 API Key", () => {
+  test("/search by image queue limit", async () => {
+    if (!fs.existsSync("32B15UXxymfSMwKGTObY5e.jpg")) {
+      await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
+        .then((e) => e.arrayBuffer())
+        .then((arrayBuffer) =>
+          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer))
+        );
+    }
+    const res = await Promise.all(
+      [...new Array(8)].map((_) =>
+        request(app)
+          .post("/search")
+          .query({ key: app.locals.apiKeyTier9 })
+          .attach("image", "32B15UXxymfSMwKGTObY5e.jpg")
+      )
+    );
+    expect(res.map((e) => e.statusCode).includes(503)).toBe(true);
+  });
+});
+
+describe("with system system API Key", () => {
+  test("/search by image URL with API Key", async () => {
+    const response = await request(app).get("/search").query({
+      url: "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg",
+      key: app.locals.apiKeyTier0,
     });
     expect(response.statusCode).toBe(200);
     expect(response.headers["content-type"]).toMatch(/^application\/json/);
