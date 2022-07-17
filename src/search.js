@@ -124,7 +124,7 @@ export default async (req, res) => {
   const priorityQueues = priorityKeys.length ? await redis.mGet(priorityKeys) : [];
   const priorityQueuesLength = priorityQueues.map((e) => Number(e)).reduce((a, b) => a + b, 0);
 
-  if (priorityQueuesLength > 5) {
+  if (priorityQueuesLength >= 5) {
     await logAndDequeue(knex, redis, uid, priority, 503);
     return res.status(503).json({
       error: `Error: Search queue is full`,
