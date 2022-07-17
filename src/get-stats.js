@@ -27,11 +27,6 @@ export default async (req, res) => {
       lastUpdate,
     });
   }
-  if (!["traffic", "speed", "accuracy"].includes(type)) {
-    return res.status(400).json({
-      error: "Invalid type",
-    });
-  }
 
   const periodFloor = (date, period) =>
     new Date(
@@ -223,6 +218,6 @@ export default async (req, res) => {
     return res.json(history);
   }
   return res.status(400).json({
-    error: "Invalid param",
+    error: "Invalid type",
   });
 };

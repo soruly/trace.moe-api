@@ -17,8 +17,6 @@ beforeAll(async () => {
       multipleStatements: true,
     },
   });
-  await app.locals.knex("log").truncate();
-  await app.locals.knex("log").insert({ time: new Date(), uid: "1", status: 200, search_time: 1 });
   await app.locals.knex("mediainfo").truncate();
   await app.locals.knex("mediainfo").insert({
     path: "/mnt/data/anilist/21034/Gochuumon wa Usagi Desuka 2 - 01 (BD 1280x720 x264 AAC).mp4",
@@ -51,82 +49,57 @@ test("GET /stats?type=media", async () => {
   expect(typeof response.body.lastUpdate).toBe("string");
 });
 
-test("GET /stats?type=traffic", async () => {
-  const response = await request(app).get("/stats").query({ type: "traffic" });
-  expect(response.statusCode).toBe(400);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(typeof response.body.error).toBe("string");
-});
+[
+  { type: null, period: null, fail: true },
+  { type: "gg", period: null, fail: true },
+  { type: "traffic", period: null, fail: true },
+  { type: "traffic", period: "hour", fail: false },
+  { type: "traffic", period: "day", fail: false },
+  { type: "traffic", period: "month", fail: false },
+  { type: "traffic", period: "year", fail: false },
+  { type: "speed", period: null, fail: true },
+  { type: "speed", period: "hour", fail: false },
+  { type: "speed", period: "day", fail: false },
+  { type: "accuracy", period: null, fail: true },
+  { type: "accuracy", period: "hour", fail: false },
+  { type: "accuracy", period: "day", fail: false },
+].forEach(async ({ type, period, fail }) => {
+  test(`GET /stats?type=${type}`, async () => {
+    await app.locals.knex("log").truncate();
 
-test("GET /stats?type=traffic&period=gg", async () => {
-  const response = await request(app).get("/stats").query({ type: "traffic", period: "gg" });
-  expect(response.statusCode).toBe(400);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(typeof response.body.error).toBe("string");
-});
+    const response = await request(app)
+      .get("/stats")
+      .query(type ? (period ? { type, period } : { type }) : {});
+    expect(response.statusCode).toBe(fail ? 400 : 200);
+    expect(response.headers["content-type"]).toMatch(/^application\/json/);
+    if (fail) expect(typeof response.body.error).toBe("string");
+    else expect(Array.isArray(response.body)).toBeTruthy();
 
-test("GET /stats?type=traffic&period=hour", async () => {
-  const response = await request(app).get("/stats").query({ type: "traffic", period: "hour" });
-  expect(response.statusCode).toBe(200);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(Array.isArray(response.body)).toBeTruthy();
-});
+    await app.locals.knex("log").insert(
+      [200, 400, 402, 405, 500, 503].map((status) => ({
+        time: new Date(),
+        uid: "1",
+        status,
+        search_time: Math.floor(Math.random() * 1000),
+        accuracy: Math.random(),
+      }))
+    );
+    await app.locals.knex("log").insert(
+      [200, 400, 402, 405, 500, 503].map((status) => ({
+        time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+        uid: "1",
+        status,
+        search_time: Math.floor(Math.random() * 1000),
+        accuracy: Math.random(),
+      }))
+    );
 
-test("GET /stats?type=traffic&period=day", async () => {
-  const response = await request(app).get("/stats").query({ type: "traffic", period: "day" });
-  expect(response.statusCode).toBe(200);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(Array.isArray(response.body)).toBeTruthy();
-});
-
-test("GET /stats?type=traffic&period=month", async () => {
-  const response = await request(app).get("/stats").query({ type: "traffic", period: "month" });
-  expect(response.statusCode).toBe(200);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(Array.isArray(response.body)).toBeTruthy();
-});
-
-test("GET /stats?type=traffic&period=year", async () => {
-  const response = await request(app).get("/stats").query({ type: "traffic", period: "year" });
-  expect(response.statusCode).toBe(200);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(Array.isArray(response.body)).toBeTruthy();
-});
-
-test("GET /stats?type=speed&period=gg", async () => {
-  const response = await request(app).get("/stats").query({ type: "speed", period: "gg" });
-  expect(response.statusCode).toBe(400);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(typeof response.body.error).toBe("string");
-});
-test("GET /stats?type=speed&period=hour", async () => {
-  const response = await request(app).get("/stats").query({ type: "speed", period: "hour" });
-  expect(response.statusCode).toBe(200);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(Array.isArray(response.body)).toBeTruthy();
-});
-test("GET /stats?type=speed&period=day", async () => {
-  const response = await request(app).get("/stats").query({ type: "speed", period: "day" });
-  expect(response.statusCode).toBe(200);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(Array.isArray(response.body)).toBeTruthy();
-});
-
-test("GET /stats?type=accuracy&period=gg", async () => {
-  const response = await request(app).get("/stats").query({ type: "accuracy", period: "gg" });
-  expect(response.statusCode).toBe(400);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(typeof response.body.error).toBe("string");
-});
-test("GET /stats?type=accuracy&period=hour", async () => {
-  const response = await request(app).get("/stats").query({ type: "accuracy", period: "hour" });
-  expect(response.statusCode).toBe(200);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(Array.isArray(response.body)).toBeTruthy();
-});
-test("GET /stats?type=accuracy&period=day", async () => {
-  const response = await request(app).get("/stats").query({ type: "accuracy", period: "day" });
-  expect(response.statusCode).toBe(200);
-  expect(response.headers["content-type"]).toMatch(/^application\/json/);
-  expect(Array.isArray(response.body)).toBeTruthy();
+    const response2 = await request(app)
+      .get("/stats")
+      .query(type ? (period ? { type, period } : { type }) : {});
+    expect(response2.statusCode).toBe(fail ? 400 : 200);
+    expect(response2.headers["content-type"]).toMatch(/^application\/json/);
+    if (fail) expect(typeof response2.body.error).toBe("string");
+    else expect(Array.isArray(response2.body)).toBeTruthy();
+  });
 });
