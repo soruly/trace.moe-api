@@ -349,7 +349,8 @@ export default async (req, res) => {
     .sort((a, b) => a.d - b.d) // sort in ascending order of difference
     .slice(0, 10); // return only top 10 results
 
-  const now = (Date.now() / 1000) | 0;
+  const window = 60 * 60; // 3600 seconds
+  const now = ((Date.now() / 1000 / window) | 0) * window + window;
   result = result.map(({ anilist_id, filename, t, from, to, d }) => {
     const mid = from + (to - from) / 2;
     const videoToken = crypto
