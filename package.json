@@ -33,6 +33,7 @@
     "supertest": "^6.2.4"
   },
   "dependencies": {
+    "@soruly/opencv4nodejs-prebuilt": "^6.0.2",
     "aniep": "^0.3.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
@@ -44,7 +45,6 @@
     "mysql": "^2.18.1",
     "node-fetch": "^3.2.8",
     "nodemailer": "^6.7.7",
-    "opencv4nodejs-prebuilt": "^5.3.4",
     "redis": "^4.2.0",
     "rss": "^1.2.2",
     "ws": "^8.8.1"

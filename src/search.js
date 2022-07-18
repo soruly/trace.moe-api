@@ -5,7 +5,7 @@ import child_process from "child_process";
 import fetch from "node-fetch";
 import fs from "fs-extra";
 import aniep from "aniep";
-import cv from "opencv4nodejs-prebuilt";
+import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 
