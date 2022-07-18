@@ -61,8 +61,9 @@ jobs:
           TRACE_API_SALT: YOUR_TRACE_API_SALT
           TRACE_API_SECRET: TRACE_API_SECRET
           EMAIL_SMTP: smtp.ethereal.email
-          EMAIL_USER: alisa.okuneva17@ethereal.email
-          EMAIL_PASS: 9zRjBG4qRMGEv55xV3
+          EMAIL_SMTP_PORT: 587
+          EMAIL_USER: tracy.christiansen@ethereal.email
+          EMAIL_PASS: 8KP4VbHJGq4vAetKPb
       - name: Codecov
         uses: codecov/codecov-action@v2
         with:
