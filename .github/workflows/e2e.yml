@@ -62,8 +62,8 @@ jobs:
           TRACE_API_SECRET: TRACE_API_SECRET
           EMAIL_SMTP: smtp.ethereal.email
           EMAIL_SMTP_PORT: 587
-          EMAIL_USER: tracy.christiansen@ethereal.email
-          EMAIL_PASS: 8KP4VbHJGq4vAetKPb
+          EMAIL_USER: dillon5@ethereal.email
+          EMAIL_PASS: 5TqaXWmkQA3Jw98hcF
       - name: Codecov
         uses: codecov/codecov-action@v2
         with:
