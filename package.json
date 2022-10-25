@@ -30,7 +30,7 @@
   "devDependencies": {
     "jest": "^29.2.1",
     "prettier": "^2.7.1",
-    "supertest": "^6.3.0"
+    "supertest": "^6.3.1"
   },
   "dependencies": {
     "@soruly/opencv4nodejs-prebuilt": "^6.0.2",
