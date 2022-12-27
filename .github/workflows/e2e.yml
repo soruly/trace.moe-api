@@ -62,8 +62,8 @@ jobs:
           TRACE_API_SECRET: TRACE_API_SECRET
           EMAIL_SMTP: smtp.ethereal.email
           EMAIL_SMTP_PORT: 587
-          EMAIL_USER: fatima.cummings@ethereal.email
-          EMAIL_PASS: ARt969ye7RhUpT8JcG
+          EMAIL_USER: herbert.berge48@ethereal.email
+          EMAIL_PASS: ntDWSVeGhhmAeKBqZA
       - name: Codecov
         uses: codecov/codecov-action@v2
         with:
