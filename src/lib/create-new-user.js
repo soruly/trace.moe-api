@@ -5,8 +5,8 @@ import { URL } from "url";
 import nodemailer from "nodemailer";
 import generateAPIKey from "./generate-api-key.js";
 
-const { SOLA_DB_NAME, TRACE_API_SALT, EMAIL_SMTP, EMAIL_SMTP_PORT, EMAIL_USER, EMAIL_PASS } =
-  process.env;
+const { SOLA_DB_NAME, TRACE_API_SALT, EMAIL_SMTP, EMAIL_SMTP_PORT } = process.env;
+let { EMAIL_USER, EMAIL_PASS } = process.env;
 
 const __filename = new URL("", import.meta.url).pathname;
 const __dirname = new URL(".", import.meta.url).pathname;
@@ -45,6 +45,12 @@ export default async (knex, email, tier, full_name = "") => {
     api_key: generateAPIKey(autoIncrement),
     tier,
   });
+
+  if (EMAIL_SMTP === "smtp.ethereal.email") {
+    const account = await nodemailer.createTestAccount();
+    EMAIL_USER = account.user;
+    EMAIL_PASS = account.pass;
+  }
 
   if (!EMAIL_SMTP || !EMAIL_SMTP_PORT || !EMAIL_USER || !EMAIL_PASS) return;
   const transporter = nodemailer.createTransport({
