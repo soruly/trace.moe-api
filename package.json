@@ -43,7 +43,7 @@
     "knex": "^2.4.2",
     "multer": "^1.4.5-lts.1",
     "mysql": "^2.18.1",
-    "node-fetch": "^3.3.0",
+    "node-fetch": "^3.3.1",
     "nodemailer": "^6.9.1",
     "redis": "^4.6.5",
     "rss": "^1.2.2",
