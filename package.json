@@ -44,7 +44,7 @@
     "multer": "^1.4.5-lts.1",
     "mysql": "^2.18.1",
     "node-fetch": "^3.3.1",
-    "nodemailer": "^6.9.1",
+    "nodemailer": "^6.9.2",
     "redis": "^4.6.6",
     "rss": "^1.2.2",
     "ws": "^8.13.0"
