@@ -36,7 +36,7 @@
     "@soruly/opencv4nodejs-prebuilt": "^6.0.2",
     "aniep": "^0.4.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
+    "dotenv": "^16.1.0",
     "express": "^4.18.2",
     "express-rate-limit": "^6.6.0",
     "fs-extra": "^11.1.1",
