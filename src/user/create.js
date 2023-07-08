@@ -25,7 +25,7 @@ export default async (req, res) => {
     knex,
     req.body.email,
     req.body.tier,
-    req.body.email.split("@").shift()
+    req.body.email.split("@").shift(),
   );
 
   if (result) {

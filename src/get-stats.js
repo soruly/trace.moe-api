@@ -32,7 +32,7 @@ export default async (req, res) => {
     new Date(
       date
         .toISOString()
-        .replace(/T(\d+):(\d+):(\d+)\.\d+Z/, period === "day" ? " 00:00:00" : " $1:00:00")
+        .replace(/T(\d+):(\d+):(\d+)\.\d+Z/, period === "day" ? " 00:00:00" : " $1:00:00"),
     );
 
   if (type === "traffic") {
@@ -80,7 +80,7 @@ export default async (req, res) => {
           hour: 48,
           day: 30,
           month: 12,
-        }[period] ?? 50
+        }[period] ?? 50,
       );
     const latest = await knex("log")
       .where("time", ">=", thisHour)
@@ -148,11 +148,11 @@ export default async (req, res) => {
     const thisPeriod = periodFloor(new Date(), period);
     const lastPeriod = periodFloor(
       new Date(thisPeriod.valueOf() - 1000 * 60 * 60 * (period === "day" ? 24 : 1)),
-      period
+      period,
     );
     if (!lastCached || lastCached.time.valueOf() < lastPeriod.valueOf()) {
       const cached = (await knex(`stat_${type}_${period}`).distinct("time")).map((e) =>
-        e.time.valueOf()
+        e.time.valueOf(),
       );
       const [firstRecord] = await knex("log").orderBy("time", "asc").limit(1);
       let time = periodFloor(firstRecord ? firstRecord.time : new Date(), period);
@@ -183,7 +183,7 @@ export default async (req, res) => {
                   p75: 0,
                   p90: 0,
                   p100: 0,
-                }
+                },
           );
         }
       }
@@ -213,7 +213,7 @@ export default async (req, res) => {
             p75: 0,
             p90: 0,
             p100: 0,
-          }
+          },
     );
     return res.json(history);
   }

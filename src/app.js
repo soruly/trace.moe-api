@@ -40,7 +40,7 @@ app.use(
   rateLimit({
     max: 60, // limit each IP to 60 requests per 60 seconds
     delayMs: 0, // disable delaying - full speed until the max limit is reached
-  })
+  }),
 );
 
 app.use((req, res, next) => {
@@ -53,7 +53,7 @@ app.use((req, res, next) => {
       req.ip,
       req.path,
       res.statusCode,
-      `${(performance.now() - startTime).toFixed(0)}ms`
+      `${(performance.now() - startTime).toFixed(0)}ms`,
     );
   });
   next();
@@ -67,7 +67,7 @@ app.use(
     verify: (req, res, buf) => {
       req.rawBody = buf;
     },
-  })
+  }),
 );
 app.use(express.urlencoded({ extended: false }));
 app.use(
@@ -75,7 +75,7 @@ app.use(
     verify: (req, res, buf) => {
       req.rawBody = buf;
     },
-  })
+  }),
 );
 
 app.get("/me", getMe);
@@ -92,7 +92,7 @@ app.all("/webhook/patreon", patreon);
 app.all(
   "/search",
   multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }).any(),
-  search
+  search,
 );
 app.all("/user/login", login);
 app.all("/user/create", create);

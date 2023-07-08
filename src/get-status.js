@@ -24,8 +24,8 @@ export default async (req, res) => {
           fetch(`${solrUrl}admin/cores?wt=json`)
             .then((res) => res.json())
             .then(({ status }) => ({ solrUrl, cores: Object.values(status) }))
-            .catch((e) => res.status(503))
-        )
+            .catch((e) => res.status(503)),
+        ),
       )
     ).reduce((acc, cur) => {
       acc[cur.solrUrl] = cur.cores;

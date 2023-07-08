@@ -36,7 +36,7 @@ export default async (knex, email, tier, full_name = "") => {
     .replace(/[^0-9a-zA-Z]/g, "");
   const autoIncrement = (
     await knex.raw(
-      `SELECT AUTO_INCREMENT FROM information_schema.tables WHERE table_name = 'user' and table_schema = '${SOLA_DB_NAME}';`
+      `SELECT AUTO_INCREMENT FROM information_schema.tables WHERE table_name = 'user' and table_schema = '${SOLA_DB_NAME}';`,
     )
   )[0][0].AUTO_INCREMENT;
   await knex("user").insert({

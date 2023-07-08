@@ -27,7 +27,7 @@ export default async (req, res) => {
       title: row.path.split("/")[1],
       description: row.path,
       url: `https://api.trace.moe/hash/${row.path.split("/")[0]}/${encodeURIComponent(
-        row.path.split("/")[1]
+        row.path.split("/")[1],
       )}`,
       date: new Date(row.updated).toISOString(),
     });
@@ -43,12 +43,12 @@ export default async (req, res) => {
       "frame-ancestors 'none'",
       "form-action 'none'",
       "block-all-mixed-content",
-    ].join("; ")
+    ].join("; "),
   );
   return res.send(
     feed
       .xml({ indent: true })
       .replace(/<rss.*?>/, `<rss version="2.0">`)
-      .replace(/<atom:link.*?>/, "")
+      .replace(/<atom:link.*?>/, ""),
   );
 };

@@ -17,7 +17,7 @@ const knex = Knex({
 });
 
 const rows = await knex.raw(
-  `SELECT DISTINCT SUBSTRING_INDEX(path, '/', 1) AS id FROM ${TRACE_ALGO}`
+  `SELECT DISTINCT SUBSTRING_INDEX(path, '/', 1) AS id FROM ${TRACE_ALGO}`,
 );
 const idList = rows[0].map((e) => Number(e.id));
 await knex.destroy();

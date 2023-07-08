@@ -17,7 +17,7 @@ export default async () => {
     },
   });
   await knex.raw(
-    `CREATE DATABASE IF NOT EXISTS ${SOLA_DB_NAME} CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`
+    `CREATE DATABASE IF NOT EXISTS ${SOLA_DB_NAME} CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
   );
   await knex.destroy();
 
@@ -35,7 +35,7 @@ export default async () => {
 
   console.log("Creating SQL table if not exist");
   await global.knex.raw(
-    fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO)
+    fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO),
   );
   await global.knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
 };

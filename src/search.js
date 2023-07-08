@@ -26,9 +26,9 @@ const search = (image, candidates, anilistID) =>
         {
           method: "POST",
           body: image,
-        }
-      )
-    )
+        },
+      ),
+    ),
   );
 
 const logAndDequeue = async (knex, redis, uid, priority, status, searchTime, accuracy) => {
@@ -156,7 +156,7 @@ export default async (req, res) => {
         "media.trace.moe",
       ].includes(new URL(req.query.url).hostname)
         ? req.query.url
-        : `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
+        : `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`,
     ).catch((e) => {
       return { status: 400 };
     });
@@ -327,7 +327,7 @@ export default async (req, res) => {
         (e) =>
           e.anilist_id === anilist_id &&
           e.filename === filename &&
-          (Math.abs(e.from - t) < 5 || Math.abs(e.to - t) < 5)
+          (Math.abs(e.from - t) < 5 || Math.abs(e.to - t) < 5),
       );
       if (index < 0) {
         return list.concat({

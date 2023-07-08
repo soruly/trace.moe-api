@@ -9,7 +9,7 @@ import app from "./src/app.js";
 
 import v8 from "v8";
 console.log(
-  `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`
+  `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
 );
 
 const {
@@ -56,13 +56,13 @@ app.locals.knex = Knex({
 
 console.log("Creating SQL table if not exist");
 await app.locals.knex.raw(
-  fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO)
+  fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO),
 );
 await app.locals.knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
 
 const wss = new WebSocketServer({ noServer: true, path: "/ws" });
 const server = app.listen(SERVER_PORT, "0.0.0.0", () =>
-  console.log(`API server listening on port ${SERVER_PORT}`)
+  console.log(`API server listening on port ${SERVER_PORT}`),
 );
 
 server.on("upgrade", (request, socket, head) => {

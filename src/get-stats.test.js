@@ -82,7 +82,7 @@ test("GET /stats?type=media", async () => {
         status,
         search_time: Math.floor(Math.random() * 1000),
         accuracy: Math.random(),
-      }))
+      })),
     );
     await app.locals.knex("log").insert(
       [200, 400, 402, 405, 500, 503].map((status) => ({
@@ -91,7 +91,7 @@ test("GET /stats?type=media", async () => {
         status,
         search_time: Math.floor(Math.random() * 1000),
         accuracy: Math.random(),
-      }))
+      })),
     );
 
     const response2 = await request(app)

@@ -14,7 +14,7 @@ export default async (req, res) => {
         status: "UPLOADED",
       })
       .toString()
-      .replace(/^insert/i, "insert ignore")
+      .replace(/^insert/i, "insert ignore"),
   );
   await sendWorkerJobs(req.app.locals.knex, req.app.locals.workerPool);
   res.sendStatus(204);

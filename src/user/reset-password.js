@@ -26,7 +26,7 @@ export default async (req, res) => {
     .where("id", rows[0].id)
     .update(
       "password",
-      crypto.scryptSync(req.body.password, TRACE_API_SALT, 64).toString("base64")
+      crypto.scryptSync(req.body.password, TRACE_API_SALT, 64).toString("base64"),
     );
 
   return res.json({});

@@ -12,24 +12,24 @@ const keys = await redis.keys("*");
 
 console.table(
   await Promise.all(
-    keys.filter((key) => key.startsWith("s:")).map((key) => Promise.all([key, redis.get(key)]))
-  )
+    keys.filter((key) => key.startsWith("s:")).map((key) => Promise.all([key, redis.get(key)])),
+  ),
 );
 
 console.table(
   await Promise.all(
-    keys.filter((key) => key.startsWith("rl:")).map((key) => Promise.all([key, redis.get(key)]))
-  )
+    keys.filter((key) => key.startsWith("rl:")).map((key) => Promise.all([key, redis.get(key)])),
+  ),
 );
 console.table(
   await Promise.all(
-    keys.filter((key) => key.startsWith("q:")).map((key) => Promise.all([key, redis.get(key)]))
-  )
+    keys.filter((key) => key.startsWith("q:")).map((key) => Promise.all([key, redis.get(key)])),
+  ),
 );
 console.table(
   await Promise.all(
-    keys.filter((key) => key.startsWith("c:")).map((key) => Promise.all([key, redis.get(key)]))
-  )
+    keys.filter((key) => key.startsWith("c:")).map((key) => Promise.all([key, redis.get(key)])),
+  ),
 );
 console.log(await redis.get("queue"));
 

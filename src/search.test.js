@@ -118,7 +118,7 @@ describe("without API Key", () => {
       await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
         .then((e) => e.arrayBuffer())
         .then((arrayBuffer) =>
-          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer))
+          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer)),
         );
     }
     const response = await request(app)
@@ -150,9 +150,9 @@ describe("without API Key", () => {
       .send(
         Buffer.from(
           await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg").then((e) =>
-            e.arrayBuffer()
-          )
-        )
+            e.arrayBuffer(),
+          ),
+        ),
       );
     expect(response.statusCode).toBe(200);
     expect(response.headers["content-type"]).toMatch(/^application\/json/);
@@ -245,13 +245,13 @@ describe("without API Key", () => {
       await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
         .then((e) => e.arrayBuffer())
         .then((arrayBuffer) =>
-          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer))
+          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer)),
         );
     }
     const res = await Promise.all(
       [...new Array(5)].map((_) =>
-        request(app).post("/search").attach("image", "32B15UXxymfSMwKGTObY5e.jpg")
-      )
+        request(app).post("/search").attach("image", "32B15UXxymfSMwKGTObY5e.jpg"),
+      ),
     );
     expect(res.map((e) => e.statusCode).includes(402)).toBe(true);
   });
@@ -289,7 +289,7 @@ describe("with system Tier 9 API Key", () => {
       await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
         .then((e) => e.arrayBuffer())
         .then((arrayBuffer) =>
-          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer))
+          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer)),
         );
     }
     const res = await Promise.all(
@@ -297,8 +297,8 @@ describe("with system Tier 9 API Key", () => {
         request(app)
           .post("/search")
           .query({ key: app.locals.apiKeyTier9 })
-          .attach("image", "32B15UXxymfSMwKGTObY5e.jpg")
-      )
+          .attach("image", "32B15UXxymfSMwKGTObY5e.jpg"),
+      ),
     );
     expect(res.map((e) => e.statusCode).includes(503)).toBe(true);
   });

@@ -15,10 +15,10 @@ export default async (req, res) => {
         // http://lucene.apache.org/core/6_5_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#Escaping_Special_Characters
         body: `<delete><query>id:${anilistID}/${filename.replace(
           /([ +\-!(){}[\]^"~*?:\\/])/g,
-          "\\$1"
+          "\\$1",
         )}\\/*</query></delete>`,
-      })
-    )
+      }),
+    ),
   );
   // await knex(TRACE_ALGO).where("path", `${anilistID}/${filename}`).update({ status: "HASHED" });
   res.sendStatus(204);

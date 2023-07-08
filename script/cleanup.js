@@ -39,10 +39,10 @@ const unload = (relativePath, coreList) =>
             // http://lucene.apache.org/core/6_5_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#Escaping_Special_Characters
             body: `<delete><query>id:${relativePath.replace(
               /([ +\-!(){}[\]^"~*?:\\/])/g,
-              "\\$1"
+              "\\$1",
             )}\\/*</query></delete>`,
-          })
-        )
+          }),
+        ),
       );
       resolve();
     } catch (e) {
@@ -53,7 +53,7 @@ const unload = (relativePath, coreList) =>
 console.log("Loading solr core list...");
 const coreList = getSolrCoreList();
 console.log(
-  `Loaded ${coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`
+  `Loaded ${coreList.length} cores from ${SOLA_SOLR_LIST.split(",").length} solr servers`,
 );
 
 console.log("Checking invalid states");

@@ -22,8 +22,8 @@ const getLeastPopulatedCore = async () =>
               name: `${solrUrl}${e.name}`,
               numDocs: e.index.numDocs,
             }));
-          })
-      )
+          }),
+      ),
     )
   )
     .flat()
@@ -91,7 +91,7 @@ const lookForLoadJobs = async (knex, workerPool, ws) => {
 
 export default async (knex, workerPool) => {
   for (const [ws] of Array.from(workerPool).filter(
-    ([_, { status, type, file }]) => status === "READY"
+    ([_, { status, type, file }]) => status === "READY",
   )) {
     const { type } = workerPool.get(ws);
     workerPool.set(ws, { status: "BUSY", type, file: "" });
@@ -103,7 +103,7 @@ export default async (knex, workerPool) => {
     console.log(
       Array.from(workerPool)
         .map(([_, { status, type, file }]) => `${type},${status},${file}`)
-        .sort()
+        .sort(),
     );
   }
 };
