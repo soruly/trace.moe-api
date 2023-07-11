@@ -33,7 +33,7 @@
     "supertest": "^6.3.3"
   },
   "dependencies": {
-    "@soruly/opencv4nodejs-prebuilt": "^6.0.2",
+    "@soruly/opencv4nodejs-prebuilt": "^6.0.3",
     "aniep": "^0.5.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
