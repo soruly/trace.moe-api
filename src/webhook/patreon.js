@@ -46,8 +46,11 @@ export default async (req, res) => {
         await knex("user").where("email", email).update({ tier });
       }
     }
-  } else if (patron_status === "declined_patron") {
-    await knex("user").where("email", email).update({ tier: 0 });
+  } else if (email && patron_status === "declined_patron") {
+    const rows = await knex("user").select("*").where("email", email).limit(1);
+    if (rows.length) {
+      await knex("user").where("email", email).update({ tier: 0 });
+    }
   }
 
   res.json({});
