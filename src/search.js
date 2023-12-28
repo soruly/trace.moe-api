@@ -8,8 +8,9 @@ import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
+import { importMode } from "./app.js";
 
-const { TRACE_MEDIA_URL, TRACE_MEDIA_SALT, TRACE_ACCURACY = 1, TRACE_IMPORT_MODE = false } = process.env;
+const { TRACE_MEDIA_URL, TRACE_MEDIA_SALT, TRACE_ACCURACY = 1 } = process.env;
 
 const search = (image, candidates, anilistID) =>
   Promise.all(
@@ -68,7 +69,7 @@ const logAndDequeue = async (knex, redis, uid, priority, status, searchTime, acc
 };
 
 export default async (req, res) => {
-  if (TRACE_IMPORT_MODE) {
+  if (importMode) {
     return res.status(500).json({
       error: "Import mode is enabled; search is disabled.",
     });
@@ -266,7 +267,7 @@ export default async (req, res) => {
     }
   }
 
-  let candidates = 1000000;
+  let candidates = 1_000_000;
   const startTime = performance.now();
   let solrResponse = null;
   try {

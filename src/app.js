@@ -37,8 +37,9 @@ app.use((req, res, next) => {
 });
 
 const { TRACE_IMPORT_MODE = false } = process.env;
+export const importMode = TRACE_IMPORT_MODE === 'true';
 
-if (!TRACE_IMPORT_MODE) {
+if (!importMode) {
   app.use(
     rateLimit({
       max: 60, // limit each IP to 60 requests per 60 seconds
