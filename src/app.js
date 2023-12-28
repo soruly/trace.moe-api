@@ -36,12 +36,18 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(
-  rateLimit({
-    max: 60, // limit each IP to 60 requests per 60 seconds
-    delayMs: 0, // disable delaying - full speed until the max limit is reached
-  }),
-);
+const { TRACE_IMPORT_MODE = false } = process.env;
+
+if (!TRACE_IMPORT_MODE) {
+  app.use(
+    rateLimit({
+      max: 60, // limit each IP to 60 requests per 60 seconds
+      delayMs: 0 // disable delaying - full speed until the max limit is reached
+    })
+  );
+} else {
+  console.warn('Import mode is enabled; rate limiting and searching is disabled');
+}
 
 app.use((req, res, next) => {
   const startTime = performance.now();

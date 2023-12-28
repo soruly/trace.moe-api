@@ -9,7 +9,7 @@ import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 
-const { TRACE_MEDIA_URL, TRACE_MEDIA_SALT, TRACE_ACCURACY = 1 } = process.env;
+const { TRACE_MEDIA_URL, TRACE_MEDIA_SALT, TRACE_ACCURACY = 1, TRACE_IMPORT_MODE = false } = process.env;
 
 const search = (image, candidates, anilistID) =>
   Promise.all(
@@ -68,6 +68,12 @@ const logAndDequeue = async (knex, redis, uid, priority, status, searchTime, acc
 };
 
 export default async (req, res) => {
+  if (TRACE_IMPORT_MODE) {
+    return res.status(500).json({
+      error: "Import mode is enabled; search is disabled.",
+    });
+  }
+
   const knex = req.app.locals.knex;
   const redis = req.app.locals.redis;
 
@@ -282,8 +288,7 @@ export default async (req, res) => {
 
   const maxRawDocsCount = Math.max(...solrResults.map((e) => Number(e.RawDocsCount)));
   if (maxRawDocsCount > candidates) {
-    // found cluster has more candidates than expected
-    // search again with increased candidates count
+    console.warn('found cluster has more candidates than expected, searching again with increased candidates count');
     candidates = maxRawDocsCount;
     solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
     if (solrResponse.find((e) => e.status >= 500)) {
