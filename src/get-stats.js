@@ -8,8 +8,7 @@ export default async (req, res) => {
 
   const { type, period } = req.query;
   if (type === "media") {
-
-    const [row] = await knex("mediainfo").max('updated', { as: 'lastUpdated'});
+    const [row] = await knex("mediainfo").max("updated", { as: "lastUpdated" });
     const lastUpdatedRecordValue = row?.lastUpdated?.toISOString() ?? null;
 
     if (lastUpdatedRecordValue && lastUpdate !== lastUpdatedRecordValue) {
