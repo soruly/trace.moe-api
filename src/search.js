@@ -260,7 +260,7 @@ export default async (req, res) => {
     }
   }
 
-  let candidates = 1000000;
+  let candidates = 2000000;
   const startTime = performance.now();
   let solrResponse = null;
   try {
