@@ -4,17 +4,11 @@ import rateLimit from "express-rate-limit";
 import cors from "cors";
 import multer from "multer";
 
-import checkSecret from "./worker/check-secret.js";
 import getMe from "./get-me.js";
 import getStatus from "./get-status.js";
 import getStats from "./get-stats.js";
 import search from "./search.js";
-import uploaded from "./worker/uploaded.js";
-import putHash from "./worker/put-hash.js";
-import getHash from "./worker/get-hash.js";
-import getWorkers from "./worker/get-workers.js";
-import loaded from "./worker/loaded.js";
-import unload from "./worker/unload.js";
+import scan from "./scan.js";
 import github from "./webhook/github.js";
 import patreon from "./webhook/patreon.js";
 import create from "./user/create.js";
@@ -81,12 +75,7 @@ app.use(
 app.get("/me", getMe);
 app.get("/status", getStatus);
 app.get("/stats", getStats);
-app.get("/uploaded/:anilistID/:filename", checkSecret, uploaded);
-app.put("/hash/:anilistID/:filename", checkSecret, putHash);
-app.get("/hash/:anilistID/:filename", checkSecret, getHash);
-app.get("/loaded/:anilistID/:filename", checkSecret, loaded);
-app.get("/unload/:anilistID/:filename", checkSecret, unload);
-app.get("/workers", checkSecret, getWorkers);
+app.get("/scan", scan);
 app.all("/webhook/github", github);
 app.all("/webhook/patreon", patreon);
 app.all(

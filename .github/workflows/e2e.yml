@@ -59,7 +59,6 @@ jobs:
           TRACE_MEDIA_SALT: TRACE_MEDIA_SALT
           TRACE_ACCURACY: 0.02
           TRACE_API_SALT: YOUR_TRACE_API_SALT
-          TRACE_API_SECRET: TRACE_API_SECRET
           EMAIL_SMTP: smtp.ethereal.email
           EMAIL_SMTP_PORT: 587
       - name: Codecov

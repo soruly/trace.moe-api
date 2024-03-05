@@ -22,8 +22,10 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 
 ### Prerequisites
 
-- Node.js 14.x
+- Node.js 20.x
 - mariaDB 10.4.x
+- ffmpeg 4.x
+- java (openjdk 17)
 - redis
 - [liresolr](https://github.com/soruly/liresolr)
 - g++, cmake (if you need to compile OpenCV)
@@ -42,6 +44,7 @@ npm install
 
 - Copy `.env.example` to `.env`
 - Edit `.env` as appropriate for your setup
+- at minimal, you'll need to configure `VIDEO_PATH` and `HASH_PATH`
 
 ### Start server
 
@@ -57,4 +60,10 @@ npm run restart
 npm run delete
 ```
 
-To change the number of nodejs instances, edit ecosystem.config.json
+### How to begin hashing
+
+By default, it will scan the `VIDEO_PATH` every minute for new video files (.mp4 or .mkv). You can manually trigger a scan by calling this url
+
+```
+curl http://localhost:3001/scan
+```
