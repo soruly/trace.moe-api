@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [18, 20]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     services:
@@ -28,9 +28,9 @@ jobs:
           - 3306:3306
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - name: run liresolr
@@ -60,8 +60,8 @@ jobs:
           TRACE_ACCURACY: 0.02
           TRACE_API_SALT: YOUR_TRACE_API_SALT
           MAX_WORKER: 1
-          VIDEO_PATH: /tmp/
-          HASH_PATH: /tmp/
+          VIDEO_PATH: /home/runner/
+          HASH_PATH: /home/runner/
           EMAIL_SMTP: smtp.ethereal.email
           EMAIL_SMTP_PORT: 587
       - name: Codecov
