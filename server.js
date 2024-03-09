@@ -59,6 +59,7 @@ await app.locals.knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
 
 app.locals.workerCount = 0;
 app.locals.mutex = false;
+app.locals.mediaQueue = 0;
 
 const server = app.listen(SERVER_PORT, "0.0.0.0", () =>
   console.log(`API server listening on port ${server.address().port}`),

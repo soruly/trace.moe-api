@@ -9,7 +9,7 @@ import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 
-const { TRACE_MEDIA_URL, TRACE_MEDIA_SALT, TRACE_ACCURACY = 1 } = process.env;
+const { TRACE_API_SALT, TRACE_ACCURACY = 1 } = process.env;
 
 const search = (image, candidates, anilistID) =>
   Promise.all(
@@ -355,12 +355,12 @@ export default async (req, res) => {
     const mid = from + (to - from) / 2;
     const videoToken = crypto
       .createHash("sha1")
-      .update([anilist_id, filename, mid, now, TRACE_MEDIA_SALT].join(""))
+      .update([anilist_id, filename, mid, now, TRACE_API_SALT].join(""))
       .digest("base64")
       .replace(/[^0-9A-Za-z]/g, "");
     const imageToken = crypto
       .createHash("sha1")
-      .update([anilist_id, `${filename}.jpg`, mid, now, TRACE_MEDIA_SALT].join(""))
+      .update([anilist_id, `${filename}.jpg`, mid, now, TRACE_API_SALT].join(""))
       .digest("base64")
       .replace(/[^0-9A-Za-z]/g, "");
 
@@ -371,12 +371,12 @@ export default async (req, res) => {
       from,
       to,
       similarity: (100 - d) / 100,
-      video: `${TRACE_MEDIA_URL}/video/${anilist_id}/${encodeURIComponent(filename)}?${[
+      video: `${req.protocol}://${req.get("host")}/video/${anilist_id}/${encodeURIComponent(filename)}?${[
         `t=${mid}`,
         `now=${now}`,
         `token=${videoToken}`,
       ].join("&")}`,
-      image: `${TRACE_MEDIA_URL}/image/${anilist_id}/${encodeURIComponent(filename)}.jpg?${[
+      image: `${req.protocol}://${req.get("host")}/image/${anilist_id}/${encodeURIComponent(filename)}.jpg?${[
         `t=${mid}`,
         `now=${now}`,
         `token=${imageToken}`,

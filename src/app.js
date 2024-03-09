@@ -9,6 +9,8 @@ import getStatus from "./get-status.js";
 import getStats from "./get-stats.js";
 import search from "./search.js";
 import scan from "./scan.js";
+import video from "./video.js";
+import image from "./image.js";
 import github from "./webhook/github.js";
 import patreon from "./webhook/patreon.js";
 import create from "./user/create.js";
@@ -32,7 +34,7 @@ app.use((req, res, next) => {
 
 app.use(
   rateLimit({
-    max: 60, // limit each IP to 60 requests per 60 seconds
+    max: 100, // limit each IP to max requests per 60 seconds
     delayMs: 0, // disable delaying - full speed until the max limit is reached
   }),
 );
@@ -83,6 +85,8 @@ app.all(
   multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }).any(),
   search,
 );
+app.get("/video/:anilistID/:filename", video);
+app.get("/image/:anilistID/:filename", image);
 app.all("/user/login", login);
 app.all("/user/create", create);
 app.all("/user/reset-key", resetKey);

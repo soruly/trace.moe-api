@@ -26,7 +26,16 @@ export default {
   coverageDirectory: "coverage",
 
   // An array of regexp pattern strings used to skip coverage collection
-  coveragePathIgnorePatterns: ["/node_modules/", "/script/", "/src/webhook/", "/src/worker/"],
+  coveragePathIgnorePatterns: [
+    "/node_modules/",
+    "/script/",
+    "/src/webhook/",
+    "/src/worker/",
+    "/src/video.js",
+    "/src/image.js",
+    "/src/lib/detect-scene.js",
+    "/src/lib/get-video-duration.js",
+  ],
 
   // Indicates which provider should be used to instrument code for coverage
   coverageProvider: "v8",

@@ -35,6 +35,7 @@
   "dependencies": {
     "@soruly/opencv4nodejs-prebuilt": "^6.0.3",
     "aniep": "^0.6.0",
+    "canvas": "^2.11.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.3",
