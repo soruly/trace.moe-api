@@ -418,7 +418,6 @@ export default async (req, res) => {
   }
 
   await logAndDequeue(knex, redis, uid, priority, 200, searchTime, result[0]?.similarity);
-  await redis.set(`s:${uid}`, `${searchCount + 1}`);
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",
