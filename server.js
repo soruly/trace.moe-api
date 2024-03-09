@@ -60,9 +60,9 @@ await app.locals.knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
 app.locals.workerCount = 0;
 app.locals.mutex = false;
 
-app.listen(SERVER_PORT, "0.0.0.0", () =>
-  console.log(`API server listening on port ${SERVER_PORT}`),
+const server = app.listen(SERVER_PORT, "0.0.0.0", () =>
+  console.log(`API server listening on port ${server.address().port}`),
 );
 
 // check for new files every minute
-setInterval(async () => await fetch(`http://localhost:${SERVER_PORT}/scan`), 60 * 1000);
+setInterval(async () => await fetch(`http://localhost:${server.address().port}/scan`), 60 * 1000);
