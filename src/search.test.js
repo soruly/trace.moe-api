@@ -354,7 +354,7 @@ describe("invalid input", () => {
   });
   test("/search by image URL with invalid image", async () => {
     // Failed to process image
-    const response = await request(app).get("/search").query({ url: "https://media.trace.moe" });
+    const response = await request(app).get("/search").query({ url: "https://api.trace.moe" });
     expect(response.statusCode).toBe(400);
     expect(response.headers["content-type"]).toMatch(/^application\/json/);
     expect(typeof response.body.error).toBe("string");

@@ -25,8 +25,8 @@ Invoke-RestMethod "https://api.trace.moe/search?url=https://images.plurk.com/32B
 ```javascript
 await fetch(
   `https://api.trace.moe/search?url=${encodeURIComponent(
-    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
-  )}`
+    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg",
+  )}`,
 ).then((e) => e.json());
 ```
 
@@ -166,8 +166,8 @@ Invoke-RestMethod "https://api.trace.moe/search?cutBorders&url=https://images.pl
 ```javascript
 await fetch(
   `https://api.trace.moe/search?cutBorders&url=${encodeURIComponent(
-    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
-  )}`
+    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg",
+  )}`,
 ).then((e) => e.json());
 ```
 
@@ -209,8 +209,8 @@ Invoke-RestMethod "https://api.trace.moe/search?anilistID=1&url=https://images.p
 ```javascript
 await fetch(
   `https://api.trace.moe/search?anilistID=1&url=${encodeURIComponent(
-    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
-  )}`
+    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg",
+  )}`,
 ).then((e) => e.json());
 ```
 
@@ -249,8 +249,8 @@ The recommended resolution is 640 x 360px, higher resolution doesn't yield bette
       "from": 97.75,
       "to": 98.92,
       "similarity": 0.9440424588727485,
-      "video": "https://media.trace.moe/video/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx",
-      "image": "https://media.trace.moe/image/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4.jpg?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx"
+      "video": "https://api.trace.moe/video/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx",
+      "image": "https://api.trace.moe/image/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4.jpg?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx"
     }
   ]
 }
@@ -304,8 +304,8 @@ Invoke-RestMethod "https://api.trace.moe/search?anilistInfo&url=https://images.p
 ```javascript
 await fetch(
   `https://api.trace.moe/search?anilistInfo&url=${encodeURIComponent(
-    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
-  )}`
+    "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg",
+  )}`,
 ).then((e) => e.json());
 ```
 
@@ -342,8 +342,8 @@ Example response
       "from": 97.75,
       "to": 98.92,
       "similarity": 0.9440424588727485,
-      "video": "https://media.trace.moe/video/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx",
-      "image": "https://media.trace.moe/image/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4.jpg?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx"
+      "video": "https://api.trace.moe/video/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx",
+      "image": "https://api.trace.moe/image/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4.jpg?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx"
     }
   ]
 }
@@ -377,25 +377,23 @@ Example Error response
 
 ### Media Preview
 
-The url you obtained from `image` and `video` from search result is served by [trace.moe-media](https://github.com/soruly/trace.moe-media)
-
-> These urls would expire in 300 seconds (5 minutes)
+The url you obtained from `image` and `video` from search result would expire in 300 seconds (5 minutes)
 
 It can generate image or video preview of 3 sizes by appending `size=l` (large), `size=m` (medium, default) or `size=s` (small) at the end of the url. e.g.
 
 ```
-https://media.trace.moe/image/xxx/xxxxxx.mp4.jpg?t=0&now=1653892514&token=xxxxx&size=s
-https://media.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size=s
+https://api.trace.moe/image/xxx/xxxxxx.mp4.jpg?t=0&now=1653892514&token=xxxxx&size=s
+https://api.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size=s
 ```
 
 For video preview, it can generate a video with sound (default), or a muted video by appending `mute` to the end of url. e.g.
 
 ```
-https://media.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&mute
-https://media.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size=s&mute
+https://api.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&mute
+https://api.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size=s&mute
 ```
 
-The media server would detect boundaries of the scene and cut videos at the boundaries. You cannot specify the length of video preview.
+It would detect boundaries of the scene and cut videos at the boundaries. You cannot specify the length of video preview.
 
 > Do not attempt to parse and modify the urls except documented above. The urls are not permanent and may change without notice.
 

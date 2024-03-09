@@ -7,18 +7,17 @@ The API server has a global request rate limit of 60/min per IP address. Regardl
 The rate limit info is included in the HTTP header. If you hit this HTTP rate limit, request would fail with HTTP 429 (Too Many Requests).
 
 ```
-x-ratelimit-limit: 60
-x-ratelimit-remaining: 59
+x-ratelimit-limit: 100
+x-ratelimit-remaining: 99
 x-ratelimit-reset: 1620537960
 ```
 
 This limit also applies to to other HTTP servers.
 
-| Server       | Hostname        | HTTP Rate Limit |
-| ------------ | --------------- | --------------- |
-| Web server   | trace.moe       | 600/min         |
-| API server   | api.trace.moe   | 60/min          |
-| Media server | media.trace.moe | 60/min          |
+| Server     | Hostname      | HTTP Rate Limit |
+| ---------- | ------------- | --------------- |
+| Web server | trace.moe     | 600/min         |
+| API server | api.trace.moe | 100/min         |
 
 ## API Search Quota and Limits
 

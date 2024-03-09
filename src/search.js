@@ -153,7 +153,6 @@ export default async (req, res) => {
         "media.discordapp.net",
         "images-ext-1.discordapp.net",
         "images-ext-2.discordapp.net",
-        "media.trace.moe",
       ].includes(new URL(req.query.url).hostname)
         ? req.query.url
         : `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`,
