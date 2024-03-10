@@ -30,8 +30,11 @@ const search = (image, candidates, anilistID) =>
     ),
   );
 
-const logAndDequeue = async (knex, redis, uid, priority, status, searchTime, accuracy) => {
+const logAndDequeue = async (locals, uid, priority, status, searchTime, accuracy) => {
+  const knex = locals.knex;
   if (status === 200) {
+    while (locals.mut) await new Promise((resolve) => setTimeout(resolve, 0));
+    locals.mut = true;
     const searchCountCache = await knex("search_count").where({ uid: `${uid}` });
     if (searchCountCache.length) {
       await knex("search_count")
@@ -40,6 +43,7 @@ const logAndDequeue = async (knex, redis, uid, priority, status, searchTime, acc
     } else {
       await knex("search_count").insert({ uid, count: 1 });
     }
+    locals.mut = false;
   }
   if (searchTime && accuracy) {
     await knex("log").insert({
@@ -56,19 +60,16 @@ const logAndDequeue = async (knex, redis, uid, priority, status, searchTime, acc
   } else {
     await knex("log").insert({ time: knex.fn.now(), uid, status });
   }
-  const c = await redis.decr(`c:${uid}`);
-  if (c < 0) {
-    await redis.del(`c:${uid}`);
-  }
-  const q = await redis.decr(`q:${priority}`);
-  if (q < 0) {
-    await redis.del(`q:${priority}`);
-  }
+  const concurrentCount = locals.searchConcurrent.get(uid) ?? 0;
+  if (concurrentCount <= 1) locals.searchConcurrent.delete(uid);
+  else locals.searchConcurrent.set(uid, concurrentCount - 1);
+
+  locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
 
 export default async (req, res) => {
+  const locals = req.app.locals;
   const knex = req.app.locals.knex;
-  const redis = req.app.locals.redis;
 
   const rows = await knex("tier").select("concurrency", "quota", "priority").where("id", 0);
   let quota = rows[0].quota;
@@ -107,24 +108,19 @@ export default async (req, res) => {
     });
   }
 
-  const concurrentCount = await redis.incr(`c:${uid}`);
-  await redis.expire(`c:${uid}`, 60);
-  if (concurrentCount > concurrency) {
-    await logAndDequeue(knex, redis, uid, priority, 402);
+  locals.searchConcurrent.set(uid, (locals.searchConcurrent.get(uid) ?? 0) + 1);
+  if (locals.searchConcurrent.get(uid) > concurrency) {
+    await logAndDequeue(locals, uid, priority, 402);
     return res.status(402).json({
       error: "Concurrency limit exceeded",
     });
   }
 
-  await redis.incr(`q:${priority}`);
-  await redis.expire(`q:${priority}`, 60);
-  const queueKeys = await redis.keys("q:*");
-  const priorityKeys = queueKeys.filter((e) => Number(e.split(":")[1]) >= priority);
-  const priorityQueues = priorityKeys.length ? await redis.mGet(priorityKeys) : [];
-  const priorityQueuesLength = priorityQueues.map((e) => Number(e)).reduce((a, b) => a + b, 0);
+  locals.searchQueue[priority] = (locals.searchQueue[priority] ?? 0) + 1;
+  const queueSize = locals.searchQueue.reduce((acc, cur, i) => (i >= priority ? acc + cur : 0), 0);
 
-  if (priorityQueuesLength >= 5) {
-    await logAndDequeue(knex, redis, uid, priority, 503);
+  if (queueSize > 8) {
+    await logAndDequeue(locals, uid, priority, 503);
     return res.status(503).json({
       error: `Error: Search queue is full`,
     });
@@ -136,7 +132,7 @@ export default async (req, res) => {
     try {
       new URL(req.query.url);
     } catch (e) {
-      await logAndDequeue(knex, redis, uid, priority, 400);
+      await logAndDequeue(locals, uid, priority, 400);
       return res.status(400).json({
         error: `Invalid image url ${req.query.url}`,
       });
@@ -159,7 +155,7 @@ export default async (req, res) => {
       return { status: 400 };
     });
     if (response.status >= 400) {
-      await logAndDequeue(knex, redis, uid, priority, 400);
+      await logAndDequeue(locals, uid, priority, 400);
       return res.status(response.status).json({
         error: `Failed to fetch image ${req.query.url}`,
       });
@@ -170,7 +166,7 @@ export default async (req, res) => {
   } else if (req.rawBody?.length) {
     searchFile = req.rawBody;
   } else {
-    await logAndDequeue(knex, redis, uid, priority, 405);
+    await logAndDequeue(locals, uid, priority, 405);
     return res.status(405).json({
       error: "Method Not Allowed",
     });
@@ -201,7 +197,7 @@ export default async (req, res) => {
   ]);
   await fs.remove(tempFilePath);
   if (!ffmpeg.stdout.length) {
-    await logAndDequeue(knex, redis, uid, priority, 400);
+    await logAndDequeue(locals, uid, priority, 400);
     return res.status(400).json({
       error: `Failed to process image. ${ffmpeg.stderr.toString()}`,
     });
@@ -251,7 +247,7 @@ export default async (req, res) => {
         searchImage = cv.imencode(".jpg", image.getRegion(new cv.Rect(x, y, w, h)));
       }
     } catch (e) {
-      await logAndDequeue(knex, redis, uid, priority, 400);
+      await logAndDequeue(locals, uid, priority, 400);
       return res.status(400).json({
         error: "OpenCV: Failed to detect and cut borders",
       });
@@ -264,14 +260,14 @@ export default async (req, res) => {
   try {
     solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
   } catch (e) {
-    await logAndDequeue(knex, redis, uid, priority, 503);
+    await logAndDequeue(locals, uid, priority, 503);
     return res.status(503).json({
       error: `Error: Database is not responding`,
     });
   }
   if (solrResponse.find((e) => e.status >= 500)) {
     const r = solrResponse.find((e) => e.status >= 500);
-    await logAndDequeue(knex, redis, uid, priority, r.status);
+    await logAndDequeue(locals, uid, priority, r.status);
     return res.status(r.status).json({
       error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
     });
@@ -286,7 +282,7 @@ export default async (req, res) => {
     solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
     if (solrResponse.find((e) => e.status >= 500)) {
       const r = solrResponse.find((e) => e.status >= 500);
-      await logAndDequeue(knex, redis, uid, priority, r.status);
+      await logAndDequeue(locals, uid, priority, r.status);
       return res.status(r.status).json({
         error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
       });
@@ -302,7 +298,7 @@ export default async (req, res) => {
 
   if (solrResults.find((e) => e.Error)) {
     console.log(solrResults.find((e) => e.Error));
-    await logAndDequeue(knex, redis, uid, priority, 500);
+    await logAndDequeue(locals, uid, priority, 500);
     return res.status(500).json({
       error: solrResults.find((e) => e.Error).Error,
     });
@@ -415,7 +411,7 @@ export default async (req, res) => {
     }
   }
 
-  await logAndDequeue(knex, redis, uid, priority, 200, searchTime, result[0]?.similarity);
+  await logAndDequeue(locals, uid, priority, 200, searchTime, result[0]?.similarity);
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",

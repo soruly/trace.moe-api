@@ -1,7 +1,6 @@
 import "dotenv/config";
 import fs from "fs-extra";
 import Knex from "knex";
-import { createClient } from "redis";
 
 import app from "./src/app.js";
 
@@ -18,8 +17,6 @@ const {
   SOLA_DB_PWD,
   SOLA_DB_NAME,
   SERVER_PORT,
-  REDIS_HOST,
-  REDIS_PORT,
 } = process.env;
 
 console.log("Creating SQL database if not exist");
@@ -32,12 +29,6 @@ await Knex({
     password: SOLA_DB_PWD,
   },
 }).raw(`CREATE DATABASE IF NOT EXISTS ${SOLA_DB_NAME} CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
-
-app.locals.redis = createClient({
-  url: `redis://${REDIS_HOST}:${REDIS_PORT}`,
-});
-await app.locals.redis.connect();
-await app.locals.redis.flushAll();
 
 app.locals.knex = Knex({
   client: "mysql",
@@ -60,6 +51,14 @@ await app.locals.knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
 app.locals.workerCount = 0;
 app.locals.mutex = false;
 app.locals.mediaQueue = 0;
+app.locals.searchQueue = [];
+app.locals.searchConcurrent = new Map();
+setInterval(() => app.locals.searchConcurrent.clear(), 60 * 60 * 1000);
+setInterval(() => (app.locals.searchQueue = []), 60 * 60 * 1000);
+setInterval(() => {
+  console.log("queue", app.locals.searchQueue);
+  console.log("concurrent", app.locals.searchConcurrent);
+}, 60 * 1000);
 
 const server = app.listen(SERVER_PORT, "0.0.0.0", () =>
   console.log(`API server listening on port ${server.address().port}`),

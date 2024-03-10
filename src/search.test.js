@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { default as request } from "supertest";
 import Knex from "knex";
-import { createClient } from "redis";
 import fs from "fs-extra";
 import app from "./app.js";
 
@@ -13,17 +12,9 @@ const {
   SOLA_DB_NAME,
   SOLA_SOLR_LIST,
   TRACE_ALGO,
-  REDIS_HOST,
-  REDIS_PORT,
 } = process.env;
 
 beforeAll(async () => {
-  app.locals.redis = createClient({
-    url: `redis://${REDIS_HOST}:${REDIS_PORT}`,
-  });
-  await app.locals.redis.connect();
-  // await app.locals.redis.flushAll();
-
   app.locals.knex = Knex({
     client: "mysql",
     connection: {
@@ -80,13 +71,17 @@ beforeAll(async () => {
     created: new Date(),
     updated: new Date(),
   });
+  await app.locals.knex("search_count").truncate();
+  app.locals.searchQueue = [];
+  app.locals.searchConcurrent = new Map();
 });
 
 afterAll(async () => {
   await app.locals.knex(TRACE_ALGO).truncate();
+  await app.locals.knex("search_count").truncate();
   await app.locals.knex("user").where("email", "test@trace.moe").del();
-  await app.locals.redis.disconnect();
   await app.locals.knex.destroy();
+  if (fs.existsSync("32B15UXxymfSMwKGTObY5e.jpg")) await fs.remove("32B15UXxymfSMwKGTObY5e.jpg");
 });
 
 describe("without API Key", () => {
@@ -292,7 +287,7 @@ describe("with system Tier 9 API Key", () => {
         );
     }
     const res = await Promise.all(
-      [...new Array(8)].map((_) =>
+      [...new Array(10)].map((_) =>
         request(app)
           .post("/search")
           .query({ key: app.locals.apiKeyTier9 })

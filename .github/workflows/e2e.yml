@@ -16,10 +16,6 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
       mariadb:
         image: mariadb
         env:
@@ -45,8 +41,6 @@ jobs:
       - run: npm ci
       - run: npm run jest
         env:
-          REDIS_HOST: 127.0.0.1
-          REDIS_PORT: 6379
           SOLA_DB_HOST: 127.0.0.1
           SOLA_DB_PORT: 3306
           SOLA_DB_USER: root
