@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 export default (id) => {
   const b = crypto.randomBytes(32);

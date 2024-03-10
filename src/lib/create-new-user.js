@@ -1,7 +1,7 @@
-import path from "path";
+import path from "node:path";
 import fs from "fs-extra";
-import crypto from "crypto";
-import { URL } from "url";
+import crypto from "node:crypto";
+import { URL } from "node:url";
 import nodemailer from "nodemailer";
 import generateAPIKey from "./generate-api-key.js";
 

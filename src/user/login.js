@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 const { TRACE_API_SALT } = process.env;
 

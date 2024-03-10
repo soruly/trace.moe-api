@@ -1,11 +1,11 @@
-import crypto from "crypto";
-import os from "os";
-import path from "path";
-import child_process from "child_process";
+import crypto from "node:crypto";
+import os from "node:os";
+import path from "node:path";
+import child_process from "node:child_process";
 import fs from "fs-extra";
 import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";
-import { performance } from "perf_hooks";
+import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 
 const { TRACE_API_SALT, TRACE_ACCURACY = 1 } = process.env;

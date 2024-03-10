@@ -1,7 +1,7 @@
-import path from "path";
+import path from "node:path";
 import fs from "fs-extra";
-import crypto from "crypto";
-import child_process from "child_process";
+import crypto from "node:crypto";
+import child_process from "node:child_process";
 
 const { VIDEO_PATH = "/mnt/", TRACE_API_SALT, MEDIA_QUEUE } = process.env;
 

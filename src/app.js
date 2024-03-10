@@ -1,4 +1,4 @@
-import { performance } from "perf_hooks";
+import { performance } from "node:perf_hooks";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import cors from "cors";

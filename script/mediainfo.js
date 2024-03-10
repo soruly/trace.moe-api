@@ -1,7 +1,7 @@
 import "dotenv/config";
-import path from "path";
-import child_process from "child_process";
-import cluster from "cluster";
+import path from "node:path";
+import child_process from "node:child_process";
+import cluster from "node:cluster";
 import fs from "fs-extra";
 import Knex from "knex";
 

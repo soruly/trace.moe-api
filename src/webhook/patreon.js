@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import createNewUser from "../lib/create-new-user.js";
 
 const { WEBHOOK_PATREON_SECRET } = process.env;

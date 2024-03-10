@@ -1,5 +1,5 @@
 import "dotenv/config";
-import path from "path";
+import path from "node:path";
 import fs from "fs-extra";
 import Knex from "knex";
 import getSolrCoreList from "../src/lib/get-solr-core-list.js";
