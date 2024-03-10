@@ -1,5 +1,4 @@
 import "dotenv/config";
-import fetch from "node-fetch";
 
 const { SOLA_SOLR_LIST } = process.env;
 

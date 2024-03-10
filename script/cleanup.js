@@ -2,7 +2,6 @@ import "dotenv/config";
 import path from "path";
 import fs from "fs-extra";
 import Knex from "knex";
-import fetch from "node-fetch";
 import getSolrCoreList from "../src/lib/get-solr-core-list.js";
 
 const {

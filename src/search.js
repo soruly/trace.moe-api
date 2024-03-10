@@ -2,7 +2,6 @@ import crypto from "crypto";
 import os from "os";
 import path from "path";
 import child_process from "child_process";
-import fetch from "node-fetch";
 import fs from "fs-extra";
 import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";

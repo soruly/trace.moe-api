@@ -2,7 +2,6 @@ import path from "node:path";
 import xmldoc from "xmldoc";
 import fs from "fs-extra";
 import { parentPort, threadId, workerData } from "node:worker_threads";
-import fetch from "node-fetch";
 import lzma from "lzma-native";
 
 const { HASH_PATH, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;

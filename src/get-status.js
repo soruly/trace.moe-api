@@ -1,5 +1,3 @@
-import fetch from "node-fetch";
-
 const { SOLA_SOLR_LIST, TRACE_ALGO } = process.env;
 
 export default async (req, res) => {

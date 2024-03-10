@@ -2,7 +2,6 @@ import "dotenv/config";
 import { default as request } from "supertest";
 import Knex from "knex";
 import { createClient } from "redis";
-import fetch from "node-fetch";
 import fs from "fs-extra";
 import app from "./app.js";
 

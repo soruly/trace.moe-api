@@ -45,7 +45,6 @@
     "lzma-native": "^8.0.6",
     "multer": "^1.4.5-lts.1",
     "mysql": "^2.18.1",
-    "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.12",
     "redis": "^4.6.13",
     "rss": "^1.2.2",

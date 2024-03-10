@@ -66,7 +66,6 @@ Invoke-RestMethod -Method Post -InFile .\demo.jpg https://api.trace.moe/search
 ```javascript
 // For nodejs only
 import fs from "fs";
-import fetch from "node-fetch";
 await fetch("https://api.trace.moe/search", {
   method: "POST",
   body: fs.readFileSync("demo.jpg"),

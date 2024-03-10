@@ -1,6 +1,5 @@
 import "dotenv/config";
 import Knex from "knex";
-import fetch from "node-fetch";
 
 const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME, TRACE_ALGO } =
   process.env;

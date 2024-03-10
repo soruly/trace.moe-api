@@ -1,5 +1,4 @@
 import { Worker } from "node:worker_threads";
-import fetch from "node-fetch";
 import getSolrCoreList from "../lib/get-solr-core-list.js";
 
 const { TRACE_ALGO, SOLA_SOLR_LIST, MAX_WORKER } = process.env;
