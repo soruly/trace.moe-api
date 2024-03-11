@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import child_process from "node:child_process";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "node:perf_hooks";
@@ -179,7 +179,7 @@ export default async (req, res) => {
     });
   }
   const tempFilePath = path.join(os.tmpdir(), `queryFile${process.hrtime().join("")}`);
-  await fs.outputFile(tempFilePath, searchFile);
+  await fs.writeFile(tempFilePath, searchFile);
   const ffmpeg = child_process.spawnSync("ffmpeg", [
     "-hide_banner",
     "-loglevel",
@@ -202,7 +202,7 @@ export default async (req, res) => {
     "image2pipe",
     "pipe:1",
   ]);
-  await fs.remove(tempFilePath);
+  await fs.rm(tempFilePath, { force: true });
   if (!ffmpeg.stdout.length) {
     await logAndDequeue(locals, uid, priority, 400);
     return res.status(400).json({

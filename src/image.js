@@ -1,5 +1,5 @@
 import path from "node:path";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import child_process from "node:child_process";
 
@@ -73,7 +73,9 @@ export default async (req, res) => {
   if (!videoFilePath.startsWith(VIDEO_PATH)) {
     return res.status(403).send("Forbidden");
   }
-  if (!(await fs.exists(videoFilePath))) {
+  try {
+    await fs.access(videoFilePath);
+  } catch {
     return res.status(404).send("Not found");
   }
   const size = req.query.size || "m";

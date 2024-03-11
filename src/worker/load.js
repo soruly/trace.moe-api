@@ -1,6 +1,6 @@
 import path from "node:path";
 import xmldoc from "xmldoc";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import lzma from "lzma-native";
 
@@ -10,7 +10,9 @@ const { filePath, coreUrl } = workerData;
 parentPort.postMessage(`[${threadId}] Loading ${filePath}`);
 
 const hashFilePath = `${path.join(HASH_PATH, filePath)}.xml.xz`;
-if (!fs.existsSync(hashFilePath)) {
+try {
+  await fs.access(hashFilePath);
+} catch {
   parentPort.postMessage(`[${threadId}] Error: No such file ${hashFilePath}`);
   process.exit(1);
 }

@@ -1,7 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 import child_process from "node:child_process";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import Canvas from "canvas";
 import getVideoDuration from "./get-video-duration.js";
 
@@ -32,8 +32,8 @@ export default async (filePath, t, minDuration) => {
   const height = 18;
 
   const tempPath = path.join(os.tmpdir(), `videoPreview${process.hrtime().join("")}`);
-  await fs.remove(tempPath);
-  await fs.ensureDir(tempPath);
+  await fs.rm(tempPath, { recursive: true, force: true });
+  await fs.mkdir(tempPath, { recursive: true });
   await new Promise((resolve) => {
     const ffmpeg = child_process.spawn(
       "ffmpeg",
@@ -69,7 +69,7 @@ export default async (filePath, t, minDuration) => {
         }),
     ),
   );
-  await fs.remove(tempPath);
+  await fs.rm(tempPath, { recursive: true, force: true });
 
   const getImageDiff = (a, b) => {
     let diff = 0;

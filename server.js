@@ -1,5 +1,5 @@
 import "dotenv/config";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import Knex from "knex";
 
 import app from "./src/app.js";
@@ -45,9 +45,9 @@ app.locals.knex = Knex({
 
 console.log("Creating SQL table if not exist");
 await app.locals.knex.raw(
-  fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO),
+  (await fs.readFile("sql/structure.sql", "utf8")).replace("TRACE_ALGO", TRACE_ALGO),
 );
-await app.locals.knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
+await app.locals.knex.raw(await fs.readFile("sql/data.sql", "utf8"));
 
 app.locals.workerCount = 0;
 app.locals.mutex = false;

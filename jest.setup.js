@@ -1,5 +1,5 @@
 import "dotenv/config";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import Knex from "knex";
 
 const { TRACE_ALGO, SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } =
@@ -35,7 +35,7 @@ export default async () => {
 
   console.log("Creating SQL table if not exist");
   await global.knex.raw(
-    fs.readFileSync("sql/structure.sql", "utf8").replace("TRACE_ALGO", TRACE_ALGO),
+    (await fs.readFile("sql/structure.sql", "utf8")).replace("TRACE_ALGO", TRACE_ALGO),
   );
-  await global.knex.raw(fs.readFileSync("sql/data.sql", "utf8"));
+  await global.knex.raw(await fs.readFile("sql/data.sql", "utf8"));
 };

@@ -1,6 +1,6 @@
 import "dotenv/config";
 import path from "node:path";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import Knex from "knex";
 import getSolrCoreList from "../src/lib/get-solr-core-list.js";
 
@@ -60,19 +60,24 @@ const rows = await knex(TRACE_ALGO).select("path", "status");
 
 for (const row of rows) {
   if (["HASHED", "LOADING", "LOADED"].includes(row.status)) {
-    if (!fs.existsSync(path.join(HASH_PATH, `${row.path}.xml.xz`))) {
+    try {
+      await fs.access(path.join(HASH_PATH, `${row.path}.xml.xz`));
+    } catch {
       console.log(`Hash not found: ${row.path}`);
     }
   }
   const mp4FilePath = path.join(VIDEO_PATH, row.path);
   const hashFilePath = path.join(HASH_PATH, `${row.path}.xml.xz`);
-  if (!fs.existsSync(mp4FilePath)) {
+  try {
+    await fs.access(mp4FilePath);
+  } catch {
     console.log(`Found ${mp4FilePath} deleted`);
     await unload(row.path, coreList);
-    if (fs.existsSync(hashFilePath)) {
+    try {
+      await fs.access(hashFilePath);
       console.log(`Deleting ${hashFilePath}`);
-      fs.removeSync(hashFilePath);
-    }
+      await fs.rm(hashFilePath);
+    } catch {}
     await knex(TRACE_ALGO).where("path", row.path).del();
   }
 }

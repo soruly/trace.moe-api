@@ -2,7 +2,7 @@ import "dotenv/config";
 import path from "node:path";
 import child_process from "node:child_process";
 import cluster from "node:cluster";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import Knex from "knex";
 
 const {
@@ -29,7 +29,9 @@ const knex = Knex({
 if (cluster.isPrimary) {
   console.log("Cleaning up deleted files");
   for (const media of await knex("mediainfo")) {
-    if (!fs.existsSync(path.join(VIDEO_PATH, media.path))) {
+    try {
+      await fs.access(path.join(VIDEO_PATH, media.path));
+    } catch {
       await knex("mediainfo").where("path", media.path).del();
       console.log(`Deleted: ${media.path}`);
     }
@@ -56,7 +58,7 @@ if (cluster.isPrimary) {
     worker.on("message", async (message) => {
       if (message) {
         const { filePath, result } = JSON.parse(message);
-        const { mtime, ctime } = fs.lstatSync(path.join(VIDEO_PATH, filePath));
+        const { mtime, ctime } = await fs.lstat(path.join(VIDEO_PATH, filePath));
         await knex.raw(
           knex("mediainfo")
             .insert({

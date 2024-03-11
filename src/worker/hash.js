@@ -1,6 +1,6 @@
 import path from "node:path";
 import os from "node:os";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import lzma from "lzma-native";
@@ -11,7 +11,9 @@ const { filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Hashing ${filePath}`);
 
 const videoFilePath = path.join(VIDEO_PATH, filePath);
-if (!fs.existsSync(videoFilePath)) {
+try {
+  await fs.access(path.join(VIDEO_PATH, filePath));
+} catch {
   parentPort.postMessage(`[${threadId}] Error: No such file ${videoFilePath}`);
   process.exit(1);
 }
@@ -24,8 +26,8 @@ if (
 
 const tempPath = path.join(os.tmpdir(), `trace.moe-${process.pid}-${threadId}`);
 parentPort.postMessage(`[${threadId}] Creating temp directory ${tempPath}`);
-fs.ensureDirSync(tempPath);
-fs.emptyDirSync(tempPath);
+await fs.rm(tempPath, { recursive: true, force: true });
+await fs.mkdir(tempPath, { recursive: true });
 
 parentPort.postMessage(`[${threadId}] Extracting thumbnails`);
 const extractStart = performance.now();
@@ -57,12 +59,12 @@ while ((temp = myRe.exec(ffmpegLog)) !== null) {
 }
 parentPort.postMessage(`[${threadId}] Extracted ${timeCodeList.length} timecode`);
 
-const thumbnailList = fs.readdirSync(tempPath);
+const thumbnailList = await fs.readdir(tempPath);
 parentPort.postMessage(`[${threadId}] Extracted ${thumbnailList.length} thumbnails`);
 
 parentPort.postMessage(`[${threadId}] Preparing frame files for analysis`);
 const thumbnailListPath = path.join(tempPath, "frames.txt");
-fs.writeFileSync(
+await fs.writeFile(
   thumbnailListPath,
   thumbnailList
     .slice(0, timeCodeList.length)
@@ -106,8 +108,7 @@ const processingXmlStart = performance.now();
 // and sort by timecode in ascending order
 const parsedXML = [
   "<add>",
-  fs
-    .readFileSync(lireSolrXMLPath, "utf-8")
+  (await fs.readFile(lireSolrXMLPath, "utf-8"))
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.indexOf("<doc>") === 0)
@@ -132,11 +133,11 @@ parentPort.postMessage(
   `[${threadId}] Post-Processing done in ${processingXmlTimeTaken.toFixed(0)} milliseconds`,
 );
 
-// fs.writeFileSync("debug.xml", parsedXML);
-fs.removeSync(tempPath);
+// await fs.writeFile("debug.xml", parsedXML);
+await fs.rm(tempPath, { recursive: true, force: true });
 
 const hashFilePath = `${path.join(HASH_PATH, filePath)}.xml.xz`;
 parentPort.postMessage(`[${threadId}] Saving ${hashFilePath}`);
-fs.ensureDirSync(path.dirname(hashFilePath));
-fs.writeFileSync(hashFilePath, await lzma.compress(parsedXML, { preset: 6 }));
+await fs.mkdir(path.dirname(hashFilePath), { recursive: true });
+await fs.writeFile(hashFilePath, await lzma.compress(parsedXML, { preset: 6 }));
 parentPort.postMessage(`[${threadId}] Saved  ${hashFilePath}`);

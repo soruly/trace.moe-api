@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { default as request } from "supertest";
 import Knex from "knex";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import app from "./app.js";
 
 const {
@@ -82,7 +82,7 @@ afterAll(async () => {
   await app.locals.knex("search_count").truncate();
   await app.locals.knex("user").where("email", "test@trace.moe").del();
   await app.locals.knex.destroy();
-  if (fs.existsSync("32B15UXxymfSMwKGTObY5e.jpg")) await fs.remove("32B15UXxymfSMwKGTObY5e.jpg");
+  await fs.rm("32B15UXxymfSMwKGTObY5e.jpg", { force: true });
 });
 
 describe("without API Key", () => {
@@ -109,11 +109,13 @@ describe("without API Key", () => {
     expect(topResult.similarity).toBeGreaterThan(0.9);
   });
   test("/search by Form Post", async () => {
-    if (!fs.existsSync("32B15UXxymfSMwKGTObY5e.jpg")) {
+    try {
+      await fs.access("32B15UXxymfSMwKGTObY5e.jpg");
+    } catch {
       await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
         .then((e) => e.arrayBuffer())
         .then((arrayBuffer) =>
-          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer)),
+          fs.writeFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer)),
         );
     }
     const response = await request(app)
@@ -136,7 +138,7 @@ describe("without API Key", () => {
     expect(topResult.anilist).toBe(21034);
     expect(topResult.episode).toBe(1);
     expect(topResult.similarity).toBeGreaterThan(0.9);
-    await fs.remove("32B15UXxymfSMwKGTObY5e.jpg");
+    await fs.rm("32B15UXxymfSMwKGTObY5e.jpg", { force: true });
   });
   test("/search by file upload", async () => {
     const response = await request(app)
@@ -166,7 +168,7 @@ describe("without API Key", () => {
     expect(topResult.anilist).toBe(21034);
     expect(topResult.episode).toBe(1);
     expect(topResult.similarity).toBeGreaterThan(0.9);
-    await fs.remove("32B15UXxymfSMwKGTObY5e.jpg");
+    await fs.rm("32B15UXxymfSMwKGTObY5e.jpg", { force: true });
   });
   test("/search by image URL with cutBorders", async () => {
     const response = await request(app)
@@ -236,11 +238,13 @@ describe("without API Key", () => {
   });
 
   test("/search by image concurrency limit", async () => {
-    if (!fs.existsSync("32B15UXxymfSMwKGTObY5e.jpg")) {
+    try {
+      await fs.access("32B15UXxymfSMwKGTObY5e.jpg");
+    } catch {
       await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
         .then((e) => e.arrayBuffer())
         .then((arrayBuffer) =>
-          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer)),
+          fs.writeFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer)),
         );
     }
     const res = await Promise.all(
@@ -280,11 +284,13 @@ describe("with API Key", () => {
 
 describe("with system Tier 9 API Key", () => {
   test("/search by image queue limit", async () => {
-    if (!fs.existsSync("32B15UXxymfSMwKGTObY5e.jpg")) {
+    try {
+      await fs.access("32B15UXxymfSMwKGTObY5e.jpg");
+    } catch {
       await fetch("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
         .then((e) => e.arrayBuffer())
         .then((arrayBuffer) =>
-          fs.outputFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer)),
+          fs.writeFile("32B15UXxymfSMwKGTObY5e.jpg", Buffer.from(arrayBuffer)),
         );
     }
     const res = await Promise.all(

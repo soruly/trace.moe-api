@@ -1,5 +1,5 @@
 import path from "node:path";
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import { URL } from "node:url";
 import nodemailer from "nodemailer";
@@ -68,8 +68,7 @@ export default async (knex, email, tier, full_name = "") => {
     to: email,
     bcc: EMAIL_USER,
     subject: "Thank you for supporting trace.moe",
-    html: fs
-      .readFileSync(path.join(__dirname, "email.html"), "utf8")
+    html: (await fs.readFile(path.join(__dirname, "email.html"), "utf8"))
       .replace("<!--user-->", full_name)
       .replace("<!--email-->", email)
       .replace("<!--password-->", plainPassword),
