@@ -42,8 +42,7 @@ npm install
 ### Configuration
 
 - Copy `.env.example` to `.env`
-- Edit `.env` as appropriate for your setup
-- at minimal, you'll need to configure `VIDEO_PATH` and `HASH_PATH`
+- Edit `.env` as appropriate for your setup, i.e. `VIDEO_PATH` and `HASH_PATH`
 
 ### Start server
 

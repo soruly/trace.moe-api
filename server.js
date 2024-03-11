@@ -17,6 +17,7 @@ const {
   SOLA_DB_PWD,
   SOLA_DB_NAME,
   SERVER_PORT,
+  SERVER_ADDR,
 } = process.env;
 
 console.log("Creating SQL database if not exist");
@@ -55,12 +56,8 @@ app.locals.searchQueue = [];
 app.locals.searchConcurrent = new Map();
 setInterval(() => app.locals.searchConcurrent.clear(), 60 * 60 * 1000);
 setInterval(() => (app.locals.searchQueue = []), 60 * 60 * 1000);
-setInterval(() => {
-  console.log("queue", app.locals.searchQueue);
-  console.log("concurrent", app.locals.searchConcurrent);
-}, 60 * 1000);
 
-const server = app.listen(SERVER_PORT, "0.0.0.0", () =>
+const server = app.listen(SERVER_PORT, SERVER_ADDR, () =>
   console.log(`API server listening on port ${server.address().port}`),
 );
 

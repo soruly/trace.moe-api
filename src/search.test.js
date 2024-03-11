@@ -12,6 +12,7 @@ const {
   SOLA_DB_NAME,
   SOLA_SOLR_LIST,
   TRACE_ALGO,
+  SEARCH_QUEUE,
 } = process.env;
 
 beforeAll(async () => {
@@ -287,7 +288,7 @@ describe("with system Tier 9 API Key", () => {
         );
     }
     const res = await Promise.all(
-      [...new Array(10)].map((_) =>
+      [...new Array(SEARCH_QUEUE * 2)].map((_) =>
         request(app)
           .post("/search")
           .query({ key: app.locals.apiKeyTier9 })

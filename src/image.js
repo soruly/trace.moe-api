@@ -3,7 +3,7 @@ import fs from "fs-extra";
 import crypto from "node:crypto";
 import child_process from "node:child_process";
 
-const { VIDEO_PATH = "/mnt/", TRACE_API_SALT, MEDIA_QUEUE } = process.env;
+const { VIDEO_PATH, TRACE_API_SALT, MEDIA_QUEUE = Infinity } = process.env;
 
 const generateImagePreview = async (filePath, t, size = "m") =>
   new Promise((resolve) => {

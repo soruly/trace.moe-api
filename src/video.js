@@ -6,7 +6,7 @@ import { Buffer } from "node:buffer";
 
 import detectScene from "./lib/detect-scene.js";
 
-const { VIDEO_PATH = "/mnt/", TRACE_API_SALT, MEDIA_QUEUE } = process.env;
+const { VIDEO_PATH, TRACE_API_SALT, MEDIA_QUEUE = Infinity } = process.env;
 
 const generateVideoPreview = async (filePath, start, end, size = "m", mute = false) =>
   new Promise((resolve) => {

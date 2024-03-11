@@ -41,6 +41,11 @@ jobs:
       - run: npm ci
       - run: npm run jest
         env:
+          VIDEO_PATH: /home/runner/
+          HASH_PATH: /home/runner/
+          TRACE_API_SALT: YOUR_TRACE_API_SALT
+          TRACE_ALGO: cl
+          SEARCH_QUEUE: 8
           SOLA_DB_HOST: 127.0.0.1
           SOLA_DB_PORT: 3306
           SOLA_DB_USER: root
@@ -48,14 +53,6 @@ jobs:
           SOLA_DB_NAME: test
           SOLA_SOLR_LIST: http://127.0.0.1:8983/solr/
           SOLA_SOLR_SIZE: 1
-          TRACE_ALGO: cl
-          TRACE_ACCURACY: 0.02
-          TRACE_API_SALT: YOUR_TRACE_API_SALT
-          MAX_WORKER: 1
-          MEDIA_QUEUE: 8
-          SEARCH_QUEUE: 8
-          VIDEO_PATH: /home/runner/
-          HASH_PATH: /home/runner/
           EMAIL_SMTP: smtp.ethereal.email
           EMAIL_SMTP_PORT: 587
       - name: Codecov

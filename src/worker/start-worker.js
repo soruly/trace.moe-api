@@ -1,7 +1,7 @@
 import { Worker } from "node:worker_threads";
 import getSolrCoreList from "../lib/get-solr-core-list.js";
 
-const { TRACE_ALGO, SOLA_SOLR_LIST, MAX_WORKER } = process.env;
+const { TRACE_ALGO, SOLA_SOLR_LIST, MAX_WORKER = 1 } = process.env;
 
 const selectCore = (function* (arr) {
   let index = 0;

@@ -8,7 +8,12 @@ import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 
-const { TRACE_API_SALT, TRACE_ACCURACY = 1, SEARCH_QUEUE, USE_IMAGE_PROXY = false } = process.env;
+const {
+  TRACE_API_SALT,
+  TRACE_ACCURACY = 1,
+  SEARCH_QUEUE = Infinity,
+  USE_IMAGE_PROXY = false,
+} = process.env;
 
 const search = (image, candidates, anilistID) =>
   Promise.all(
@@ -141,6 +146,7 @@ export default async (req, res) => {
     const response = await fetch(
       USE_IMAGE_PROXY &&
         ![
+          // list of trusted hostnames that you don't mind exposing your server's ip address
           "api.telegram.org",
           "telegra.ph",
           "t.me",
