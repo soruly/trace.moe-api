@@ -53,6 +53,7 @@ jobs:
           TRACE_API_SALT: YOUR_TRACE_API_SALT
           MAX_WORKER: 1
           MEDIA_QUEUE: 8
+          SEARCH_QUEUE: 8
           VIDEO_PATH: /home/runner/
           HASH_PATH: /home/runner/
           EMAIL_SMTP: smtp.ethereal.email

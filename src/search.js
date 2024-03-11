@@ -8,7 +8,7 @@ import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 
-const { TRACE_API_SALT, TRACE_ACCURACY = 1 } = process.env;
+const { TRACE_API_SALT, TRACE_ACCURACY = 1, SEARCH_QUEUE } = process.env;
 
 const search = (image, candidates, anilistID) =>
   Promise.all(
@@ -119,7 +119,7 @@ export default async (req, res) => {
   locals.searchQueue[priority] = (locals.searchQueue[priority] ?? 0) + 1;
   const queueSize = locals.searchQueue.reduce((acc, cur, i) => (i >= priority ? acc + cur : 0), 0);
 
-  if (queueSize > 8) {
+  if (queueSize > SEARCH_QUEUE) {
     await logAndDequeue(locals, uid, priority, 503);
     return res.status(503).json({
       error: `Error: Search queue is full`,
