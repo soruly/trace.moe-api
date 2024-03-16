@@ -138,8 +138,9 @@ app.locals.mutex = false;
 app.locals.mediaQueue = 0;
 app.locals.searchQueue = [];
 app.locals.searchConcurrent = new Map();
-setInterval(() => app.locals.searchConcurrent.clear(), 60 * 60 * 1000);
-setInterval(() => (app.locals.searchQueue = []), 60 * 60 * 1000);
+setInterval(() => (app.locals.mediaQueue = 0), 15 * 60 * 1000);
+setInterval(() => (app.locals.searchQueue = []), 15 * 60 * 1000);
+setInterval(() => app.locals.searchConcurrent.clear(), 15 * 60 * 1000);
 
 const server = app.listen(SERVER_PORT, SERVER_ADDR, () =>
   console.log(`API server listening on port ${server.address().port}`),
