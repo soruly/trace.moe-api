@@ -1,6 +1,7 @@
 import "dotenv/config";
 import fs from "node:fs/promises";
 import Knex from "knex";
+import Database from "better-sqlite3";
 
 import app from "./src/app.js";
 
@@ -21,34 +22,118 @@ const {
 } = process.env;
 
 console.log("Creating SQL database if not exist");
-await Knex({
-  client: "mysql",
-  connection: {
-    host: SOLA_DB_HOST,
-    port: SOLA_DB_PORT,
-    user: SOLA_DB_USER,
-    password: SOLA_DB_PWD,
-  },
-}).raw(`CREATE DATABASE IF NOT EXISTS ${SOLA_DB_NAME} CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+if (SOLA_DB_HOST) {
+  await Knex({
+    client: "mysql",
+    connection: {
+      host: SOLA_DB_HOST,
+      port: SOLA_DB_PORT,
+      user: SOLA_DB_USER,
+      password: SOLA_DB_PWD,
+    },
+  }).raw(
+    `CREATE DATABASE IF NOT EXISTS ${SOLA_DB_NAME} CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+  );
+} else {
+  await fs.mkdir("db", { recursive: true });
+  const db = new Database("db/sola.sqlite3");
+  db.pragma("journal_mode = WAL");
+  db.close();
+  await Knex({
+    client: "better-sqlite3",
+    connection: {
+      filename: "./db/sola.sqlite3",
+    },
+    useNullAsDefault: false,
+  });
+}
 
-app.locals.knex = Knex({
-  client: "mysql",
-  connection: {
-    host: SOLA_DB_HOST,
-    port: SOLA_DB_PORT,
-    user: SOLA_DB_USER,
-    password: SOLA_DB_PWD,
-    database: SOLA_DB_NAME,
-    multipleStatements: true,
-  },
-});
+const knex = SOLA_DB_HOST
+  ? Knex({
+      client: "mysql",
+      connection: {
+        host: SOLA_DB_HOST,
+        port: SOLA_DB_PORT,
+        user: SOLA_DB_USER,
+        password: SOLA_DB_PWD,
+        database: SOLA_DB_NAME,
+        multipleStatements: true,
+      },
+    })
+  : Knex({
+      client: "better-sqlite3",
+      connection: {
+        filename: "./db/sola.sqlite3",
+      },
+      useNullAsDefault: false,
+    });
 
 console.log("Creating SQL table if not exist");
-await app.locals.knex.raw(
-  (await fs.readFile("sql/structure.sql", "utf8")).replace("TRACE_ALGO", TRACE_ALGO),
-);
-await app.locals.knex.raw(await fs.readFile("sql/data.sql", "utf8"));
+if (SOLA_DB_HOST) {
+  await knex.raw(await fs.readFile("sql/structure.sql", "utf8"));
+  await knex.raw(await fs.readFile("sql/data.sql", "utf8"));
+} else {
+  await Promise.all([
+    knex.schema.hasTable(TRACE_ALGO).then(
+      (exists) =>
+        exists ||
+        knex.schema.createTable(TRACE_ALGO, function (table) {
+          table.string("path", 768).notNullable().primary();
+          table.enu("status", ["UPLOADED", "HASHING", "HASHED", "LOADING", "LOADED"]).notNullable();
+          table.timestamp("created").notNullable().defaultTo(knex.fn.now());
+          table.timestamp("updated").notNullable().defaultTo(knex.fn.now());
+          table.index(["status", "created", "updated"]);
+        }),
+    ),
+    knex.schema.hasTable("log").then(
+      (exists) =>
+        exists ||
+        knex.schema.createTable("log", function (table) {
+          table.timestamp("time").notNullable().defaultTo(knex.fn.now());
+          table.string("uid", 45).notNullable();
+          table.smallint("status").unsigned().notNullable();
+          table.integer("search_time", 6).unsigned().notNullable();
+          table.float("accuracy", 20).unsigned().notNullable();
+          table.index(["time", "uid", "status"], "time_uid_status");
+        }),
+    ),
+    knex.schema.hasTable("search_count").then(
+      (exists) =>
+        exists ||
+        knex.schema.createTable("search_count", function (table) {
+          table.string("uid", 45).notNullable().primary();
+          table.integer("count").unsigned().notNullable();
+        }),
+    ),
+    knex.schema.createViewOrReplace("user_quota", function (view) {
+      view.columns(["uid", "count"]);
+      view.as(knex("log").select("uid").count("* as count").where("status", 200).groupBy("uid"));
+    }),
+    knex.schema.hasTable("tier").then(
+      (exists) =>
+        exists ||
+        knex.schema
+          .createTable("tier", function (table) {
+            table.increments("id").unsigned().primary();
+            table.tinyint("priority").unsigned().notNullable();
+            table.tinyint("concurrency").unsigned().notNullable();
+            table.integer("quota").unsigned().notNullable();
+            table.text("notes");
+            table.integer("patreon_id").unsigned();
+          })
+          .then(() =>
+            knex("tier").insert({
+              id: 0,
+              priority: 0,
+              concurrency: 255,
+              quota: 4294967295,
+            }),
+          ),
+    ),
+  ]);
+}
 
+app.locals.knex = knex;
 app.locals.workerCount = 0;
 app.locals.mutex = false;
 app.locals.mediaQueue = 0;
