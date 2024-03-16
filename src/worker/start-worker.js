@@ -1,7 +1,7 @@
 import { Worker } from "node:worker_threads";
 import getSolrCoreList from "../lib/get-solr-core-list.js";
 
-const { TRACE_ALGO, SOLA_SOLR_LIST, MAX_WORKER = 1 } = process.env;
+const { SOLA_SOLR_LIST, MAX_WORKER = 1 } = process.env;
 
 const selectCore = (function* (arr) {
   let index = 0;
@@ -35,7 +35,7 @@ export default async (app) => {
     while (app.locals.mutex) await new Promise((resolve) => setTimeout(resolve, 0));
     app.locals.mutex = true;
 
-    const [row] = await knex(TRACE_ALGO)
+    const [row] = await knex("file")
       .whereIn("status", ["UPLOADED", "HASHED"])
       .select("path", "status")
       .orderBy("status", "desc")
@@ -44,19 +44,19 @@ export default async (app) => {
     if (!row) {
       app.locals.workerCount--;
     } else if (row.status === "UPLOADED") {
-      await knex(TRACE_ALGO).where("path", row.path).update({ status: "HASHING" });
+      await knex("file").where("path", row.path).update({ status: "HASHING" });
       const worker = new Worker("./src/worker/hash.js", {
         workerData: { filePath: row.path },
       });
       worker.on("message", (message) => console.log(message));
       worker.on("error", (error) => console.error(error));
       worker.on("exit", async (code) => {
-        if (!code) await knex(TRACE_ALGO).where("path", row.path).update({ status: "HASHED" });
+        if (!code) await knex("file").where("path", row.path).update({ status: "HASHED" });
         await createWorker();
       });
     } else if (row.status === "HASHED") {
-      const size = (await knex(TRACE_ALGO).where("status", "HASHED").count())[0]["count(*)"];
-      await knex(TRACE_ALGO).where("path", row.path).update({ status: "LOADING" });
+      const size = (await knex("file").where("status", "HASHED").count())[0]["count(*)"];
+      await knex("file").where("path", row.path).update({ status: "LOADING" });
       const worker = new Worker("./src/worker/load.js", {
         workerData: {
           filePath: row.path,
@@ -69,13 +69,13 @@ export default async (app) => {
       worker.on("message", (message) => console.log(message));
       worker.on("error", (error) => console.error(error));
       worker.on("exit", async (code) => {
-        if (!code) await knex(TRACE_ALGO).where("path", row.path).update({ status: "LOADED" });
+        if (!code) await knex("file").where("path", row.path).update({ status: "LOADED" });
         await createWorker();
       });
     }
     app.locals.mutex = false;
   };
-  const unprocessed = (await knex(TRACE_ALGO).whereIn("status", ["UPLOADED", "HASHED"]).count())[0][
+  const unprocessed = (await knex("file").whereIn("status", ["UPLOADED", "HASHED"]).count())[0][
     "count(*)"
   ];
   while (app.locals.workerCount < Math.min(unprocessed, Number(MAX_WORKER))) {

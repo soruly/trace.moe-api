@@ -10,7 +10,6 @@ const {
   SOLA_DB_USER,
   SOLA_DB_PWD,
   SOLA_DB_NAME,
-  TRACE_ALGO,
   HASH_PATH,
   VIDEO_PATH,
   SOLA_SOLR_LIST,
@@ -56,7 +55,7 @@ console.log(
 );
 
 console.log("Checking invalid states");
-const rows = await knex(TRACE_ALGO).select("path", "status");
+const rows = await knex("file").select("path", "status");
 
 for (const row of rows) {
   if (["HASHED", "LOADING", "LOADED"].includes(row.status)) {
@@ -78,7 +77,7 @@ for (const row of rows) {
       console.log(`Deleting ${hashFilePath}`);
       await fs.rm(hashFilePath);
     } catch {}
-    await knex(TRACE_ALGO).where("path", row.path).del();
+    await knex("file").where("path", row.path).del();
   }
 }
 

@@ -7,7 +7,7 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 SET NAMES utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `cl` (
+CREATE TABLE IF NOT EXISTS `file` (
   `path` varchar(768) COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') COLLATE utf8mb4_unicode_ci NOT NULL,
   `created` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -304,7 +304,7 @@ DROP TABLE IF EXISTS `media_width_height`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `media_width_height` AS select `media_info`.`width` AS `width`,`media_info`.`height` AS `height`,count(0) AS `count` from `media_info` group by `media_info`.`width`,`media_info`.`height`;
 
 DROP TABLE IF EXISTS `status`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `status` AS select `cl`.`status` AS `status`,count(0) AS `COUNT(*)` from `cl` group by `cl`.`status`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `status` AS select `file`.`status` AS `status`,count(0) AS `COUNT(*)` from `file` group by `file`.`status`;
 
 DROP TABLE IF EXISTS `user_quota`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `user_quota` AS select `log`.`uid` AS `uid`,count(0) AS `count` from `log` where `log`.`status` = 200 and `log`.`time` >= date_format(current_timestamp(),'%Y-%m-01 00:00:00') group by `log`.`uid`;

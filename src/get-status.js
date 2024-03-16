@@ -1,4 +1,4 @@
-const { SOLA_SOLR_LIST, TRACE_ALGO } = process.env;
+const { SOLA_SOLR_LIST } = process.env;
 
 export default async (req, res) => {
   const knex = req.app.locals.knex;
@@ -9,7 +9,7 @@ export default async (req, res) => {
         error: "Invalid param id: must be a number",
       });
     }
-    const rows = await knex(TRACE_ALGO)
+    const rows = await knex("file")
       .where("path", "like", `${id}/%`)
       .select("path", "status", "created");
     return res.json(rows);

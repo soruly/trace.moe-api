@@ -1,8 +1,7 @@
 import "dotenv/config";
 import Knex from "knex";
 
-const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME, TRACE_ALGO } =
-  process.env;
+const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
 
 const knex = Knex({
   client: "mysql",
@@ -15,9 +14,7 @@ const knex = Knex({
   },
 });
 
-const rows = await knex.raw(
-  `SELECT DISTINCT SUBSTRING_INDEX(path, '/', 1) AS id FROM ${TRACE_ALGO}`,
-);
+const rows = await knex.raw(`SELECT DISTINCT SUBSTRING_INDEX(path, '/', 1) AS id FROM file`);
 const idList = rows[0].map((e) => Number(e.id));
 await knex.destroy();
 

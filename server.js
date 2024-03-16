@@ -11,7 +11,6 @@ console.log(
 );
 
 const {
-  TRACE_ALGO,
   SOLA_DB_HOST,
   SOLA_DB_PORT,
   SOLA_DB_USER,
@@ -74,10 +73,10 @@ if (SOLA_DB_HOST) {
   await knex.raw(await fs.readFile("sql/data.sql", "utf8"));
 } else {
   await Promise.all([
-    knex.schema.hasTable(TRACE_ALGO).then(
+    knex.schema.hasTable("file").then(
       (exists) =>
         exists ||
-        knex.schema.createTable(TRACE_ALGO, function (table) {
+        knex.schema.createTable("file", function (table) {
           table.string("path", 768).notNullable().primary();
           table.enu("status", ["UPLOADED", "HASHING", "HASHED", "LOADING", "LOADED"]).notNullable();
           table.timestamp("created").notNullable().defaultTo(knex.fn.now());

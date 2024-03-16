@@ -44,7 +44,6 @@ jobs:
           VIDEO_PATH: /home/runner/
           HASH_PATH: /home/runner/
           TRACE_API_SALT: YOUR_TRACE_API_SALT
-          TRACE_ALGO: cl
           SEARCH_QUEUE: 8
           SOLA_DB_HOST: 127.0.0.1
           SOLA_DB_PORT: 3306

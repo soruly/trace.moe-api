@@ -5,7 +5,7 @@ import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import lzma from "lzma-native";
 
-const { TRACE_ALGO, VIDEO_PATH, HASH_PATH } = process.env;
+const { TRACE_ALGO = "cl", VIDEO_PATH, HASH_PATH } = process.env;
 
 const { filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Hashing ${filePath}`);

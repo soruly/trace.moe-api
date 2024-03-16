@@ -3,8 +3,7 @@ import { default as request } from "supertest";
 import Knex from "knex";
 import app from "./app.js";
 
-const { TRACE_ALGO, SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } =
-  process.env;
+const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
 
 beforeAll(async () => {
   app.locals.knex = Knex({
@@ -18,11 +17,11 @@ beforeAll(async () => {
       multipleStatements: true,
     },
   });
-  await app.locals.knex(TRACE_ALGO).truncate();
+  await app.locals.knex("file").truncate();
 });
 
 afterAll(async () => {
-  await app.locals.knex(TRACE_ALGO).truncate();
+  await app.locals.knex("file").truncate();
   await app.locals.knex.destroy();
 });
 

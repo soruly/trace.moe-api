@@ -1,13 +1,11 @@
 import RSS from "rss";
 
-const { TRACE_ALGO } = process.env;
-
 export default async (req, res) => {
   const knex = req.app.locals.knex;
 
   const { offset = 0, limit = 100 } = req.query;
 
-  const rows = await knex(`${TRACE_ALGO}`)
+  const rows = await knex("file")
     .where("status", "LOADED")
     .orderBy("updated", "desc")
     .offset(Number(offset) >= 0 ? Number(offset) : 0)

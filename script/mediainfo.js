@@ -5,15 +5,8 @@ import cluster from "node:cluster";
 import fs from "node:fs/promises";
 import Knex from "knex";
 
-const {
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-  TRACE_ALGO,
-  VIDEO_PATH,
-} = process.env;
+const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME, VIDEO_PATH } =
+  process.env;
 
 const knex = Knex({
   client: "mysql",
@@ -39,10 +32,10 @@ if (cluster.isPrimary) {
 
   console.log("Reading file list...");
   const fileList = (
-    await knex(TRACE_ALGO)
-      .leftJoin("mediainfo", `${TRACE_ALGO}.path`, "mediainfo.path")
+    await knex("file")
+      .leftJoin("mediainfo", "file.path", "mediainfo.path")
       .whereNull("mediainfo.json")
-      .select(`${TRACE_ALGO}.path`)
+      .select("file.path")
   ).map((e) => e.path);
 
   let finished = 0;
