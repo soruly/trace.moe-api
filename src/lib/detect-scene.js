@@ -35,25 +35,22 @@ export default async (filePath, t, minDuration) => {
   await fs.rm(tempPath, { recursive: true, force: true });
   await fs.mkdir(tempPath, { recursive: true });
   await new Promise((resolve) => {
-    const ffmpeg = child_process.spawn(
-      "ffmpeg",
-      [
-        "-y",
-        "-ss",
-        trimStart - 10,
-        "-i",
-        filePath,
-        "-ss",
-        "10",
-        "-t",
-        trimEnd - trimStart,
-        "-an",
-        "-vf",
-        `fps=${fps},scale=${width}:${height}`,
-        `${tempPath}/%04d.jpg`,
-      ],
-      { encoding: "utf-8" },
-    );
+    const ffmpeg = child_process.spawn("ffmpeg", [
+      "-y",
+      "-ss",
+      trimStart - 10,
+      "-i",
+      filePath,
+      "-ss",
+      "10",
+      "-t",
+      trimEnd - trimStart,
+      "-an",
+      "-vf",
+      `fps=${fps},scale=${width}:${height}`,
+      `${tempPath}/%04d.jpg`,
+      { timeout: 10000 },
+    ]);
     ffmpeg.on("close", resolve);
   });
 

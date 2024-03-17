@@ -5,7 +5,7 @@ export default async (filePath) =>
     const ffprobe = child_process.spawn(
       "ffprobe",
       ["-i", filePath, "-show_entries", "format=duration", "-v", "quiet"],
-      { encoding: "utf-8" },
+      { timeout: 10000 },
     );
     let stdLog = "";
     ffprobe.stdout.on("data", (data) => {

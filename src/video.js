@@ -61,7 +61,7 @@ const generateVideoPreview = async (filePath, start, end, size = "m", mute = fal
         "mp4",
         "-",
       ],
-      { maxBuffer: 1024 * 1024 * 100 },
+      { timeout: 10000 },
     );
     ffmpeg.stderr.on("data", (data) => {
       console.log(data.toString());
