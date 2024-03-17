@@ -50,7 +50,7 @@ const logAndDequeue = async (locals, uid, priority, status, searchTime, accuracy
     }
     locals.mut = false;
   }
-  if (searchTime && accuracy) {
+  if (searchTime >= 0 && accuracy >= 0) {
     await knex("log").insert({
       time: knex.fn.now(),
       uid,
@@ -58,9 +58,9 @@ const logAndDequeue = async (locals, uid, priority, status, searchTime, accuracy
       search_time: searchTime,
       accuracy,
     });
-  } else if (searchTime) {
+  } else if (searchTime >= 0) {
     await knex("log").insert({ time: knex.fn.now(), uid, status, search_time: searchTime });
-  } else if (accuracy) {
+  } else if (accuracy >= 0) {
     await knex("log").insert({ time: knex.fn.now(), uid, status, accuracy });
   } else {
     await knex("log").insert({ time: knex.fn.now(), uid, status });
