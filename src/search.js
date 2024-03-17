@@ -178,7 +178,7 @@ export default async (req, res) => {
       error: "Method Not Allowed",
     });
   }
-  const tempFilePath = path.join(os.tmpdir(), `queryFile${process.hrtime().join("")}`);
+  const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
   await fs.writeFile(tempFilePath, searchFile);
   const ffmpeg = child_process.spawnSync("ffmpeg", [
     "-hide_banner",

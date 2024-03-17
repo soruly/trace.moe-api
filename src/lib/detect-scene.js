@@ -31,7 +31,7 @@ export default async (filePath, t, minDuration) => {
   const width = 32;
   const height = 18;
 
-  const tempPath = path.join(os.tmpdir(), `videoPreview${process.hrtime().join("")}`);
+  const tempPath = path.join(os.tmpdir(), `trace.moe-preview-${process.hrtime().join("")}`);
   await fs.rm(tempPath, { recursive: true, force: true });
   await fs.mkdir(tempPath, { recursive: true });
   await new Promise((resolve) => {

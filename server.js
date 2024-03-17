@@ -1,4 +1,6 @@
 import "dotenv/config";
+import os from "node:os";
+import path from "node:path";
 import fs from "node:fs/promises";
 import Knex from "knex";
 import Database from "better-sqlite3";
@@ -131,6 +133,15 @@ if (SOLA_DB_HOST) {
     ),
   ]);
 }
+
+console.log("Cleaning up previous states");
+await Promise.all(
+  (await fs.readdir(os.tmpdir()))
+    .filter((e) => e.startsWith("trace.moe-"))
+    .map((e) => fs.rm(path.join(os.tmpdir(), e), { recursive: true, force: true })),
+);
+await knex("file").where("status", "LOADING").update({ status: "HASHED" });
+await knex("file").where("status", "HASHING").update({ status: "UPLOADED" });
 
 app.locals.knex = knex;
 app.locals.workerCount = 0;
