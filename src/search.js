@@ -7,6 +7,7 @@ import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
+import { benchAsync } from "./lib/bench.js";
 
 const {
   TRACE_API_SALT,
@@ -178,37 +179,43 @@ export default async (req, res) => {
       error: "Method Not Allowed",
     });
   }
-  const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
-  await fs.writeFile(tempFilePath, searchFile);
-  const ffmpeg = child_process.spawnSync("ffmpeg", [
-    "-hide_banner",
-    "-loglevel",
-    "error",
-    "-nostats",
-    "-y",
-    "-i",
-    tempFilePath,
-    "-ss",
-    "00:00:00",
-    "-map_metadata",
-    "-1",
-    "-vf",
-    "scale=320:-2",
-    "-c:v",
-    "mjpeg",
-    "-vframes",
-    "1",
-    "-f",
-    "image2pipe",
-    "pipe:1",
-  ]);
-  await fs.rm(tempFilePath, { force: true });
+
+  let ffmpeg = await benchAsync("ffmpeg processing", async () => {
+    const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
+    await fs.writeFile(tempFilePath, searchFile);
+    const ffmpeg = child_process.spawnSync("ffmpeg", [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-nostats",
+      "-y",
+      "-i",
+      tempFilePath,
+      "-ss",
+      "00:00:00",
+      "-map_metadata",
+      "-1",
+      "-vf",
+      "scale=320:-2",
+      "-c:v",
+      "mjpeg",
+      "-vframes",
+      "1",
+      "-f",
+      "image2pipe",
+      "pipe:1"
+    ]);
+    await fs.rm(tempFilePath, { force: true });
+    return ffmpeg;
+  });
+
   if (!ffmpeg.stdout.length) {
     await logAndDequeue(locals, uid, priority, 400);
     return res.status(400).json({
       error: `Failed to process image. ${ffmpeg.stderr.toString()}`,
     });
   }
+
   let searchImage = ffmpeg.stdout;
 
   if ("cutBorders" in req.query) {
