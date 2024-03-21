@@ -7,7 +7,7 @@ import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
-import { benchAsync } from "./lib/bench.js";
+import { bench, benchAsync } from "./lib/bench.js";
 
 const {
   TRACE_API_SALT,
@@ -73,6 +73,35 @@ const logAndDequeue = async (locals, uid, priority, status, searchTime, accuracy
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
 
+const resizeImageForSearch = (sourceImage) => {
+  let image = null;
+
+  try {
+    image = cv.imdecode(sourceImage);
+  } catch (e) {
+    // Invalid image was uploaded.
+  }
+
+  if (!image) {
+    return false;
+  }
+
+  let [height, width] = image.sizes;
+
+  if (width <= 320 && height <= 320) {
+    return cv.imencode(".jpg", image);
+  }
+
+  if (width > height) {
+    width = 320;
+    height = Math.round(320 * (height / width));
+  } else {
+    width = Math.round(320 * (width / height));
+    height = 320;
+  }
+
+  return cv.imencode(".jpg", image.resize(width, height));
+}
 export default async (req, res) => {
   const locals = req.app.locals;
   const knex = req.app.locals.knex;
@@ -180,43 +209,14 @@ export default async (req, res) => {
     });
   }
 
-  let ffmpeg = await benchAsync("ffmpeg processing", async () => {
-    const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
-    await fs.writeFile(tempFilePath, searchFile);
-    const ffmpeg = child_process.spawnSync("ffmpeg", [
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-nostats",
-      "-y",
-      "-i",
-      tempFilePath,
-      "-ss",
-      "00:00:00",
-      "-map_metadata",
-      "-1",
-      "-vf",
-      "scale=320:-2",
-      "-c:v",
-      "mjpeg",
-      "-vframes",
-      "1",
-      "-f",
-      "image2pipe",
-      "pipe:1"
-    ]);
-    await fs.rm(tempFilePath, { force: true });
-    return ffmpeg;
-  });
+  let searchImage = bench("image processing", () => resizeImageForSearch(searchFile));
 
-  if (!ffmpeg.stdout.length) {
+  if (!searchImage) {
     await logAndDequeue(locals, uid, priority, 400);
     return res.status(400).json({
-      error: `Failed to process image. ${ffmpeg.stderr.toString()}`,
+      error: `Failed to process input image.`,
     });
   }
-
-  let searchImage = ffmpeg.stdout;
 
   if ("cutBorders" in req.query) {
     // auto black border cropping
