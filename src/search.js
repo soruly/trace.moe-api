@@ -421,7 +421,8 @@ export default async (req, res) => {
     }
   }
 
-  await logAndDequeue(locals, uid, priority, 200, searchTime, result[0]?.similarity);
+  await logAndDequeue(locals, uid, priority, 200, searchTime, result[0]?.similarity ?? 0);
+
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",
