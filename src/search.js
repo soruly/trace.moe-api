@@ -1,13 +1,9 @@
 import crypto from "node:crypto";
-import os from "node:os";
-import path from "node:path";
-import child_process from "node:child_process";
-import fs from "node:fs/promises";
 import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
-import { bench, benchAsync } from "./lib/bench.js";
+import { bench } from "./lib/bench.js";
 
 const {
   TRACE_API_SALT,
@@ -101,7 +97,7 @@ const resizeImageForSearch = (sourceImage) => {
   }
 
   return cv.imencode(".jpg", image.resize(width, height));
-}
+};
 export default async (req, res) => {
   const locals = req.app.locals;
   const knex = req.app.locals.knex;

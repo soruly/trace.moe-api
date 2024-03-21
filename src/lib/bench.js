@@ -17,4 +17,3 @@ export async function benchAsync(name, func) {
   console.log(`${name} done in ${benchTimeTaken.toFixed(3)} ms`);
   return result;
 }
-
