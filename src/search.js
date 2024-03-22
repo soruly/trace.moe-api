@@ -370,7 +370,6 @@ export default async (req, res) => {
     rawDocsSearchTimeList.push(Number(RawDocsSearchTime));
     reRankSearchTimeList.push(Number(ReRankSearchTime));
     result = result.concat(response.docs);
-    console.log(`RawDocsSearchTime: ${RawDocsSearchTime}, ReRankSearchTime: ${ReRankSearchTime}`);
   }
 
   result = result
