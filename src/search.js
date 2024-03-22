@@ -85,7 +85,11 @@ const resizeImageForSearch = (sourceImage) => {
   let [height, width] = image.sizes;
 
   if (width <= 320 && height <= 320) {
-    return cv.imencode(".jpg", image);
+    try {
+      return cv.imencode(".jpg", image);
+    } catch (e) {
+      return false;
+    }
   }
 
   if (width > height) {
@@ -96,7 +100,11 @@ const resizeImageForSearch = (sourceImage) => {
     height = 320;
   }
 
-  return cv.imencode(".jpg", image.resize(width, height));
+  try {
+    return cv.imencode(".jpg", image.resize(width, height));
+  } catch (e) {
+    return false;
+  }
 };
 export default async (req, res) => {
   const locals = req.app.locals;
@@ -319,6 +327,7 @@ export default async (req, res) => {
     rawDocsSearchTimeList.push(Number(RawDocsSearchTime));
     reRankSearchTimeList.push(Number(ReRankSearchTime));
     result = result.concat(response.docs);
+    console.log(`RawDocsSearchTime: ${RawDocsSearchTime}, ReRankSearchTime: ${ReRankSearchTime}`);
   }
 
   result = result
