@@ -1,9 +1,13 @@
 import crypto from "node:crypto";
+import os from "node:os";
+import path from "node:path";
+import child_process from "node:child_process";
+import fs from "node:fs/promises";
 import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
-import { bench } from "./lib/bench.js";
+import { bench, benchAsync } from "./lib/bench.js";
 
 const {
   TRACE_API_SALT,
@@ -106,6 +110,36 @@ const resizeImageForSearch = (sourceImage) => {
     return false;
   }
 };
+
+const extractImageFallback = async (searchFile) => {
+  const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
+  await fs.writeFile(tempFilePath, searchFile);
+  const ffmpeg = child_process.spawnSync("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-nostats",
+    "-y",
+    "-i",
+    tempFilePath,
+    "-ss",
+    "00:00:00",
+    "-map_metadata",
+    "-1",
+    "-vf",
+    "scale=320:-2",
+    "-c:v",
+    "mjpeg",
+    "-vframes",
+    "1",
+    "-f",
+    "image2pipe",
+    "pipe:1",
+  ]);
+  await fs.rm(tempFilePath, { force: true });
+  return ffmpeg;
+};
+
 export default async (req, res) => {
   const locals = req.app.locals;
   const knex = req.app.locals.knex;
@@ -216,10 +250,19 @@ export default async (req, res) => {
   let searchImage = bench("image processing", () => resizeImageForSearch(searchFile));
 
   if (!searchImage) {
-    await logAndDequeue(locals, uid, priority, 400);
-    return res.status(400).json({
-      error: `Failed to process input image.`,
-    });
+    const ffmpeg = await benchAsync(
+      "ffmpeg image processing fallback",
+      async () => await extractImageFallback(searchFile),
+    );
+
+    if (!ffmpeg.stdout.length) {
+      await logAndDequeue(locals, uid, priority, 400);
+      return res.status(400).json({
+        error: `Failed to process image. ${ffmpeg.stderr.toString()}`,
+      });
+    }
+
+    searchImage = ffmpeg.stdout;
   }
 
   if ("cutBorders" in req.query) {
