@@ -7,6 +7,7 @@ import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
+import { bench, benchAsync } from "./lib/bench.js";
 
 const {
   TRACE_API_SALT,
@@ -70,6 +71,73 @@ const logAndDequeue = async (locals, uid, priority, status, searchTime, accuracy
   else locals.searchConcurrent.set(uid, concurrentCount - 1);
 
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
+};
+
+const resizeImageForSearch = (sourceImage) => {
+  let image = null;
+
+  try {
+    image = cv.imdecode(sourceImage);
+  } catch (e) {
+    // Invalid image was uploaded.
+  }
+
+  if (!image) {
+    return false;
+  }
+
+  let [height, width] = image.sizes;
+
+  if (width <= 320 && height <= 320) {
+    try {
+      return cv.imencode(".jpg", image);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  if (width > height) {
+    width = 320;
+    height = Math.round(320 * (height / width));
+  } else {
+    width = Math.round(320 * (width / height));
+    height = 320;
+  }
+
+  try {
+    return cv.imencode(".jpg", image.resize(width, height));
+  } catch (e) {
+    return false;
+  }
+};
+
+const extractImageFallback = async (searchFile) => {
+  const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
+  await fs.writeFile(tempFilePath, searchFile);
+  const ffmpeg = child_process.spawnSync("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-nostats",
+    "-y",
+    "-i",
+    tempFilePath,
+    "-ss",
+    "00:00:00",
+    "-map_metadata",
+    "-1",
+    "-vf",
+    "scale=320:-2",
+    "-c:v",
+    "mjpeg",
+    "-vframes",
+    "1",
+    "-f",
+    "image2pipe",
+    "pipe:1",
+  ]);
+  await fs.rm(tempFilePath, { force: true });
+  return ffmpeg;
 };
 
 export default async (req, res) => {
@@ -178,38 +246,24 @@ export default async (req, res) => {
       error: "Method Not Allowed",
     });
   }
-  const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
-  await fs.writeFile(tempFilePath, searchFile);
-  const ffmpeg = child_process.spawnSync("ffmpeg", [
-    "-hide_banner",
-    "-loglevel",
-    "error",
-    "-nostats",
-    "-y",
-    "-i",
-    tempFilePath,
-    "-ss",
-    "00:00:00",
-    "-map_metadata",
-    "-1",
-    "-vf",
-    "scale=320:-2",
-    "-c:v",
-    "mjpeg",
-    "-vframes",
-    "1",
-    "-f",
-    "image2pipe",
-    "pipe:1",
-  ]);
-  await fs.rm(tempFilePath, { force: true });
-  if (!ffmpeg.stdout.length) {
-    await logAndDequeue(locals, uid, priority, 400);
-    return res.status(400).json({
-      error: `Failed to process image. ${ffmpeg.stderr.toString()}`,
-    });
+
+  let searchImage = bench("image processing", () => resizeImageForSearch(searchFile));
+
+  if (!searchImage) {
+    const ffmpeg = await benchAsync(
+      "ffmpeg image processing fallback",
+      async () => await extractImageFallback(searchFile),
+    );
+
+    if (!ffmpeg.stdout.length) {
+      await logAndDequeue(locals, uid, priority, 400);
+      return res.status(400).json({
+        error: `Failed to process image. ${ffmpeg.stderr.toString()}`,
+      });
+    }
+
+    searchImage = ffmpeg.stdout;
   }
-  let searchImage = ffmpeg.stdout;
 
   if ("cutBorders" in req.query) {
     // auto black border cropping
@@ -418,7 +472,8 @@ export default async (req, res) => {
     }
   }
 
-  await logAndDequeue(locals, uid, priority, 200, searchTime, result[0]?.similarity);
+  await logAndDequeue(locals, uid, priority, 200, searchTime, result[0]?.similarity ?? 0);
+
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
     error: "",
