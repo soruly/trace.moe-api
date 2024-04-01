@@ -1,5 +1,3 @@
--- Adminer 4.8.1 MySQL 5.5.5-10.5.12-MariaDB dump
-
 SET NAMES utf8;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
@@ -8,16 +6,17 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 SET NAMES utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `file` (
-  `path` varchar(768) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `path` varchar(768) NOT NULL,
+  `status` enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') NOT NULL,
   `created` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`path`),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `path` (`path`),
   KEY `status` (`status`),
   KEY `created` (`created`),
   KEY `updated` (`updated`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
 CREATE TABLE IF NOT EXISTS `log` (
   `time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE current_timestamp(),
@@ -311,5 +310,3 @@ CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `user_quota` AS select `log
 
 DROP TABLE IF EXISTS `user_view`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `user_view` AS select `user`.`id` AS `id`,`user`.`email` AS `email`,`user`.`api_key` AS `api_key`,`user`.`tier` AS `tier`,`tier`.`priority` AS `priority`,`tier`.`concurrency` AS `concurrency`,`tier`.`quota` AS `quota` from (`user` left join `tier` on(`user`.`tier` = `tier`.`id`));
-
--- 2021-12-06 03:55:26
