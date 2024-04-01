@@ -79,7 +79,8 @@ if (SOLA_DB_HOST) {
       (exists) =>
         exists ||
         knex.schema.createTable("file", function (table) {
-          table.string("path", 768).notNullable().primary();
+          table.increments("id").unsigned().notNullable().primary();
+          table.string("path", 768).notNullable().unique();
           table.enu("status", ["UPLOADED", "HASHING", "HASHED", "LOADING", "LOADED"]).notNullable();
           table.timestamp("created").notNullable().defaultTo(knex.fn.now());
           table.timestamp("updated").notNullable().defaultTo(knex.fn.now());
