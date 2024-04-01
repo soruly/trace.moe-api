@@ -93,8 +93,8 @@ if (SOLA_DB_HOST) {
           table.timestamp("time").notNullable().defaultTo(knex.fn.now());
           table.string("uid", 45).notNullable();
           table.smallint("status").unsigned().notNullable();
-          table.integer("search_time", 6).unsigned().notNullable();
-          table.float("accuracy", 20).unsigned().notNullable();
+          table.integer("search_time", 6).unsigned().nullable();
+          table.float("accuracy", 20).unsigned().nullable();
           table.index(["time", "uid", "status"], "time_uid_status");
         }),
     ),
