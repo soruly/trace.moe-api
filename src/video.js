@@ -76,11 +76,11 @@ const generateVideoPreview = async (filePath, start, end, size = "m", mute = fal
   });
 
 const logView = async (knex, filePath, scene, size, t, muted) => {
-  const fileId = (await knex("file").select("id").where("path", filePath).first()?.id) ?? null;
+  const fileIdResult = await knex("file").select("id").whereILike("path", filePath.trim()).first();
 
   await knex("scene_view_log").insert({
     time: knex.fn.now(),
-    file_id: fileId ?? null,
+    file_id: fileIdResult?.id ?? null,
     start: scene.start,
     end: scene.end,
     duration: scene.duration,
@@ -114,7 +114,8 @@ export default async (req, res) => {
   if (isNaN(t) || t < 0) {
     return res.status(400).send("Bad Request. Invalid param: t");
   }
-  const videoFilePath = path.join(VIDEO_PATH, req.params.anilistID, req.params.filename);
+  const fileFile = path.join(req.params.anilistID, req.params.filename);
+  const videoFilePath = path.join(VIDEO_PATH, fileFile);
   if (!videoFilePath.startsWith(VIDEO_PATH)) {
     return res.status(403).send("Forbidden");
   }
@@ -142,7 +143,7 @@ export default async (req, res) => {
     const muted = "mute" in req.query;
     const video = await generateVideoPreview(videoFilePath, scene.start, scene.end, size, muted);
 
-    await logView(knex, videoFilePath, scene, size, t, muted);
+    await logView(knex, fileFile, scene, size, t, muted);
 
     res.set("Content-Type", "video/mp4");
     res.set("x-video-start", scene.start);
