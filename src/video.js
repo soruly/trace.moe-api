@@ -132,8 +132,6 @@ export default async (req, res) => {
   if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
 
-  const knex = req.app.locals.knex;
-
   try {
     const scene = await detectScene(videoFilePath, t, minDuration > 2 ? 2 : minDuration);
     if (scene === null) {
@@ -143,7 +141,7 @@ export default async (req, res) => {
     const muted = "mute" in req.query;
     const video = await generateVideoPreview(videoFilePath, scene.start, scene.end, size, muted);
 
-    await logView(knex, fileFile, scene, size, t, muted);
+    logView(req.app.locals.knex, fileFile, scene, size, t, muted);
 
     res.set("Content-Type", "video/mp4");
     res.set("x-video-start", scene.start);

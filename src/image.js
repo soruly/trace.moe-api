@@ -101,8 +101,7 @@ export default async (req, res) => {
   try {
     const image = await generateImagePreview(videoFilePath, t, size);
 
-    const knex = req.app.locals.knex;
-    await logView(knex, videoFile, size, t);
+    logView(req.app.locals.knex, videoFile, size, t);
 
     res.set("Content-Type", "image/jpg");
     res.send(image);
