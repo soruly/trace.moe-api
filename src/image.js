@@ -76,14 +76,8 @@ export default async (req, res) => {
   if (isNaN(t) || t < 0) {
     return res.status(400).send("Bad Request. Invalid param: t");
   }
-  const videoFile = path.join(
-    req.params.anilistID,
-    req.params.filename.replace(/\.jpg$/, "")
-  );
-  const videoFilePath = path.join(
-    VIDEO_PATH,
-    videoFile
-  );
+  const videoFile = path.join(req.params.anilistID, req.params.filename.replace(/\.jpg$/, ""));
+  const videoFilePath = path.join(VIDEO_PATH, videoFile);
   if (!videoFilePath.startsWith(VIDEO_PATH)) {
     return res.status(403).send("Forbidden");
   }
