@@ -55,7 +55,7 @@ jobs:
           EMAIL_SMTP: smtp.ethereal.email
           EMAIL_SMTP_PORT: 587
       - name: Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
