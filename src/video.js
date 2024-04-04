@@ -75,6 +75,21 @@ const generateVideoPreview = async (filePath, start, end, size = "m", mute = fal
     });
   });
 
+const logView = async (knex, filePath, scene, size, t, muted) => {
+  const fileIdResult = await knex("file").select("id").whereILike("path", filePath.trim()).first();
+
+  await knex("scene_view_log").insert({
+    time: knex.fn.now(),
+    file_id: fileIdResult?.id ?? null,
+    start: scene.start,
+    end: scene.end,
+    duration: scene.duration,
+    size: size,
+    time_code: t,
+    muted: muted,
+  });
+};
+
 export default async (req, res) => {
   if (
     req.query.token !==
@@ -99,7 +114,8 @@ export default async (req, res) => {
   if (isNaN(t) || t < 0) {
     return res.status(400).send("Bad Request. Invalid param: t");
   }
-  const videoFilePath = path.join(VIDEO_PATH, req.params.anilistID, req.params.filename);
+  const fileFile = path.join(req.params.anilistID, req.params.filename);
+  const videoFilePath = path.join(VIDEO_PATH, fileFile);
   if (!videoFilePath.startsWith(VIDEO_PATH)) {
     return res.status(403).send("Forbidden");
   }
@@ -115,18 +131,18 @@ export default async (req, res) => {
   const minDuration = Number(req.query.minDuration) || 0.25;
   if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
+
   try {
     const scene = await detectScene(videoFilePath, t, minDuration > 2 ? 2 : minDuration);
     if (scene === null) {
       return res.status(500).send("Internal Server Error");
     }
-    const video = await generateVideoPreview(
-      videoFilePath,
-      scene.start,
-      scene.end,
-      size,
-      "mute" in req.query,
-    );
+
+    const muted = "mute" in req.query;
+    const video = await generateVideoPreview(videoFilePath, scene.start, scene.end, size, muted);
+
+    logView(req.app.locals.knex, fileFile, scene, size, t, muted);
+
     res.set("Content-Type", "video/mp4");
     res.set("x-video-start", scene.start);
     res.set("x-video-end", scene.end);

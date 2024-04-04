@@ -41,6 +41,17 @@ const generateImagePreview = async (filePath, t, size = "m") =>
     });
   });
 
+const logView = async (knex, filePath, size, t) => {
+  const fileIdResult = await knex("file").select("id").whereILike("path", filePath.trim()).first();
+
+  await knex("scene_thumbnail_view_log").insert({
+    time: knex.fn.now(),
+    file_id: fileIdResult?.id ?? null,
+    size: size,
+    time_code: t,
+  });
+};
+
 export default async (req, res) => {
   if (
     req.query.token !==
@@ -65,11 +76,8 @@ export default async (req, res) => {
   if (isNaN(t) || t < 0) {
     return res.status(400).send("Bad Request. Invalid param: t");
   }
-  const videoFilePath = path.join(
-    VIDEO_PATH,
-    req.params.anilistID,
-    req.params.filename.replace(/\.jpg$/, ""),
-  );
+  const videoFile = path.join(req.params.anilistID, req.params.filename.replace(/\.jpg$/, ""));
+  const videoFilePath = path.join(VIDEO_PATH, videoFile);
   if (!videoFilePath.startsWith(VIDEO_PATH)) {
     return res.status(403).send("Forbidden");
   }
@@ -86,6 +94,9 @@ export default async (req, res) => {
   req.app.locals.mediaQueue++;
   try {
     const image = await generateImagePreview(videoFilePath, t, size);
+
+    logView(req.app.locals.knex, videoFile, size, t);
+
     res.set("Content-Type", "image/jpg");
     res.send(image);
   } catch (e) {

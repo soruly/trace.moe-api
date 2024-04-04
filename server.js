@@ -79,7 +79,8 @@ if (SOLA_DB_HOST) {
       (exists) =>
         exists ||
         knex.schema.createTable("file", function (table) {
-          table.string("path", 768).notNullable().primary();
+          table.increments("id").unsigned().notNullable().primary();
+          table.string("path", 768).notNullable().unique();
           table.enu("status", ["UPLOADED", "HASHING", "HASHED", "LOADING", "LOADED"]).notNullable();
           table.timestamp("created").notNullable().defaultTo(knex.fn.now());
           table.timestamp("updated").notNullable().defaultTo(knex.fn.now());
@@ -93,8 +94,8 @@ if (SOLA_DB_HOST) {
           table.timestamp("time").notNullable().defaultTo(knex.fn.now());
           table.string("uid", 45).notNullable();
           table.smallint("status").unsigned().notNullable();
-          table.integer("search_time", 6).unsigned().notNullable();
-          table.float("accuracy", 20).unsigned().notNullable();
+          table.integer("search_time", 6).unsigned().nullable();
+          table.float("accuracy", 20).unsigned().nullable();
           table.index(["time", "uid", "status"], "time_uid_status");
         }),
     ),
@@ -133,6 +134,33 @@ if (SOLA_DB_HOST) {
     ),
   ]);
 }
+
+await Promise.all([
+  knex.schema.hasTable("scene_view_log").then(
+    (exists) =>
+      exists ||
+      knex.schema.createTable("scene_view_log", function (table) {
+        table.timestamp("time").notNullable().defaultTo(knex.fn.now());
+        table.integer("file_id").nullable();
+        table.float("start").notNullable();
+        table.float("end").notNullable();
+        table.float("duration").notNullable();
+        table.float("time_code").notNullable();
+        table.boolean("muted").notNullable();
+        table.string("size", 1).notNullable();
+      }),
+  ),
+  knex.schema.hasTable("scene_thumbnail_view_log").then(
+    (exists) =>
+      exists ||
+      knex.schema.createTable("scene_thumbnail_view_log", function (table) {
+        table.timestamp("time").notNullable().defaultTo(knex.fn.now());
+        table.integer("file_id").nullable();
+        table.float("time_code").notNullable();
+        table.string("size", 1).notNullable();
+      }),
+  ),
+]);
 
 console.log("Cleaning up previous states");
 await Promise.all(
