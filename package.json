@@ -33,7 +33,7 @@
     "supertest": "^6.3.4"
   },
   "dependencies": {
-    "@soruly/opencv4nodejs-prebuilt": "^6.0.3",
+    "@soruly/opencv4nodejs-prebuilt": "^7.0.0",
     "aniep": "^0.6.0",
     "better-sqlite3": "^9.4.4",
     "canvas": "^2.11.2",
