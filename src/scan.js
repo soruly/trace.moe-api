@@ -7,11 +7,18 @@ const { VIDEO_PATH } = process.env;
 export default async (req, res) => {
   const knex = req.app.locals.knex;
 
-  const dbFileList = (await knex("file").select("path")).map((e) => e.path);
-  const videoFileList = (await fs.readdir(VIDEO_PATH, { recursive: true, withFileTypes: true }))
+  const [dbFileList, fileList] = await Promise.all([
+    knex("file").select("path"),
+    fs.readdir(VIDEO_PATH, { recursive: true, withFileTypes: true }),
+  ]);
+  const dbFileSet = new Set(dbFileList.map((e) => e.path));
+
+  const videoFileList = fileList
     .filter((file) => file.isFile() && [".mkv", ".mp4"].includes(path.extname(file.name)))
     .map((e) => path.join(e.path, e.name).replace(VIDEO_PATH, ""));
-  const newFileList = videoFileList.filter((e) => !dbFileList.includes(e));
+  const videoFileSet = new Set(videoFileList);
+
+  const newFileList = videoFileList.filter((e) => !dbFileSet.has(e));
 
   if (newFileList.length) {
     await knex("file").insert(
@@ -26,7 +33,7 @@ export default async (req, res) => {
     fs: videoFileList.length,
     db: dbFileList.length,
     added: newFileList.length,
-    missing: dbFileList.filter((e) => !videoFileList.includes(e)).length,
+    missing: dbFileList.map((e) => e.path).filter((e) => !videoFileSet.has(e)).length,
   });
 
   await startWorker(req.app);
