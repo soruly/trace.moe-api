@@ -27,5 +27,5 @@ afterAll(async () => {
 
 test("GET /scan", async () => {
   const response = await request(app).get("/scan");
-  expect(response.statusCode).toBe(204);
+  expect(response.statusCode).toBe(200);
 });
