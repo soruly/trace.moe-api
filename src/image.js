@@ -42,7 +42,7 @@ const generateImagePreview = async (filePath, t, size = "m") =>
   });
 
 const logView = async (knex, filePath, size, t) => {
-  const fileIdResult = await knex("file").select("id").whereILike("path", filePath.trim()).first();
+  const fileIdResult = await knex("file").select("id").where("path", filePath).first();
 
   await knex("scene_thumbnail_view_log").insert({
     time: knex.fn.now(),

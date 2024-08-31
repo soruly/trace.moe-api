@@ -76,7 +76,7 @@ const generateVideoPreview = async (filePath, start, end, size = "m", mute = fal
   });
 
 const logView = async (knex, filePath, scene, size, t, muted) => {
-  const fileIdResult = await knex("file").select("id").whereILike("path", filePath.trim()).first();
+  const fileIdResult = await knex("file").select("id").where("path", filePath).first();
 
   await knex("scene_view_log").insert({
     time: knex.fn.now(),
