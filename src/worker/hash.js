@@ -51,7 +51,7 @@ parentPort.postMessage(
   `[${threadId}] Extracting thumbnails done in ${extractTimeTaken.toFixed(0)} ms`,
 );
 
-const myRe = /pts_time:\s*((\d|\.)+?)\s*pos/g;
+const myRe = /pts_time:\s*(\d+\.?\d+)\s*/g;
 let temp = [];
 const timeCodeList = [];
 while ((temp = myRe.exec(ffmpegLog)) !== null) {
