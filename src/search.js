@@ -7,7 +7,6 @@ import aniep from "aniep";
 import cv from "@soruly/opencv4nodejs-prebuilt";
 import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
-import { bench, benchAsync } from "./lib/bench.js";
 
 const {
   TRACE_API_SALT,
@@ -247,13 +246,10 @@ export default async (req, res) => {
     });
   }
 
-  let searchImage = bench("image processing", () => resizeImageForSearch(searchFile));
+  let searchImage = resizeImageForSearch(searchFile);
 
   if (!searchImage) {
-    const ffmpeg = await benchAsync(
-      "ffmpeg image processing fallback",
-      async () => await extractImageFallback(searchFile),
-    );
+    const ffmpeg = await extractImageFallback(searchFile);
 
     if (!ffmpeg.stdout.length) {
       await logAndDequeue(locals, uid, priority, 400);
