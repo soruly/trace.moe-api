@@ -39,7 +39,7 @@
     "canvas": "^3.0.0-rc2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "express": "^4.20.0",
     "express-rate-limit": "^7.4.0",
     "knex": "^3.1.0",
     "lzma-native": "^8.0.6",
