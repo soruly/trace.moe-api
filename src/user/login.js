@@ -5,7 +5,7 @@ const { TRACE_API_SALT } = process.env;
 export default async (req, res) => {
   const knex = req.app.locals.knex;
 
-  if (!req.body.email || !req.body.password) {
+  if (!req.body?.email || !req.body?.password) {
     return res.status(403).json({
       error: "Invalid Email or Password",
     });
