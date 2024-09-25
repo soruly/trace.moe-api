@@ -36,7 +36,7 @@ const generateVideoPreview = async (filePath, start, end, size = "m", mute = fal
         "-c:v",
         "libx264",
         "-crf",
-        "23",
+        "28",
         "-profile:v",
         "high",
         "-preset",
