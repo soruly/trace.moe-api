@@ -21,12 +21,15 @@ export default async (req, res) => {
   const newFileList = videoFileList.filter((e) => !dbFileSet.has(e));
 
   if (newFileList.length) {
-    await knex("file").insert(
-      newFileList.map((e) => ({
-        path: e,
-        status: "UPLOADED",
-      })),
-    );
+    await knex("file")
+      .insert(
+        newFileList.map((e) => ({
+          path: e,
+          status: "UPLOADED",
+        })),
+      )
+      .onConflict("path")
+      .ignore();
   }
 
   res.json({
