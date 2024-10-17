@@ -7,7 +7,7 @@ SET NAMES utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `file` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `path` varchar(768) NOT NULL,
+  `path` varchar(768) COLLATE utf8mb4_bin NOT NULL,
   `status` enum('UPLOADED','HASHING','HASHED','LOADING','LOADED') NOT NULL,
   `created` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
