@@ -35,7 +35,7 @@
   "dependencies": {
     "@soruly/opencv4nodejs-prebuilt": "^7.1.0",
     "aniep": "^0.6.0",
-    "better-sqlite3": "^11.3.0",
+    "better-sqlite3": "^11.4.0",
     "canvas": "^3.0.0-rc2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
