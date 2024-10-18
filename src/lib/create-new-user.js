@@ -1,15 +1,11 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
-import { URL } from "node:url";
 import nodemailer from "nodemailer";
 import generateAPIKey from "./generate-api-key.js";
 
 const { SOLA_DB_NAME, TRACE_API_SALT, EMAIL_SMTP, EMAIL_SMTP_PORT } = process.env;
 let { EMAIL_USER, EMAIL_PASS } = process.env;
-
-const __filename = new URL("", import.meta.url).pathname;
-const __dirname = new URL(".", import.meta.url).pathname;
 
 export default async (knex, email, tier, full_name = "") => {
   if (!email) {
@@ -68,7 +64,7 @@ export default async (knex, email, tier, full_name = "") => {
     to: email,
     bcc: EMAIL_USER,
     subject: "Thank you for supporting trace.moe",
-    html: (await fs.readFile(path.join(__dirname, "email.html"), "utf8"))
+    html: (await fs.readFile(path.join(import.meta.dirname, "email.html"), "utf8"))
       .replace("<!--user-->", full_name)
       .replace("<!--email-->", email)
       .replace("<!--password-->", plainPassword),

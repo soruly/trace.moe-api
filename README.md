@@ -22,9 +22,9 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 
 ### Prerequisites
 
-- Node.js 20.x
-- mariaDB 10.4.x
-- ffmpeg 4.x
+- Node.js >=20.11
+- mariaDB >=10.4
+- ffmpeg >=4
 - java (openjdk 17)
 - [liresolr](https://github.com/soruly/liresolr)
 - g++, cmake (if you need to compile OpenCV)
