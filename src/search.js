@@ -411,7 +411,7 @@ export default async (req, res) => {
       .replace(/[^0-9A-Za-z]/g, "");
     const imageToken = crypto
       .createHash("sha1")
-      .update([anilist_id, `${filename}.jpg`, mid, now, TRACE_API_SALT].join(""))
+      .update([anilist_id, `${filename}.webp`, mid, now, TRACE_API_SALT].join(""))
       .digest("base64")
       .replace(/[^0-9A-Za-z]/g, "");
 
@@ -427,7 +427,7 @@ export default async (req, res) => {
         `now=${now}`,
         `token=${videoToken}`,
       ].join("&")}`,
-      image: `${req.protocol}://${req.get("host")}/image/${anilist_id}/${encodeURIComponent(filename)}.jpg?${[
+      image: `${req.protocol}://${req.get("host")}/image/${anilist_id}/${encodeURIComponent(filename)}.webp?${[
         `t=${mid}`,
         `now=${now}`,
         `token=${imageToken}`,
