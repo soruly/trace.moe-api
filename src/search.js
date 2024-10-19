@@ -225,7 +225,7 @@ export default async (req, res) => {
         ].includes(new URL(req.query.url).hostname)
         ? `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
         : req.query.url,
-    ).catch((e) => {
+    ).catch((_) => {
       return { status: 400 };
     });
     if (response.status >= 400) {
@@ -350,8 +350,6 @@ export default async (req, res) => {
 
   let result = [];
   let frameCountList = [];
-  let rawDocsSearchTimeList = [];
-  let reRankSearchTimeList = [];
 
   if (solrResults.find((e) => e.Error)) {
     console.log(solrResults.find((e) => e.Error));
@@ -361,10 +359,8 @@ export default async (req, res) => {
     });
   }
 
-  for (const { RawDocsCount, RawDocsSearchTime, ReRankSearchTime, response } of solrResults) {
+  for (const { RawDocsCount, response } of solrResults) {
     frameCountList.push(Number(RawDocsCount));
-    rawDocsSearchTimeList.push(Number(RawDocsSearchTime));
-    reRankSearchTimeList.push(Number(ReRankSearchTime));
     result = result.concat(response.docs);
   }
 
