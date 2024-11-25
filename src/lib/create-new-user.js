@@ -6,7 +6,7 @@ import nodemailer from "nodemailer";
 import generateAPIKey from "./generate-api-key.js";
 
 const { SOLA_DB_NAME, TRACE_API_SALT, EMAIL_SMTP, EMAIL_SMTP_PORT } = process.env;
-let { EMAIL_USER, EMAIL_PASS } = process.env;
+let { EMAIL_USER, EMAIL_PASS, EMAIL_FROM } = process.env;
 
 const __filename = new URL("", import.meta.url).pathname;
 const __dirname = new URL(".", import.meta.url).pathname;
@@ -52,7 +52,7 @@ export default async (knex, email, tier, full_name = "") => {
     EMAIL_PASS = account.pass;
   }
 
-  if (!EMAIL_SMTP || !EMAIL_SMTP_PORT || !EMAIL_USER || !EMAIL_PASS) return;
+  if (!EMAIL_SMTP || !EMAIL_SMTP_PORT || !EMAIL_USER || !EMAIL_PASS || !EMAIL_FROM) return;
   const transporter = nodemailer.createTransport({
     host: EMAIL_SMTP,
     port: Number(EMAIL_SMTP_PORT),
@@ -64,7 +64,7 @@ export default async (knex, email, tier, full_name = "") => {
   });
 
   const info = await transporter.sendMail({
-    from: `"trace.moe" <${EMAIL_USER}>`,
+    from: `"trace.moe" <${EMAIL_FROM}>`,
     to: email,
     bcc: EMAIL_USER,
     subject: "Thank you for supporting trace.moe",
