@@ -22,7 +22,7 @@ const generateImagePreview = async (filePath, t, size = "m") =>
       "-vf",
       `scale=${{ l: 640, m: 320, s: 160 }[size]}:-2`,
       "-c:v",
-      "mjpeg",
+      "libwebp",
       "-vframes",
       "1",
       "-f",
@@ -97,7 +97,7 @@ export default async (req, res) => {
 
     logView(req.app.locals.knex, videoFile, size, t);
 
-    res.set("Content-Type", "image/jpg");
+    res.set("Content-Type", "image/webp");
     res.send(image);
   } catch (e) {
     console.log(e);
