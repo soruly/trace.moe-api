@@ -60,7 +60,7 @@ npm run delete
 
 ### How to begin hashing
 
-By default, it will scan the `VIDEO_PATH` every minute for new video files (.mp4 or .mkv). You can manually trigger a scan by calling this url
+By default, it will scan the `VIDEO_PATH` every minute for new video files (.mp4 or .mkv or webm). You can manually trigger a scan by calling this url
 
 ```
 curl http://localhost:3001/scan
