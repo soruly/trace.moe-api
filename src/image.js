@@ -89,7 +89,7 @@ export default async (req, res) => {
     return res.status(404).send("Not found");
   }
   const format =
-    req.headers["accept"]
+    (req.headers["accept"] ?? "")
       .split(",")
       .filter((e) => e.startsWith("image/"))
       .map((e) => e.split(";").shift().replace("image/", ""))
