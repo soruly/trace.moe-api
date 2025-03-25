@@ -381,9 +381,11 @@ The url you obtained from `image` and `video` from search result would expire in
 It can generate image or video preview of 3 sizes by appending `size=l` (large), `size=m` (medium, default) or `size=s` (small) at the end of the url. e.g.
 
 ```
-https://api.trace.moe/image/xxx/xxxxxx.mp4.jpg?t=0&now=1653892514&token=xxxxx&size=s
+https://api.trace.moe/image/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size=s
 https://api.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size=s
 ```
+
+Supported image format is jxl, webp and jpeg, which is decided by web browsers through the HTTP Accept header or fallback to jpeg as default.
 
 For video preview, it can generate a video with sound (default), or a muted video by appending `mute` to the end of url. e.g.
 

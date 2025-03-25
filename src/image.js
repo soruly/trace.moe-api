@@ -5,7 +5,7 @@ import child_process from "node:child_process";
 
 const { VIDEO_PATH, TRACE_API_SALT, MEDIA_QUEUE = Infinity } = process.env;
 
-const generateImagePreview = async (filePath, t, size = "m") =>
+const generateImagePreview = async (filePath, t, format = "jpeg", size = "m") =>
   new Promise((resolve) => {
     const ffmpeg = child_process.spawn("ffmpeg", [
       "-hide_banner",
@@ -22,7 +22,9 @@ const generateImagePreview = async (filePath, t, size = "m") =>
       "-vf",
       `scale=${{ l: 640, m: 320, s: 160 }[size]}:-2`,
       "-c:v",
-      "mjpeg",
+      { jxl: "libjxl", webp: "libwebp", jpeg: "mjpeg" }[format],
+      "-q:v",
+      { jxl: "80", webp: "85", jpeg: "6" }[format],
       "-vframes",
       "1",
       "-f",
@@ -76,7 +78,7 @@ export default async (req, res) => {
   if (isNaN(t) || t < 0) {
     return res.status(400).send("Bad Request. Invalid param: t");
   }
-  const videoFile = path.join(req.params.anilistID, req.params.filename.replace(/\.jpg$/, ""));
+  const videoFile = path.join(req.params.anilistID, req.params.filename);
   const videoFilePath = path.join(VIDEO_PATH, videoFile);
   if (!videoFilePath.startsWith(VIDEO_PATH)) {
     return res.status(403).send("Forbidden");
@@ -86,6 +88,13 @@ export default async (req, res) => {
   } catch {
     return res.status(404).send("Not found");
   }
+  const format =
+    req.headers["accept"]
+      .split(",")
+      .filter((e) => e.startsWith("image/"))
+      .map((e) => e.split(";").shift().replace("image/", ""))
+      .reduce((acc, cur) => (!acc && ["jxl", "webp"].includes(cur) ? cur : acc), "") || "jpeg";
+
   const size = req.query.size || "m";
   if (!["l", "m", "s"].includes(size)) {
     return res.status(400).send("Bad Request. Invalid param: size");
@@ -93,11 +102,11 @@ export default async (req, res) => {
   if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
   try {
-    const image = await generateImagePreview(videoFilePath, t, size);
+    const image = await generateImagePreview(videoFilePath, t, format, size);
 
     logView(req.app.locals.knex, videoFile, size, t);
 
-    res.set("Content-Type", "image/jpg");
+    res.set("Content-Type", `image/${format}`);
     res.send(image);
   } catch (e) {
     console.log(e);
