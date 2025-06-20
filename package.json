@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/soruly/trace.moe-api#readme",
   "devDependencies": {
-    "jest": "^30.0.1",
+    "jest": "^30.0.2",
     "prettier": "^3.5.3",
     "supertest": "^7.1.1"
   },
