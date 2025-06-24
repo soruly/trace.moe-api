@@ -1,3 +1,4 @@
 {
+  "plugins": ["prettier-plugin-sql"],
   "printWidth": 100
 }
