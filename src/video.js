@@ -133,8 +133,6 @@ export default async (req, res) => {
   if (!["l", "m", "s"].includes(size)) {
     return res.status(400).send("Bad Request. Invalid param: size");
   }
-  const minDuration = Number(req.query.minDuration) || 0.5;
-  const maxDuration = 5;
   if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
 
@@ -142,8 +140,8 @@ export default async (req, res) => {
     const scene = await detectScene(
       videoFilePath,
       t,
-      minDuration > 2 ? 2 : minDuration,
-      maxDuration,
+      Math.min(Math.max(Number(req.query.minDuration) || 0, 0.5), 2), // default: 0.5s before and after t, range: 0.5s ~ 2.0s
+      Math.min(Math.max(Number(req.query.maxDuration) || 5, 0.5), 5), // default: 5.0s before and after t, range: 0.5s ~ 5.0s
       knex,
     );
     if (scene === null) {

@@ -57,8 +57,8 @@ export default async (filePath, t, minDuration, maxDuration, knex) => {
     for (const [start, end] of sceneList) {
       if (start <= t && t <= end) {
         return {
-          start: t - start > maxDuration ? t - 2 : start,
-          end: end - t > maxDuration ? t + 2 : end,
+          start: Math.max(0, t - start > maxDuration ? t - maxDuration : start),
+          end: Math.min(end - t > maxDuration ? t + maxDuration : end, videoDuration),
           duration: videoDuration,
         };
       }
@@ -67,8 +67,8 @@ export default async (filePath, t, minDuration, maxDuration, knex) => {
 
   // fallback to fixed scene cutting
   return {
-    start: t - minDuration < 0 ? 0 : t - minDuration,
-    end: t + minDuration > videoDuration ? videoDuration : t + minDuration,
+    start: Math.max(0, t - minDuration),
+    end: Math.min(t + minDuration, videoDuration),
     duration: videoDuration,
   };
 };
