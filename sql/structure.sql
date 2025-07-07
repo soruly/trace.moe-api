@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS `file` (
   `path` varchar(768) COLLATE utf8mb4_bin NOT NULL,
   `status` enum (
     'UPLOADED',
+    'ANALYZING',
+    'ANALYZED',
     'HASHING',
     'HASHED',
     'LOADING',
@@ -25,11 +27,14 @@ CREATE TABLE IF NOT EXISTS `file` (
   ) NOT NULL,
   `created` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `duration` float NOT NULL DEFAULT 0,
+  `scene` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `path` (`path`),
   KEY `status` (`status`),
   KEY `created` (`created`),
-  KEY `updated` (`updated`)
+  KEY `updated` (`updated`),
+  CONSTRAINT `CONSTRAINT_1` CHECK (json_valid (`scene`))
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `log` (

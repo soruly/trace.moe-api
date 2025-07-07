@@ -36,7 +36,7 @@ export default async (app) => {
     app.locals.mutex = true;
 
     const [row] = await knex("file")
-      .whereIn("status", ["UPLOADED", "HASHED"])
+      .whereIn("status", ["UPLOADED", "ANALYZED", "HASHED"])
       .select("path", "status")
       .orderBy("status", "desc")
       .limit(1);
@@ -44,6 +44,17 @@ export default async (app) => {
     if (!row) {
       app.locals.workerCount--;
     } else if (row.status === "UPLOADED") {
+      await knex("file").where("path", row.path).update({ status: "ANALYZING" });
+      const worker = new Worker("./src/worker/analyze.js", {
+        workerData: { filePath: row.path },
+      });
+      worker.on("message", (message) => console.log(message));
+      worker.on("error", (error) => console.error(error));
+      worker.on("exit", async (code) => {
+        if (!code) await knex("file").where("path", row.path).update({ status: "ANALYZED" });
+        await createWorker();
+      });
+    } else if (row.status === "ANALYZED") {
       await knex("file").where("path", row.path).update({ status: "HASHING" });
       const worker = new Worker("./src/worker/hash.js", {
         workerData: { filePath: row.path },
@@ -75,9 +86,9 @@ export default async (app) => {
     }
     app.locals.mutex = false;
   };
-  const unprocessed = (await knex("file").whereIn("status", ["UPLOADED", "HASHED"]).count())[0][
-    "count(*)"
-  ];
+  const unprocessed = (
+    await knex("file").whereIn("status", ["UPLOADED", "ANALYZED", "HASHED"]).count()
+  )[0]["count(*)"];
   while (app.locals.workerCount < Math.min(unprocessed, Number(MAX_WORKER))) {
     app.locals.workerCount++;
     await createWorker();

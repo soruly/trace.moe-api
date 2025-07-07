@@ -95,6 +95,7 @@ const logView = async (knex, filePath, scene, size, t, muted) => {
 };
 
 export default async (req, res) => {
+  const knex = req.app.locals.knex;
   if (
     req.query.token !==
     crypto
@@ -132,12 +133,19 @@ export default async (req, res) => {
   if (!["l", "m", "s"].includes(size)) {
     return res.status(400).send("Bad Request. Invalid param: size");
   }
-  const minDuration = Number(req.query.minDuration) || 0.25;
+  const minDuration = Number(req.query.minDuration) || 0.5;
+  const maxDuration = 5;
   if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
 
   try {
-    const scene = await detectScene(videoFilePath, t, minDuration > 2 ? 2 : minDuration);
+    const scene = await detectScene(
+      videoFilePath,
+      t,
+      minDuration > 2 ? 2 : minDuration,
+      maxDuration,
+      knex,
+    );
     if (scene === null) {
       return res.status(500).send("Internal Server Error");
     }
@@ -145,7 +153,7 @@ export default async (req, res) => {
     const muted = "mute" in req.query;
     const video = await generateVideoPreview(videoFilePath, scene.start, scene.end, size, muted);
 
-    logView(req.app.locals.knex, fileFile, scene, size, t, muted);
+    logView(knex, fileFile, scene, size, t, muted);
 
     res.set("Content-Type", "video/mp4");
     res.set("x-video-start", scene.start);

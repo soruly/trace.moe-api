@@ -1,7 +1,18 @@
 import child_process from "node:child_process";
 
-export default async (filePath) =>
-  new Promise((resolve) => {
+const { VIDEO_PATH } = process.env;
+
+export default async (filePath, knex) =>
+  new Promise(async (resolve) => {
+    const rows = await knex("file")
+      .where("path", filePath.replace(VIDEO_PATH, ""))
+      .select("duration")
+      .first();
+
+    if (rows?.duration) {
+      return resolve(rows.duration);
+    }
+
     const ffprobe = child_process.spawn(
       "ffprobe",
       ["-i", filePath, "-show_entries", "format=duration", "-v", "quiet"],
