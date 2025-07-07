@@ -15,8 +15,47 @@ query ($page: Int = 1, $perPage: Int = 1, $id: Int, $type: MediaType = ANIME) {
         romaji
         english
       }
+      type
+      format
+      status
+      startDate {
+        year
+        month
+        day
+      }
+      endDate {
+        year
+        month
+        day
+      }
+      season
+      episodes
+      duration
+      source
+      coverImage {
+        large
+        medium
+      }
+      bannerImage
+      genres
       synonyms
+      studios {
+        edges {
+          isMain
+          node {
+            id
+            name
+            siteUrl
+          }
+        }
+      }
       isAdult
+      externalLinks {
+        id
+        url
+        site
+      }
+      siteUrl
     }
   }
 }
