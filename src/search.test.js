@@ -71,6 +71,69 @@ beforeAll(async () => {
     created: new Date(),
     updated: new Date(),
   });
+  await app.locals.knex("anilist").insert({
+    id: 21034,
+    updated: new Date(),
+    json: JSON.stringify({
+      id: 21034,
+      idMal: 29787,
+      title: {
+        native: "ご注文はうさぎですか？？",
+        romaji: "Gochuumon wa Usagi desu ka??",
+        english: "Is the Order a Rabbit?? Season 2",
+        chinese: "請問您今天要來點兔子嗎？？",
+      },
+      type: "ANIME",
+      format: "TV",
+      status: "FINISHED",
+      startDate: {
+        year: 2015,
+        month: 10,
+        day: 10,
+      },
+      endDate: {
+        year: 2015,
+        month: 12,
+        day: 26,
+      },
+      season: "FALL",
+      episodes: 12,
+      duration: 23,
+      source: "MANGA",
+      coverImage: {
+        large:
+          "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx21034-PgPlR55DktTJ.jpg",
+        medium:
+          "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx21034-PgPlR55DktTJ.jpg",
+      },
+      bannerImage:
+        "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n21034-UaWI3qdUZxje.jpg",
+      genres: ["Slice of Life"],
+      synonyms: ["Gochiusa 2", "ごちうさ 2"],
+      studios: {
+        edges: [
+          {
+            isMain: true,
+            node: {
+              id: 314,
+              name: "WHITE FOX",
+              siteUrl: "https://anilist.co/studio/314",
+            },
+          },
+        ],
+      },
+      isAdult: false,
+      externalLinks: [
+        {
+          id: 889,
+          url: "http://www.gochiusa.com/",
+          site: "Official Site",
+        },
+      ],
+      siteUrl: "https://anilist.co/anime/21034",
+      synonyms_chinese: [],
+    }),
+  });
   await app.locals.knex("search_count").truncate();
   app.locals.searchQueue = [];
   app.locals.searchConcurrent = new Map();
