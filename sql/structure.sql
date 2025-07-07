@@ -13,6 +13,14 @@ SET
 SET
   NAMES utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `anilist` (
+  `id` int(10) unsigned NOT NULL,
+  `updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `json` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `CONSTRAINT_1` CHECK (json_valid (`json`))
+);
+
 CREATE TABLE IF NOT EXISTS `file` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `path` varchar(768) COLLATE utf8mb4_bin NOT NULL,

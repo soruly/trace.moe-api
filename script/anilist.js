@@ -1,4 +1,6 @@
 import "dotenv/config";
+import fs from "node:fs/promises";
+import path from "node:path";
 import Knex from "knex";
 
 const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
@@ -11,48 +13,91 @@ const knex = Knex({
     user: SOLA_DB_USER,
     password: SOLA_DB_PWD,
     database: SOLA_DB_NAME,
+    charset: "utf8mb4",
   },
 });
 
-const rows = await knex.raw(`SELECT DISTINCT SUBSTRING_INDEX(path, '/', 1) AS id FROM file`);
-const idList = rows[0].map((e) => Number(e.id));
-await knex.destroy();
+const q = {};
+q.query = await fs.readFile(path.join(import.meta.dirname, "anilist.graphql"), "utf8");
 
-const batch = [];
-let a = idList.splice(0, 50);
-do {
-  batch.push(a);
-  a = idList.splice(0, 50);
-} while (a.length);
+const anilistChinese = await fetch(
+  "https://raw.githubusercontent.com/soruly/anilist-chinese/refs/heads/master/anilist-chinese.json",
+).then((e) => e.json());
 
-for (const idList of batch) {
-  let res;
-  do {
-    // console.log(`Fetching page (${batch.findIndex((e) => e === idList) + 1}/${batch.length})`);
-    res = await fetch("https://graphql.anilist.co/", {
+const submitQuery = async (query, variables) => {
+  query.variables = variables;
+  for (let retry = 0; retry < 5; retry++) {
+    const res = await fetch("https://graphql.anilist.co/", {
       method: "POST",
-      body: JSON.stringify({
-        query: `query ($ids: [Int]) {
-          Page(page: 1, perPage: 50) {
-            media(id_in: $ids, type: ANIME) {
-              id
-            }
-          }
-        }
-        `,
-        variables: { ids: idList },
-      }),
+      body: JSON.stringify(query),
       headers: { "Content-Type": "application/json" },
     });
-  } while (
-    res.status === 429 &&
-    (await new Promise((resolve) => setTimeout(() => resolve(1), 5000)))
-  );
-
-  const json = await res.json();
-  for (const id of idList) {
-    if (!json.data.Page.media.map((e) => e.id).includes(id)) {
-      console.log(id);
+    if (res.status === 200) {
+      return (await res.json()).data;
+    }
+    if (res.status === 429) {
+      const delay = Number(res.headers.get("retry-after")) || 1;
+      console.log(`Rate limit reached, retry after ${delay} seconds`);
+      await new Promise((resolve) => setTimeout(resolve, delay * 1000));
+    } else {
+      console.log(res);
+      return null;
     }
   }
+};
+
+const save = async (anime) => {
+  console.log(`Saving anime ${anime.id} (${anime.title.native ?? anime.title.romaji})`);
+  const chinese = anilistChinese.find((e) => e.id === anime.id);
+  if (chinese) {
+    anime.title.chinese = chinese.title;
+    anime.synonyms_chinese = chinese.synonyms;
+  }
+  await knex("anilist").where("id", anime.id).del();
+  await knex("anilist").insert({
+    id: anime.id,
+    json: JSON.stringify(anime),
+  });
+};
+
+const [arg, value] = process.argv.slice(2);
+
+if (process.argv.slice(2).includes("--clean")) {
+  console.log("Truncating database table anilist");
+  await knex.truncate("anilist");
+  console.log("Truncated database table anilist");
 }
+
+if (arg === "--anime" && value) {
+  console.log(`Crawling anime ${value}`);
+  const anime = (await submitQuery(q, { id: value })).Page.media[0];
+  await save(anime);
+} else if (arg === "--page" && value) {
+  const format = /^(\d+)(-)?(\d+)?$/;
+  const startPage = value.match(format)[1];
+  const lastPage = value.match(format)[2] ? Number(value.match(format)[3]) : startPage;
+
+  console.log(`Crawling page ${startPage} to ${lastPage || "end"}`);
+
+  let page = startPage;
+  while (!lastPage || page <= lastPage) {
+    console.log(`Crawling page ${page}`);
+    const data = await submitQuery(q, {
+      page,
+      perPage: 50,
+    });
+    for (const anime of data.Page.media) {
+      await save(anime);
+    }
+    if (!data.Page.pageInfo.hasNextPage) break;
+    page++;
+  }
+  console.log("Crawling complete");
+} else {
+  console.log("Usage: node anilist.js --anime 1");
+  console.log("       node anilist.js --page 1");
+  console.log("       node anilist.js --page 1-");
+  console.log("       node anilist.js --page 1-2");
+}
+
+await knex.destroy();

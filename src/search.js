@@ -432,36 +432,14 @@ export default async (req, res) => {
   });
 
   if ("anilistInfo" in req.query) {
-    const response = await fetch("https://graphql.anilist.co/", {
-      method: "POST",
-      body: JSON.stringify({
-        query: `query ($ids: [Int]) {
-            Page(page: 1, perPage: 50) {
-              media(id_in: $ids, type: ANIME) {
-                id
-                idMal
-                title {
-                  native
-                  romaji
-                  english
-                }
-                synonyms
-                isAdult
-              }
-            }
-          }
-          `,
-        variables: { ids: result.map((e) => e.anilist) },
-      }),
-      headers: { "Content-Type": "application/json" },
+    const anilist = await knex("anilist").whereIn(
+      "id",
+      result.map((e) => e.anilist),
+    );
+    result = result.map((entry) => {
+      entry.anilist = JSON.parse(anilist.find((e) => e.id === entry.anilist).json);
+      return entry;
     });
-    if (response.status < 400) {
-      const anilistData = (await response.json()).data.Page.media;
-      result = result.map((entry) => {
-        entry.anilist = anilistData.find((e) => e.id === entry.anilist);
-        return entry;
-      });
-    }
   }
 
   await logAndDequeue(locals, uid, priority, 200, searchTime, result[0]?.similarity ?? 0);

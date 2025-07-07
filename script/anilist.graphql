@@ -1,0 +1,22 @@
+query ($page: Int = 1, $perPage: Int = 1, $id: Int, $type: MediaType = ANIME) {
+  Page(page: $page, perPage: $perPage) {
+    pageInfo {
+      total
+      perPage
+      currentPage
+      lastPage
+      hasNextPage
+    }
+    media(id: $id, type: $type) {
+      id
+      idMal
+      title {
+        native
+        romaji
+        english
+      }
+      synonyms
+      isAdult
+    }
+  }
+}
