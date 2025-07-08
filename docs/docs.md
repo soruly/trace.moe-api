@@ -362,15 +362,15 @@ Example Error response
 }
 ```
 
-| HTTP Status | Possible Causes                                                                        |
-| ----------- | -------------------------------------------------------------------------------------- |
-| 400         | Invalid image url / Failed to process image / OpenCV: Failed to detect and cut borders |
-| 402         | Search quota depleted / Concurrency limit exceeded                                     |
-| 403         | Invalid API key                                                                        |
-| 405         | Method Not Allowed                                                                     |
-| 500         | Internal Server Error                                                                  |
-| 503         | Search queue is full / Database is not responding                                      |
-| 504         | Server is overloaded                                                                   |
+| HTTP Status | Possible Causes                                    |
+| ----------- | -------------------------------------------------- |
+| 400         | Invalid image url / Failed to process image        |
+| 402         | Search quota depleted / Concurrency limit exceeded |
+| 403         | Invalid API key                                    |
+| 405         | Method Not Allowed                                 |
+| 500         | Internal Server Error                              |
+| 503         | Search queue is full / Database is not responding  |
+| 504         | Server is overloaded                               |
 
 > the "error" value is empty string when there's no error
 
