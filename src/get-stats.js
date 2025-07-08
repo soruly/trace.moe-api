@@ -8,18 +8,18 @@ export default async (req, res) => {
 
   const { type, period } = req.query;
   if (type === "media") {
-    const [row] = await knex("mediainfo").max("updated", { as: "lastUpdated" });
+    const [row] = await knex("file").max("updated", { as: "lastUpdated" });
     const lastUpdatedRecordValue = row?.lastUpdated?.toISOString() ?? null;
 
     if (lastUpdatedRecordValue && lastUpdate !== lastUpdatedRecordValue) {
       const [mediainfo, media_frames_total, media_duration_total] = await Promise.all([
-        knex("mediainfo").count("* as sum"),
+        knex("file").count("* as count"),
         knex("media_frames_total"),
-        knex("media_duration_total").select("seconds"),
+        knex("file").sum("duration as sum"),
       ]);
-      mediaCount = mediainfo[0].sum;
+      mediaCount = mediainfo[0].count;
       mediaFramesTotal = media_frames_total[0].sum;
-      mediaDurationTotal = media_duration_total[0].seconds;
+      mediaDurationTotal = media_duration_total[0].sum;
       lastUpdate = lastUpdatedRecordValue;
     }
 
