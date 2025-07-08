@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import child_process from "node:child_process";
 import aniep from "aniep";
-import cv from "@soruly/opencv4nodejs-prebuilt";
+import sharp from "sharp";
 import { performance } from "node:perf_hooks";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 
@@ -69,44 +69,6 @@ const logAndDequeue = async (locals, uid, priority, status, searchTime, accuracy
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
 
-const resizeImageForSearch = (sourceImage) => {
-  let image = null;
-
-  try {
-    image = cv.imdecode(sourceImage);
-  } catch (e) {
-    // Invalid image was uploaded.
-  }
-
-  if (!image) {
-    return false;
-  }
-
-  let [height, width] = image.sizes;
-
-  if (width <= 320 && height <= 320) {
-    try {
-      return cv.imencode(".jpg", image);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  if (width > height) {
-    width = 320;
-    height = Math.round(320 * (height / width));
-  } else {
-    width = Math.round(320 * (width / height));
-    height = 320;
-  }
-
-  try {
-    return cv.imencode(".jpg", image.resize(width, height));
-  } catch (e) {
-    return false;
-  }
-};
-
 const extractImageByFFmpeg = (searchFile) =>
   child_process.spawnSync(
     "ffmpeg",
@@ -125,7 +87,7 @@ const extractImageByFFmpeg = (searchFile) =>
       "-vf",
       "scale=320:-2",
       "-c:v",
-      "mjpeg",
+      "png",
       "-vframes",
       "1",
       "-f",
@@ -133,7 +95,44 @@ const extractImageByFFmpeg = (searchFile) =>
       "pipe:1",
     ],
     { input: searchFile },
-  );
+  ).stdout;
+
+const cutBorders = async (imageBuffer) => {
+  const { width, height } = await sharp(imageBuffer).metadata();
+  const { info } = await sharp(imageBuffer) // detect borders
+    .trim({ background: "black", threshold: 80 })
+    .toBuffer({ resolveWithObject: true });
+
+  const trimmedTop = Math.abs(info.trimOffsetTop);
+  const trimmedBottom = height - info.height - trimmedTop;
+  const borderHeight = Math.max(trimmedTop, trimmedBottom);
+  const newWidth = info.width;
+  const newHeight = height - borderHeight * 2;
+  // cut top and bottom equally using the thickest border
+  // cut left and right as detected
+  if (width / height < 1.78 && newWidth / newHeight > 2.3) {
+    // if the original image is taller than 16:9 and new image is 21:9 wide
+    return await sharp(imageBuffer)
+      .extract({
+        left: Math.abs(info.trimOffsetLeft),
+        top: borderHeight,
+        width: newWidth,
+        height: newHeight,
+      })
+      .resize({ width: 320, height: 180, fit: "contain" }) // fill it back to 16:9
+      .jpeg()
+      .toBuffer();
+  }
+  return await sharp(imageBuffer)
+    .extract({
+      left: Math.abs(info.trimOffsetLeft),
+      top: borderHeight,
+      width: newWidth,
+      height: newHeight,
+    })
+    .jpeg()
+    .toBuffer();
+};
 
 export default async (req, res) => {
   const locals = req.app.locals;
@@ -242,70 +241,22 @@ export default async (req, res) => {
     });
   }
 
-  let searchImage = resizeImageForSearch(searchFile);
+  const searchImagePNG = await sharp(searchFile)
+    .resize({ width: 320, height: 320, fit: "inside" })
+    .toBuffer()
+    .catch(() => extractImageByFFmpeg(searchFile));
 
-  if (!searchImage) {
-    const ffmpeg = extractImageByFFmpeg(searchFile);
-
-    if (!ffmpeg.stdout.length) {
-      await logAndDequeue(locals, uid, priority, 400);
-      return res.status(400).json({
-        error: "Failed to process image",
-      });
-    }
-
-    searchImage = ffmpeg.stdout;
+  if (!searchImagePNG.length) {
+    await logAndDequeue(locals, uid, priority, 400);
+    return res.status(400).json({
+      error: "Failed to process image",
+    });
   }
 
-  if ("cutBorders" in req.query) {
-    // auto black border cropping
-    try {
-      const image = cv.imdecode(searchImage);
-      const [height, width] = image.sizes;
-      // Find the possible rectangles
-      const contours = image
-        .bgrToGray()
-        .threshold(4, 255, cv.THRESH_BINARY) // low enough so dark background is not cut away
-        .findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-      let {
-        x,
-        y,
-        width: w,
-        height: h,
-      } = contours.length
-        ? contours
-            .sort((c0, c1) => c1.area - c0.area)[0] // Find the largest rectangle
-            .boundingRect()
-        : { x: 0, y: 0, width, height };
-
-      if (x !== 0 || y !== 0 || w !== width || h !== height) {
-        if (w > 0 && h > 0 && w / h < 16 / 9 && w / h >= 1.6) {
-          // if detected area is slightly larger than 16:9 (e.g. 16:10)
-          const newHeight = Math.round((w / 16) * 9); // assume it is 16:9
-          y = Math.round(y - (newHeight - h) / 2);
-          h = newHeight;
-          // cut 1px more for anti-aliasing
-          h = h - 1;
-          y = y + 1;
-        }
-        // ensure the image has correct dimensions
-        y = y <= 0 ? 0 : y;
-        x = x <= 0 ? 0 : x;
-        w = w <= 1 ? 1 : w;
-        h = h <= 1 ? 1 : h;
-        w = w >= width ? width : w;
-        h = h >= height ? height : h;
-
-        searchImage = cv.imencode(".jpg", image.getRegion(new cv.Rect(x, y, w, h)));
-      }
-    } catch (e) {
-      await logAndDequeue(locals, uid, priority, 400);
-      return res.status(400).json({
-        error: "OpenCV: Failed to detect and cut borders",
-      });
-    }
-  }
+  const searchImage =
+    "cutBorders" in req.query
+      ? await cutBorders(searchImagePNG)
+      : await sharp(searchImagePNG).jpeg().toBuffer();
 
   let candidates = 1000000;
   const startTime = performance.now();
