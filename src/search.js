@@ -1,5 +1,8 @@
 import crypto from "node:crypto";
+import os from "node:os";
+import path from "node:path";
 import child_process from "node:child_process";
+import fs from "node:fs/promises";
 import aniep from "aniep";
 import sharp from "sharp";
 import { performance } from "node:perf_hooks";
@@ -69,33 +72,34 @@ const logAndDequeue = async (locals, uid, priority, status, searchTime, accuracy
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
 
-const extractImageByFFmpeg = (searchFile) =>
-  child_process.spawnSync(
-    "ffmpeg",
-    [
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-nostats",
-      "-y",
-      "-i",
-      "pipe:0",
-      "-ss",
-      "00:00:00",
-      "-map_metadata",
-      "-1",
-      "-vf",
-      "scale=320:-2",
-      "-c:v",
-      "png",
-      "-vframes",
-      "1",
-      "-f",
-      "image2pipe",
-      "pipe:1",
-    ],
-    { input: searchFile },
-  ).stdout;
+const extractImageByFFmpeg = async (searchFile) => {
+  const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
+  await fs.writeFile(tempFilePath, searchFile);
+  const ffmpeg = child_process.spawnSync("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-nostats",
+    "-y",
+    "-i",
+    tempFilePath,
+    "-ss",
+    "00:00:00",
+    "-map_metadata",
+    "-1",
+    "-vf",
+    "scale=320:-2",
+    "-c:v",
+    "mjpeg",
+    "-vframes",
+    "1",
+    "-f",
+    "image2pipe",
+    "pipe:1",
+  ]);
+  await fs.rm(tempFilePath, { force: true });
+  return ffmpeg.stdout;
+};
 
 const cutBorders = async (imageBuffer) => {
   const { width, height } = await sharp(imageBuffer).metadata();
@@ -244,7 +248,7 @@ export default async (req, res) => {
   const searchImagePNG = await sharp(searchFile)
     .resize({ width: 320, height: 320, fit: "inside" })
     .toBuffer()
-    .catch(() => extractImageByFFmpeg(searchFile));
+    .catch(async () => await extractImageByFFmpeg(searchFile));
 
   if (!searchImagePNG.length) {
     await logAndDequeue(locals, uid, priority, 400);
