@@ -104,7 +104,7 @@ const extractImageByFFmpeg = async (searchFile) => {
 const cutBorders = async (imageBuffer) => {
   const { width, height } = await sharp(imageBuffer).metadata();
   const { info } = await sharp(imageBuffer) // detect borders
-    .trim({ background: "black", threshold: 80 })
+    .trim({ background: "black", threshold: 20 })
     .toBuffer({ resolveWithObject: true });
 
   const trimmedTop = Math.abs(info.trimOffsetTop);
