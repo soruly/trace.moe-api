@@ -19,7 +19,7 @@ export default async (req, res) => {
 
   const videoFileList = fileList
     .filter((file) => file.isFile() && [".webm", ".mkv", ".mp4"].includes(path.extname(file.name)))
-    .map((e) => path.join(e.path, e.name).replace(VIDEO_PATH, ""));
+    .map((e) => path.join(e.parentPath, e.name).replace(VIDEO_PATH, ""));
   const videoFileSet = new Set(videoFileList);
 
   const newFileList = videoFileList.filter((e) => !dbFileSet.has(e));
