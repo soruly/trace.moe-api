@@ -43,17 +43,6 @@ const generateImagePreview = async (filePath, t, format = "jpeg", size = "m") =>
     });
   });
 
-const logView = async (knex, filePath, size, t) => {
-  const fileIdResult = await knex("file").select("id").where("path", filePath).first();
-
-  await knex("scene_thumbnail_view_log").insert({
-    time: knex.fn.now(),
-    file_id: fileIdResult?.id ?? null,
-    size: size,
-    time_code: t,
-  });
-};
-
 export default async (req, res) => {
   if (
     req.query.token !==
@@ -103,9 +92,6 @@ export default async (req, res) => {
   req.app.locals.mediaQueue++;
   try {
     const image = await generateImagePreview(videoFilePath, t, format, size);
-
-    logView(req.app.locals.knex, videoFile, size, t);
-
     res.set("Content-Type", `image/${format}`);
     res.send(image);
   } catch (e) {

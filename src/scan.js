@@ -1,14 +1,18 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import sql from "../sql.js";
 import startWorker from "./worker/start-worker.js";
 
 const { VIDEO_PATH } = process.env;
 
 export default async (req, res) => {
-  const knex = req.app.locals.knex;
-
   const [dbFileList, fileList] = await Promise.all([
-    knex("file").select("path"),
+    sql`
+      SELECT
+        path
+      FROM
+        files
+    `,
     fs.readdir(VIDEO_PATH, { recursive: true, withFileTypes: true }),
   ]);
   const dbFileSet = new Set(dbFileList.map((e) => e.path));
@@ -20,13 +24,11 @@ export default async (req, res) => {
 
   const newFileList = videoFileList.filter((e) => !dbFileSet.has(e));
 
-  if (newFileList.length) {
-    await knex("file").insert(
-      newFileList.map((e) => ({
-        path: e,
-        status: "UPLOADED",
-      })),
-    );
+  for (let i = 0; i < newFileList.length; i += 10000) {
+    await sql`
+      INSERT INTO
+        files ${sql(newFileList.slice(i, i + 10000).map((e) => ({ path: e, status: "NEW" })))}
+    `;
   }
 
   res.json({

@@ -6,6 +6,7 @@ import fs from "node:fs/promises";
 import aniep from "aniep";
 import sharp from "sharp";
 import { performance } from "node:perf_hooks";
+import sql from "../sql.js";
 import getSolrCoreList from "./lib/get-solr-core-list.js";
 
 const {
@@ -35,39 +36,56 @@ const search = (image, candidates, anilistID) =>
     ),
   );
 
-const logAndDequeue = async (locals, uid, priority, status, searchTime, accuracy) => {
-  const knex = locals.knex;
-  if (status === 200) {
+const logAndDequeue = async (
+  locals,
+  ip,
+  userId = null,
+  priority,
+  code,
+  searchTime = null,
+  accuracy = null,
+) => {
+  if (code === 200) {
     while (locals.mut) await new Promise((resolve) => setTimeout(resolve, 0));
     locals.mut = true;
-    const searchCountCache = await knex("search_count").where({ uid: `${uid}` });
-    if (searchCountCache.length) {
-      await knex("search_count")
-        .update({ count: searchCountCache[0].count + 1 })
-        .where({ uid: `${uid}` });
+    if (userId) {
+      await sql`
+        UPDATE users
+        SET
+          quota_used = quota_used + 1
+        WHERE
+          id = ${userId}
+      `;
     } else {
-      await knex("search_count").insert({ uid, count: 1 });
+      await sql`
+        INSERT INTO
+          quota (ip, used)
+        VALUES
+          (${ip}, 1)
+        ON CONFLICT (ip) DO UPDATE
+        SET
+          used = quota.used + 1
+      `;
     }
     locals.mut = false;
   }
-  if (searchTime >= 0 && accuracy >= 0) {
-    await knex("log").insert({
-      time: knex.fn.now(),
-      uid,
-      status,
-      search_time: searchTime,
-      accuracy,
-    });
-  } else if (searchTime >= 0) {
-    await knex("log").insert({ time: knex.fn.now(), uid, status, search_time: searchTime });
-  } else if (accuracy >= 0) {
-    await knex("log").insert({ time: knex.fn.now(), uid, status, accuracy });
-  } else {
-    await knex("log").insert({ time: knex.fn.now(), uid, status });
-  }
-  const concurrentCount = locals.searchConcurrent.get(uid) ?? 0;
-  if (concurrentCount <= 1) locals.searchConcurrent.delete(uid);
-  else locals.searchConcurrent.set(uid, concurrentCount - 1);
+  await sql`
+    INSERT INTO
+      logs (created, ip, user_id, code, search_time, accuracy)
+    VALUES
+      (
+        now(),
+        ${ip},
+        ${userId},
+        ${code},
+        ${searchTime < 0 ? null : searchTime},
+        ${accuracy < 0 ? null : accuracy}
+      )
+  `;
+
+  const concurrentCount = locals.searchConcurrent.get(userId ?? ip) ?? 0;
+  if (concurrentCount <= 1) locals.searchConcurrent.delete(userId ?? ip);
+  else locals.searchConcurrent.set(userId ?? ip, concurrentCount - 1);
 
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
@@ -140,48 +158,76 @@ const cutBorders = async (imageBuffer) => {
 
 export default async (req, res) => {
   const locals = req.app.locals;
-  const knex = req.app.locals.knex;
 
-  const rows = await knex("tier").select("concurrency", "quota", "priority").where("id", 0);
-  let quota = rows[0].quota;
-  let concurrency = rows[0].concurrency;
-  let priority = rows[0].priority;
-  let uid = req.ip;
+  const [defaultTier] = await sql`
+    SELECT
+      concurrency,
+      quota,
+      priority
+    FROM
+      tiers
+    WHERE
+      id = 0
+  `;
+  let quota = defaultTier.quota;
+  let quotaUsed = 0;
+  let concurrency = defaultTier.concurrency;
+  let priority = defaultTier.priority;
+  let userId = null;
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
-    const rows = await knex("user_view")
-      .select("id", "quota", "concurrency", "priority")
-      .where("api_key", apiKey);
-    if (rows.length === 0) {
+    const [user] = await sql`
+      SELECT
+        id,
+        quota,
+        quota_used,
+        concurrency,
+        priority
+      FROM
+        users_view
+      WHERE
+        api_key = ${apiKey}
+    `;
+    if (!user) {
       return res.status(403).json({
         error: "Invalid API key",
       });
     }
-    if (rows[0].id >= 1000) {
-      quota = rows[0].quota;
-      concurrency = rows[0].concurrency;
-      priority = rows[0].priority;
-      uid = rows[0].id;
+    if (user.id >= 1000) {
+      quota = user.quota;
+      quotaUsed = user.quota_used;
+      concurrency = user.concurrency;
+      priority = user.priority;
+      userId = user.id;
     } else {
       // system accounts
-      uid = req.query.uid ?? rows[0].id;
+      userId = req.query.uid ?? user.id;
     }
+  } else {
+    const [row] = await sql`
+      SELECT
+        used
+      FROM
+        quota
+      WHERE
+        ip = ${req.ip}
+    `;
+    quotaUsed = row?.used ?? 0;
   }
 
-  let searchCount = 0;
-  const searchCountCache = await knex("search_count").where({ uid: `${uid}` });
-  if (searchCountCache.length) searchCount = searchCountCache[0].count;
-
-  if (searchCount >= quota) {
-    await knex("log").insert({ time: knex.fn.now(), uid, status: 402 });
+  if (quotaUsed >= quota) {
+    await logAndDequeue(locals, req.ip, userId, priority, 402);
     return res.status(402).json({
       error: "Search quota depleted",
     });
   }
 
-  locals.searchConcurrent.set(uid, (locals.searchConcurrent.get(uid) ?? 0) + 1);
-  if (locals.searchConcurrent.get(uid) > concurrency) {
-    await logAndDequeue(locals, uid, priority, 402);
+  locals.searchConcurrent.set(
+    userId ?? req.ip,
+    (locals.searchConcurrent.get(userId ?? req.ip) ?? 0) + 1,
+  );
+  if (locals.searchConcurrent.get(userId ?? req.ip) > concurrency) {
+    await logAndDequeue(locals, req.ip, userId, priority, 402);
     return res.status(402).json({
       error: "Concurrency limit exceeded",
     });
@@ -191,7 +237,7 @@ export default async (req, res) => {
   const queueSize = locals.searchQueue.reduce((acc, cur, i) => (i >= priority ? acc + cur : 0), 0);
 
   if (queueSize > SEARCH_QUEUE) {
-    await logAndDequeue(locals, uid, priority, 503);
+    await logAndDequeue(locals, req.ip, userId, priority, 503);
     return res.status(503).json({
       error: `Error: Search queue is full`,
     });
@@ -203,7 +249,7 @@ export default async (req, res) => {
     try {
       new URL(req.query.url);
     } catch (e) {
-      await logAndDequeue(locals, uid, priority, 400);
+      await logAndDequeue(locals, req.ip, userId, priority, 400);
       return res.status(400).json({
         error: `Invalid image url ${req.query.url}`,
       });
@@ -228,7 +274,7 @@ export default async (req, res) => {
       return { status: 400 };
     });
     if (response.status >= 400) {
-      await logAndDequeue(locals, uid, priority, 400);
+      await logAndDequeue(locals, req.ip, userId, priority, 400);
       return res.status(response.status).json({
         error: `Failed to fetch image ${req.query.url}`,
       });
@@ -239,7 +285,7 @@ export default async (req, res) => {
   } else if (req.rawBody?.length) {
     searchFile = req.rawBody;
   } else {
-    await logAndDequeue(locals, uid, priority, 405);
+    await logAndDequeue(locals, req.ip, userId, priority, 405);
     return res.status(405).json({
       error: "Method Not Allowed",
     });
@@ -251,7 +297,7 @@ export default async (req, res) => {
     .catch(async () => await extractImageByFFmpeg(searchFile));
 
   if (!searchImagePNG.length) {
-    await logAndDequeue(locals, uid, priority, 400);
+    await logAndDequeue(locals, req.ip, userId, priority, 400);
     return res.status(400).json({
       error: "Failed to process image",
     });
@@ -268,14 +314,14 @@ export default async (req, res) => {
   try {
     solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
   } catch (e) {
-    await logAndDequeue(locals, uid, priority, 503);
+    await logAndDequeue(locals, req.ip, userId, priority, 503);
     return res.status(503).json({
       error: `Error: Database is not responding`,
     });
   }
   if (solrResponse.find((e) => e.status >= 500)) {
     const r = solrResponse.find((e) => e.status >= 500);
-    await logAndDequeue(locals, uid, priority, r.status);
+    await logAndDequeue(locals, req.ip, userId, priority, r.status);
     return res.status(r.status).json({
       error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
     });
@@ -290,7 +336,7 @@ export default async (req, res) => {
     solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
     if (solrResponse.find((e) => e.status >= 500)) {
       const r = solrResponse.find((e) => e.status >= 500);
-      await logAndDequeue(locals, uid, priority, r.status);
+      await logAndDequeue(locals, req.ip, userId, priority, r.status);
       return res.status(r.status).json({
         error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
       });
@@ -304,7 +350,7 @@ export default async (req, res) => {
 
   if (solrResults.find((e) => e.Error)) {
     console.log(solrResults.find((e) => e.Error));
-    await logAndDequeue(locals, uid, priority, 500);
+    await logAndDequeue(locals, req.ip, userId, priority, 500);
     return res.status(500).json({
       error: solrResults.find((e) => e.Error).Error,
     });
@@ -383,17 +429,29 @@ export default async (req, res) => {
   });
 
   if ("anilistInfo" in req.query) {
-    const anilist = await knex("anilist").whereIn(
-      "id",
-      result.map((e) => e.anilist),
-    );
+    const anilist = await sql`
+      SELECT
+        *
+      FROM
+        anilist
+      WHERE
+        id IN ${sql(result.map((e) => e.anilist))}
+    `;
     result = result.map((entry) => {
-      entry.anilist = JSON.parse(anilist.find((e) => e.id === entry.anilist).json);
+      entry.anilist = anilist.find((e) => e.id === entry.anilist).json;
       return entry;
     });
   }
 
-  await logAndDequeue(locals, uid, priority, 200, searchTime, result[0]?.similarity ?? 0);
+  await logAndDequeue(
+    locals,
+    req.ip,
+    userId,
+    priority,
+    200,
+    searchTime,
+    result[0]?.similarity ?? 0,
+  );
 
   res.json({
     frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),

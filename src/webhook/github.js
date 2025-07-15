@@ -3,8 +3,6 @@ import crypto from "node:crypto";
 const { WEBHOOK_GITHUB_SECRET } = process.env;
 
 export default async (req, res) => {
-  const knex = req.app.locals.knex;
-
   const signature = req.header("X-Hub-Signature-256");
   if (!signature || !req.rawBody) {
     res.status(403).send("403 Forbidden");
@@ -19,6 +17,11 @@ export default async (req, res) => {
     res.status(403).send("403 Forbidden");
     return;
   }
-  await knex("webhook").insert({ type: "github", json: req.rawBody });
+  await sql`
+    INSERT INTO
+      webhook (type, json)
+    VALUES
+      ('github', ${req.rawBody})
+  `;
   res.json({});
 };

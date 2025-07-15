@@ -1,15 +1,24 @@
 import RSS from "rss";
+import sql from "../sql.js";
 
 export default async (req, res) => {
-  const knex = req.app.locals.knex;
-
   const { offset = 0, limit = 100 } = req.query;
 
-  const rows = await knex("file")
-    .where("status", "LOADED")
-    .orderBy("updated", "desc")
-    .offset(Number(offset) >= 0 ? Number(offset) : 0)
-    .limit(Number(limit) > 0 ? (Number(limit) <= 1000 ? Number(limit) : 1000) : 100);
+  const rows = await sql`
+    SELECT
+      *
+    FROM
+      files
+    WHERE
+      status = 'LOADED'
+    ORDER BY
+      updated DESC
+    OFFSET
+      ${Number(offset) >= 0 ? Number(offset) : 0}
+    LIMIT
+      ${Number(limit) > 0 ? (Number(limit) <= 1000 ? Number(limit) : 1000) : 100}
+  `;
+
   const feed = new RSS({
     title: "trace.moe Hash Feeds",
     feed_url: "https://api.trace.moe/rss.xml",
