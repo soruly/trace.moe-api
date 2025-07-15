@@ -1,4 +1,5 @@
 import { Worker } from "node:worker_threads";
+import sql from "../../sql.js";
 import getSolrCoreList from "../lib/get-solr-core-list.js";
 
 const { SOLA_SOLR_LIST, MAX_WORKER = 1 } = process.env;
@@ -29,45 +30,42 @@ const getLeastPopulatedCore = async () =>
     .flat()
     .sort((a, b) => a.numDocs - b.numDocs)[0].name;
 
+// NEW => ANALYZING => ANALYZED => HASHING => HASHED => LOADING => LOADED
 export default async (app) => {
-  const knex = app.locals.knex;
   const createWorker = async () => {
     while (app.locals.mutex) await new Promise((resolve) => setTimeout(resolve, 0));
     app.locals.mutex = true;
 
-    const [row] = await knex("file")
-      .whereIn("status", ["UPLOADED", "ANALYZED", "HASHED"])
-      .select("path", "status")
-      .orderBy("status", "desc")
-      .limit(1);
+    const [row] =
+      await sql`SELECT path, status FROM files WHERE status IN ('NEW', 'ANALYZED', 'HASHED') ORDER BY created DESC LIMIT 1`;
 
     if (!row) {
       app.locals.workerCount--;
-    } else if (row.status === "UPLOADED") {
-      await knex("file").where("path", row.path).update({ status: "ANALYZING" });
+    } else if (row.status === "NEW") {
+      await sql`UPDATE files SET status='ANALYZING', updated=now() WHERE path=${row.path}`;
       const worker = new Worker("./src/worker/analyze.js", {
         workerData: { filePath: row.path },
       });
       worker.on("message", (message) => console.log(message));
       worker.on("error", (error) => console.error(error));
       worker.on("exit", async (code) => {
-        if (!code) await knex("file").where("path", row.path).update({ status: "ANALYZED" });
+        await sql`UPDATE files SET status='ANALYZED', updated=now() WHERE path=${row.path}`;
         await createWorker();
       });
     } else if (row.status === "ANALYZED") {
-      await knex("file").where("path", row.path).update({ status: "HASHING" });
+      await sql`UPDATE files SET status='HASHING', updated=now() WHERE path=${row.path}`;
       const worker = new Worker("./src/worker/hash.js", {
         workerData: { filePath: row.path },
       });
       worker.on("message", (message) => console.log(message));
       worker.on("error", (error) => console.error(error));
       worker.on("exit", async (code) => {
-        if (!code) await knex("file").where("path", row.path).update({ status: "HASHED" });
+        await sql`UPDATE files SET status='HASHED', updated=now() WHERE path=${row.path}`;
         await createWorker();
       });
     } else if (row.status === "HASHED") {
-      const size = (await knex("file").where("status", "HASHED").count())[0]["count(*)"];
-      await knex("file").where("path", row.path).update({ status: "LOADING" });
+      const size = (await sql`SELECT COUNT(*) AS count FROM files WHERE status='HASHED'`)[0].count;
+      await sql`UPDATE files SET status='LOADING', updated=now() WHERE path=${row.path}`;
       const worker = new Worker("./src/worker/load.js", {
         workerData: {
           filePath: row.path,
@@ -80,15 +78,16 @@ export default async (app) => {
       worker.on("message", (message) => console.log(message));
       worker.on("error", (error) => console.error(error));
       worker.on("exit", async (code) => {
-        if (!code) await knex("file").where("path", row.path).update({ status: "LOADED" });
+        await sql`UPDATE files SET status='LOADED', updated=now() WHERE path=${row.path}`;
         await createWorker();
       });
     }
     app.locals.mutex = false;
   };
+
   const unprocessed = (
-    await knex("file").whereIn("status", ["UPLOADED", "ANALYZED", "HASHED"]).count()
-  )[0]["count(*)"];
+    await sql`SELECT COUNT(*) AS count FROM files WHERE status IN ('NEW', 'ANALYZED', 'HASHED')`
+  )[0].count;
   while (app.locals.workerCount < Math.min(unprocessed, Number(MAX_WORKER))) {
     app.locals.workerCount++;
     await createWorker();

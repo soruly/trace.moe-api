@@ -1,23 +1,10 @@
-import "dotenv/config";
 import path from "node:path";
 import fs from "node:fs/promises";
 import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
-import Knex from "knex";
+import sql from "../../sql.js";
 
-const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME, VIDEO_PATH } =
-  process.env;
-
-const knex = Knex({
-  client: "mysql",
-  connection: {
-    host: SOLA_DB_HOST,
-    port: SOLA_DB_PORT,
-    user: SOLA_DB_USER,
-    password: SOLA_DB_PWD,
-    database: SOLA_DB_NAME,
-  },
-});
+const { VIDEO_PATH } = process.env;
 
 const { filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Analyzing ${filePath}`);
@@ -32,20 +19,18 @@ try {
 
 const start = performance.now();
 
-const { stdout: videoLength } = child_process.spawnSync("ffprobe", [
+const { stdout, stderr } = child_process.spawnSync("ffprobe", [
   "-v",
   "error",
-  "-show_entries",
-  "format=duration",
-  "-of",
-  "default=noprint_wrappers=1:nokey=1",
+  "-show_format",
+  "-show_streams",
+  "-print_format",
+  "json=compact=1",
   videoFilePath,
 ]);
-
-if (Number(videoLength)) {
-  await knex("file")
-    .where("path", filePath)
-    .update({ duration: Number(videoLength) });
+if (stderr.length) console.log(stderr.toString());
+if (stdout.length) {
+  await sql`UPDATE files SET media_info=${JSON.parse(stdout)}, updated=now() WHERE path=${filePath}`;
 }
 
 const sceneList = await new Promise((resolve) => {
@@ -78,11 +63,9 @@ const sceneList = await new Promise((resolve) => {
   });
 });
 
-await knex("file")
-  .where("path", filePath)
-  .update({ scene: JSON.stringify(sceneList) });
+await sql`UPDATE files SET scene_changes=${sceneList}, updated=now() WHERE path=${filePath}`;
 
-await knex.destroy();
+await sql.end();
 
 parentPort.postMessage(
   `[${threadId}] Analyzed ${filePath} in ${(performance.now() - start).toFixed(0)} ms`,

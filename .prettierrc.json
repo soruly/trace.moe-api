@@ -1,4 +1,5 @@
 {
-  "plugins": ["prettier-plugin-sql"],
+  "plugins": ["prettier-plugin-sql", "prettier-plugin-embed"],
+  "language": "postgresql",
   "printWidth": 100
 }

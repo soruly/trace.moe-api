@@ -1,20 +1,6 @@
-import "dotenv/config";
-import Knex from "knex";
+import sql from "../sql.js";
 
-const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
-
-const knex = Knex({
-  client: "mysql",
-  connection: {
-    host: SOLA_DB_HOST,
-    port: SOLA_DB_PORT,
-    user: SOLA_DB_USER,
-    password: SOLA_DB_PWD,
-    database: SOLA_DB_NAME,
-  },
-});
-
-const rows = await knex("webhook").select("*").where("type", "patreon").limit(1);
+const rows = await sql`SELECT * FROM webhook WHERE source='PATREON' LIMIT 1`;
 for (const row of rows) {
   const {
     data: {
@@ -32,20 +18,21 @@ for (const row of rows) {
       .map((e) => e.id)[0];
     if (rewardTierID) {
       const tier = (
-        await knex("tier").select("id").where("patreon_id", Number(rewardTierID)).limit(1)
+        await sql`SELECT id FROM tier WHERE patreon_id=${Number(rewardTierID)} LIMIT 1`
       )[0].id;
-      const rows = await knex("user").select("*").where("email", email).limit(1);
+      console.log(tier);
+      const rows = await sql`SELECT * FROM user WHERE email=${email} LIMIT 1`;
       if (!rows.length) {
         console.log("new", email);
         // await createNewUser(email, tier, false, full_name);
       } else {
         console.log("changed", email);
-        // await knex("user").where("email", email).update({ tier });
+        // await sql`UPDATE user SET tier=${tier} WHERE email=${email}`;
       }
     }
   } else if (patron_status === "declined_patron") {
     console.log("declined", email);
-    // await knex("user").where("email", email).update({ tier: 0 });
+    // await sql`UPDATE user SET tier=0 WHERE email=${email}`;
   }
 }
-knex.destroy();
+await sql.end();

@@ -1,27 +1,31 @@
 services:
-  mariadb:
-    image: mariadb:latest
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    ports:
+      - ${DB_PORT}:5432
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:latest
     restart: unless-stopped
     environment:
-      - MARIADB_ROOT_PASSWORD=${SOLA_DB_PWD}
+      - ADMINER_DEFAULT_SERVER=postgres
     ports:
-      - ${SOLA_DB_PORT}:3306
-    networks:
-      trace_moe_net:
+      - 8080:8080
 
   liresolr:
     image: ghcr.io/soruly/liresolr:latest
     command: solr-precreate cl_0 /opt/solr/server/solr/configsets/liresolr
     restart: unless-stopped
     ports:
-      - 18983:8983
+      - 8983:8983
     volumes:
-      - type: bind
-        source: /var/solr
-        target: /var/solr
-    networks:
-      trace_moe_net:
+      - liresolr:/var/solr
 
-networks:
-  trace_moe_net:
-    driver: bridge
+volumes:
+  postgres:
+  liresolr:

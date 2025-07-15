@@ -1,4 +1,4 @@
-import "dotenv/config";
+process.loadEnvFile();
 
 const { SOLA_SOLR_LIST } = process.env;
 

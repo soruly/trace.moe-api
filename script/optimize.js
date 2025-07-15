@@ -1,4 +1,4 @@
-import "dotenv/config";
+process.loadEnvFile();
 import getSolrCoreList from "../src/lib/get-solr-core-list.js";
 
 for (const coreURLs of getSolrCoreList().reduce(

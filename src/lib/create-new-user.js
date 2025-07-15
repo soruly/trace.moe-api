@@ -3,15 +3,16 @@ import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import { URL } from "node:url";
 import nodemailer from "nodemailer";
+import sql from "../../sql.js";
 import generateAPIKey from "./generate-api-key.js";
 
-const { SOLA_DB_NAME, TRACE_API_SALT, EMAIL_SMTP, EMAIL_SMTP_PORT } = process.env;
+const { TRACE_API_SALT, EMAIL_SMTP, EMAIL_SMTP_PORT } = process.env;
 let { EMAIL_USER, EMAIL_PASS, EMAIL_FROM } = process.env;
 
 const __filename = new URL("", import.meta.url).pathname;
 const __dirname = new URL(".", import.meta.url).pathname;
 
-export default async (knex, email, tier, full_name = "") => {
+export default async (email, tier, full_name = "") => {
   if (!email) {
     return "Error: email cannot be empty";
   }
@@ -21,11 +22,11 @@ export default async (knex, email, tier, full_name = "") => {
   if (!tier) {
     return "Error: tier cannot be empty";
   }
-  const rows = await knex("tier").where("id", tier);
+  const rows = await sql`SELECT * FROM tiers WHERE id=${tier}`;
   if (!rows.length) {
     return "Error: invalid tier number";
   }
-  const users = await knex("user").where("email", email);
+  const users = await sql`SELECT * FROM users WHERE email=${email}`;
   if (users.length) {
     return "Error: user already exists";
   }
@@ -34,17 +35,9 @@ export default async (knex, email, tier, full_name = "") => {
     .randomBytes(16)
     .toString("base64")
     .replace(/[^0-9a-zA-Z]/g, "");
-  const autoIncrement = (
-    await knex.raw(
-      `SELECT AUTO_INCREMENT FROM information_schema.tables WHERE table_name = 'user' and table_schema = '${SOLA_DB_NAME}';`,
-    )
-  )[0][0].AUTO_INCREMENT;
-  await knex("user").insert({
-    email,
-    password: crypto.scryptSync(plainPassword, TRACE_API_SALT, 64).toString("base64"),
-    api_key: generateAPIKey(autoIncrement),
-    tier,
-  });
+  const [{ id }] =
+    await sql`INSERT INTO users (tier, email, password, api_key) VALUES (${tier}, ${email}, ${crypto.scryptSync(plainPassword, TRACE_API_SALT, 64).toString("base64")}, ${generateAPIKey(0)}) RETURNING id`;
+  await sql`UPDATE users SET api_key=${generateAPIKey(id)} WHERE id=${id}`;
 
   if (EMAIL_SMTP === "smtp.ethereal.email") {
     const account = await nodemailer.createTestAccount();

@@ -1,7 +1,8 @@
+import sql from "../sql.js";
+
 const { SOLA_SOLR_LIST } = process.env;
 
 export default async (req, res) => {
-  const knex = req.app.locals.knex;
   const { id } = req.query;
   if (id) {
     if (!id.match(/\d+/)) {
@@ -9,10 +10,9 @@ export default async (req, res) => {
         error: "Invalid param id: must be a number",
       });
     }
-    const rows = await knex("file")
-      .where("path", "like", `${id}/%`)
-      .select("path", "status", "created");
-    return res.json(rows);
+    return res.json(
+      await sql`SELECT path, status, created FROM files WHERE path LIKE  ${id + "/%"}`,
+    );
   }
 
   try {

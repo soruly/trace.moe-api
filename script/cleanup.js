@@ -1,30 +1,9 @@
-import "dotenv/config";
 import path from "node:path";
 import fs from "node:fs/promises";
-import Knex from "knex";
+import sql from "../sql.js";
 import getSolrCoreList from "../src/lib/get-solr-core-list.js";
 
-const {
-  SOLA_DB_HOST,
-  SOLA_DB_PORT,
-  SOLA_DB_USER,
-  SOLA_DB_PWD,
-  SOLA_DB_NAME,
-  HASH_PATH,
-  VIDEO_PATH,
-  SOLA_SOLR_LIST,
-} = process.env;
-
-const knex = Knex({
-  client: "mysql",
-  connection: {
-    host: SOLA_DB_HOST,
-    port: SOLA_DB_PORT,
-    user: SOLA_DB_USER,
-    password: SOLA_DB_PWD,
-    database: SOLA_DB_NAME,
-  },
-});
+const { HASH_PATH, VIDEO_PATH, SOLA_SOLR_LIST } = process.env;
 
 const unload = (relativePath, coreList) =>
   new Promise(async (resolve, reject) => {
@@ -55,32 +34,32 @@ console.log(
 );
 
 console.log("Checking invalid states");
-const rows = await knex("file").select("path", "status");
+const rows = await sql`SELECT path, status FROM file`;
 
-for (const row of rows) {
-  if (["HASHED", "LOADING", "LOADED"].includes(row.status)) {
+for (const { status, path } of rows) {
+  if (["HASHED", "LOADING", "LOADED"].includes(status)) {
     try {
-      await fs.access(path.join(HASH_PATH, `${row.path}.xml.xz`));
+      await fs.access(path.join(HASH_PATH, `${path}.xml.xz`));
     } catch {
-      console.log(`Hash not found: ${row.path}`);
+      console.log(`Hash not found: ${path}`);
     }
   }
-  const mp4FilePath = path.join(VIDEO_PATH, row.path);
-  const hashFilePath = path.join(HASH_PATH, `${row.path}.xml.xz`);
+  const mp4FilePath = path.join(VIDEO_PATH, path);
+  const hashFilePath = path.join(HASH_PATH, `${path}.xml.xz`);
   try {
     await fs.access(mp4FilePath);
   } catch {
     console.log(`Found ${mp4FilePath} deleted`);
-    await unload(row.path, coreList);
+    await unload(path, coreList);
     try {
       await fs.access(hashFilePath);
       console.log(`Deleting ${hashFilePath}`);
       await fs.rm(hashFilePath);
     } catch {}
-    await knex("file").where("path", row.path).del();
+    await sql`DELETE FROM file WHERE path=${path}`;
   }
 }
 
-await knex.destroy();
+await sql.end();
 
 console.log("Completed");

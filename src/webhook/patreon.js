@@ -1,11 +1,10 @@
 import crypto from "node:crypto";
+import sql from "../../sql.js";
 import createNewUser from "../lib/create-new-user.js";
 
 const { WEBHOOK_PATREON_SECRET } = process.env;
 
 export default async (req, res) => {
-  const knex = req.app.locals.knex;
-
   const signature = req.header("X-Patreon-Signature");
   if (!signature || !req.rawBody) {
     res.status(403).send("403 Forbidden");
@@ -20,7 +19,7 @@ export default async (req, res) => {
     res.status(403).send("403 Forbidden");
     return;
   }
-  await knex("webhook").insert({ type: "patreon", json: req.rawBody });
+  await sql`INSERT INTO webhook (type, json) VALUES ('patreon', ${req.rawBody})`;
 
   const {
     data: {
@@ -36,20 +35,20 @@ export default async (req, res) => {
       .map((e) => e.id)[0];
     if (rewardTierID) {
       const tier = (
-        await knex("tier").select("id").where("patreon_id", Number(rewardTierID)).limit(1)
+        await sql`SELECT id FROM tier WHERE patreon_id=${Number(rewardTierID)} LIMIT 1`
       )[0].id;
-      const rows = await knex("user").select("*").where("email", email).limit(1);
+      const rows = await sql`SELECT * FROM user WHERE email=${email} LIMIT 1`;
       if (!rows.length) {
-        const result = await createNewUser(knex, email, tier, full_name);
+        const result = await createNewUser(email, tier, full_name);
         console.log(result);
       } else {
-        await knex("user").where("email", email).update({ tier });
+        await sql`UPDATE user SET tier=${tier} WHERE email=${email}`;
       }
     }
   } else if (email && patron_status === "declined_patron") {
-    const rows = await knex("user").select("*").where("email", email).limit(1);
+    const rows = await sql`SELECT * FROM user WHERE email=${email} LIMIT 1`;
     if (rows.length) {
-      await knex("user").where("email", email).update({ tier: 0 });
+      await sql`UPDATE user SET tier=0 WHERE email=${email}`;
     }
   }
 

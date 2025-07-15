@@ -1,24 +1,21 @@
-import getVideoDuration from "./get-video-duration.js";
+import sql from "../../sql.js";
 
 const { VIDEO_PATH } = process.env;
 
-export default async (filePath, t, minDuration, maxDuration, knex) => {
+export default async (filePath, t, minDuration, maxDuration) => {
   if (t < 0) {
     return null;
   }
 
-  const videoDuration = await getVideoDuration(filePath, knex);
-  if (videoDuration === null || t > videoDuration) {
+  const [file] =
+    await sql`SELECT duration, scene_changes FROM files WHERE path=${filePath.replace(VIDEO_PATH, "")} LIMIT 1`;
+
+  if (!file || file.duration <= 0 || t > file.duration) {
     return null;
   }
 
-  const rows = await knex("file")
-    .where("path", filePath.replace(VIDEO_PATH, ""))
-    .select("scene")
-    .first();
-
-  if (rows?.scene) {
-    const boundaryList = [[0, 1], ...JSON.parse(rows.scene), [videoDuration, 1]];
+  if (file.scene_changes) {
+    const boundaryList = [[0, 1], ...file.scene_changes, [file.duration, 1]];
 
     // merge scenes shorter than minDuration
     let prevThreshold = Infinity;
@@ -58,8 +55,8 @@ export default async (filePath, t, minDuration, maxDuration, knex) => {
       if (start <= t && t <= end) {
         return {
           start: Math.max(0, t - start > maxDuration ? t - maxDuration : start),
-          end: Math.min(end - t > maxDuration ? t + maxDuration : end, videoDuration),
-          duration: videoDuration,
+          end: Math.min(end - t > maxDuration ? t + maxDuration : end, file.duration),
+          duration: file.duration,
         };
       }
     }
@@ -68,7 +65,7 @@ export default async (filePath, t, minDuration, maxDuration, knex) => {
   // fallback to fixed scene cutting
   return {
     start: Math.max(0, t - minDuration),
-    end: Math.min(t + minDuration, videoDuration),
-    duration: videoDuration,
+    end: Math.min(t + minDuration, file.duration),
+    duration: file.duration,
   };
 };

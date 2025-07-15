@@ -1,21 +1,6 @@
-import "dotenv/config";
 import fs from "node:fs/promises";
 import path from "node:path";
-import Knex from "knex";
-
-const { SOLA_DB_HOST, SOLA_DB_PORT, SOLA_DB_USER, SOLA_DB_PWD, SOLA_DB_NAME } = process.env;
-
-const knex = Knex({
-  client: "mysql",
-  connection: {
-    host: SOLA_DB_HOST,
-    port: SOLA_DB_PORT,
-    user: SOLA_DB_USER,
-    password: SOLA_DB_PWD,
-    database: SOLA_DB_NAME,
-    charset: "utf8mb4",
-  },
-});
+import sql from "../sql.js";
 
 const q = {};
 q.query = await fs.readFile(path.join(import.meta.dirname, "anilist.graphql"), "utf8");
@@ -39,6 +24,9 @@ const submitQuery = async (query, variables) => {
       const delay = Number(res.headers.get("retry-after")) || 1;
       console.log(`Rate limit reached, retry after ${delay} seconds`);
       await new Promise((resolve) => setTimeout(resolve, delay * 1000));
+    } else if (res.status >= 500) {
+      console.log(`Server side HTTP ${res.status} error, retry after 5 seconds`);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     } else {
       console.log(res);
       return null;
@@ -53,18 +41,28 @@ const save = async (anime) => {
     anime.title.chinese = chinese.title;
     anime.synonyms_chinese = chinese.synonyms;
   }
-  await knex("anilist").where("id", anime.id).del();
-  await knex("anilist").insert({
-    id: anime.id,
-    json: JSON.stringify(anime),
-  });
+  await sql`
+    DELETE FROM anilist 
+    WHERE
+      id = ${Number(anime.id)}
+  `;
+  await sql`
+    INSERT INTO
+      anilist (id, updated, json)
+    VALUES
+      (
+        ${Number(anime.id)},
+        now(),
+        ${anime}
+      )
+  `;
 };
 
 const [arg, value] = process.argv.slice(2);
 
 if (process.argv.slice(2).includes("--clean")) {
   console.log("Truncating database table anilist");
-  await knex.truncate("anilist");
+  await sql`TRUNCATE TABLE anilist`;
   console.log("Truncated database table anilist");
 }
 
@@ -100,4 +98,4 @@ if (arg === "--anime" && value) {
   console.log("       node anilist.js --page 1-2");
 }
 
-await knex.destroy();
+await sql.end();

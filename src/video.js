@@ -79,23 +79,7 @@ const generateVideoPreview = async (filePath, start, end, size = "m", mute = fal
     });
   });
 
-const logView = async (knex, filePath, scene, size, t, muted) => {
-  const fileIdResult = await knex("file").select("id").where("path", filePath).first();
-
-  await knex("scene_view_log").insert({
-    time: knex.fn.now(),
-    file_id: fileIdResult?.id ?? null,
-    start: scene.start,
-    end: scene.end,
-    duration: scene.duration,
-    size: size,
-    time_code: t,
-    muted: muted,
-  });
-};
-
 export default async (req, res) => {
-  const knex = req.app.locals.knex;
   if (
     req.query.token !==
     crypto
@@ -142,7 +126,6 @@ export default async (req, res) => {
       t,
       Math.min(Math.max(Number(req.query.minDuration) || 0, 0.5), 2), // default: 0.5s before and after t, range: 0.5s ~ 2.0s
       Math.min(Math.max(Number(req.query.maxDuration) || 5, 0.5), 5), // default: 5.0s before and after t, range: 0.5s ~ 5.0s
-      knex,
     );
     if (scene === null) {
       return res.status(500).send("Internal Server Error");
@@ -150,8 +133,6 @@ export default async (req, res) => {
 
     const muted = "mute" in req.query;
     const video = await generateVideoPreview(videoFilePath, scene.start, scene.end, size, muted);
-
-    logView(knex, fileFile, scene, size, t, muted);
 
     res.set("Content-Type", "video/mp4");
     res.set("x-video-start", scene.start);
