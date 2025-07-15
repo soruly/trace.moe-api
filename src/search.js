@@ -120,40 +120,49 @@ const extractImageByFFmpeg = async (searchFile) => {
 };
 
 const cutBorders = async (imageBuffer) => {
-  const { width, height } = await sharp(imageBuffer).metadata();
-  const { info } = await sharp(imageBuffer) // detect borders
-    .trim({ background: "black", threshold: 20 })
+  // normalize brightness -> blur away UI controls -> trim with certain dark threshold
+  const { info } = await sharp(await sharp(imageBuffer).normalize().dilate(2).toBuffer())
+    .trim({ background: "black", threshold: 30 })
     .toBuffer({ resolveWithObject: true });
 
   const trimmedTop = Math.abs(info.trimOffsetTop);
-  const trimmedBottom = height - info.height - trimmedTop;
-  const borderHeight = Math.max(trimmedTop, trimmedBottom);
+  const trimmedLeft = Math.abs(info.trimOffsetLeft);
   const newWidth = info.width;
-  const newHeight = height - borderHeight * 2;
-  // cut top and bottom equally using the thickest border
-  // cut left and right as detected
-  if (width / height < 1.78 && newWidth / newHeight > 2.3) {
-    // if the original image is taller than 16:9 and new image is 21:9 wide
+  const newHeight = info.height;
+  if (
+    Math.abs(newWidth / newHeight - 16 / 9) < 0.05 ||
+    Math.abs(newWidth / newHeight - 4 / 3) < 0.05
+  ) {
+    // if detected area is near 16:9 or 4:3, crop as detected
     return await sharp(imageBuffer)
       .extract({
-        left: Math.abs(info.trimOffsetLeft),
-        top: borderHeight,
+        left: trimmedLeft,
+        top: trimmedTop,
         width: newWidth,
         height: newHeight,
       })
-      .resize({ width: 320, height: 180, fit: "contain" }) // fill it back to 16:9
       .jpeg()
       .toBuffer();
+  } else if (Math.abs(newWidth / newHeight - 21 / 9) < 0.1) {
+    // if detected area is near 21:9
+    const { width, height } = await sharp(imageBuffer).metadata();
+    if ((width - newWidth) / width > 0.05 || (height - newHeight) / height > 0.05) {
+      // and detected area is smaller than original, crop and fill it back to 16:9
+      return await sharp(imageBuffer)
+        .extract({
+          left: trimmedLeft,
+          top: trimmedTop,
+          width: newWidth,
+          height: newHeight,
+        })
+        .resize({ width: 320, height: 180, fit: "contain" })
+        .jpeg()
+        .toBuffer();
+    }
   }
-  return await sharp(imageBuffer)
-    .extract({
-      left: Math.abs(info.trimOffsetLeft),
-      top: borderHeight,
-      width: newWidth,
-      height: newHeight,
-    })
-    .jpeg()
-    .toBuffer();
+  // if detected area is not standard aspect ratio, do no crop
+  // if detected area is 21:9 and original is also 21:9, do no crop
+  return imageBuffer;
 };
 
 export default async (req, res) => {
