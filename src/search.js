@@ -40,6 +40,7 @@ const logAndDequeue = async (
   locals,
   ip,
   userId = null,
+  concurrentId,
   priority,
   code,
   searchTime = null,
@@ -83,9 +84,9 @@ const logAndDequeue = async (
       )
   `;
 
-  const concurrentCount = locals.searchConcurrent.get(userId ?? ip) ?? 0;
-  if (concurrentCount <= 1) locals.searchConcurrent.delete(userId ?? ip);
-  else locals.searchConcurrent.set(userId ?? ip, concurrentCount - 1);
+  const concurrentCount = locals.searchConcurrent.get(concurrentId) ?? 0;
+  if (concurrentCount <= 1) locals.searchConcurrent.delete(concurrentId);
+  else locals.searchConcurrent.set(concurrentId, concurrentCount - 1);
 
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
@@ -202,16 +203,11 @@ export default async (req, res) => {
         error: "Invalid API key",
       });
     }
-    if (user.id >= 1000) {
-      quota = user.quota;
-      quotaUsed = user.quota_used;
-      concurrency = user.concurrency;
-      priority = user.priority;
-      userId = user.id;
-    } else {
-      // system accounts
-      userId = req.query.uid ?? user.id;
-    }
+    quota = user.quota;
+    quotaUsed = user.quota_used;
+    concurrency = user.concurrency;
+    priority = user.priority;
+    userId = user.id;
   } else {
     const [row] = await sql`
       SELECT
@@ -231,18 +227,28 @@ export default async (req, res) => {
   }
 
   if (quotaUsed >= quota) {
-    await logAndDequeue(locals, req.ip, userId, priority, 402);
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
     return res.status(402).json({
       error: "Search quota depleted",
     });
   }
 
-  locals.searchConcurrent.set(
-    userId ?? req.ip,
-    (locals.searchConcurrent.get(userId ?? req.ip) ?? 0) + 1,
-  );
-  if (locals.searchConcurrent.get(userId ?? req.ip) > concurrency) {
-    await logAndDequeue(locals, req.ip, userId, priority, 402);
+  const concurrentId =
+    userId ??
+    (
+      await sql`
+        SELECT
+          CASE
+            WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
+            ELSE set_masklen(${req.ip}::cidr, 32)
+          END AS network
+      `
+    )[0]?.network ??
+    req.ip;
+
+  locals.searchConcurrent.set(concurrentId, (locals.searchConcurrent.get(concurrentId) ?? 0) + 1);
+  if (locals.searchConcurrent.get(concurrentId) > concurrency) {
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
     return res.status(402).json({
       error: "Concurrency limit exceeded",
     });
@@ -252,7 +258,7 @@ export default async (req, res) => {
   const queueSize = locals.searchQueue.reduce((acc, cur, i) => (i >= priority ? acc + cur : 0), 0);
 
   if (queueSize > SEARCH_QUEUE) {
-    await logAndDequeue(locals, req.ip, userId, priority, 503);
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 503);
     return res.status(503).json({
       error: `Error: Search queue is full`,
     });
@@ -264,7 +270,7 @@ export default async (req, res) => {
     try {
       new URL(req.query.url);
     } catch (e) {
-      await logAndDequeue(locals, req.ip, userId, priority, 400);
+      await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
       return res.status(400).json({
         error: `Invalid image url ${req.query.url}`,
       });
@@ -289,7 +295,7 @@ export default async (req, res) => {
       return { status: 400 };
     });
     if (response.status >= 400) {
-      await logAndDequeue(locals, req.ip, userId, priority, 400);
+      await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
       return res.status(response.status).json({
         error: `Failed to fetch image ${req.query.url}`,
       });
@@ -300,7 +306,7 @@ export default async (req, res) => {
   } else if (req.rawBody?.length) {
     searchFile = req.rawBody;
   } else {
-    await logAndDequeue(locals, req.ip, userId, priority, 405);
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 405);
     return res.status(405).json({
       error: "Method Not Allowed",
     });
@@ -312,7 +318,7 @@ export default async (req, res) => {
     .catch(async () => await extractImageByFFmpeg(searchFile));
 
   if (!searchImagePNG.length) {
-    await logAndDequeue(locals, req.ip, userId, priority, 400);
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
     return res.status(400).json({
       error: "Failed to process image",
     });
@@ -329,14 +335,14 @@ export default async (req, res) => {
   try {
     solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
   } catch (e) {
-    await logAndDequeue(locals, req.ip, userId, priority, 503);
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 503);
     return res.status(503).json({
       error: `Error: Database is not responding`,
     });
   }
   if (solrResponse.find((e) => e.status >= 500)) {
     const r = solrResponse.find((e) => e.status >= 500);
-    await logAndDequeue(locals, req.ip, userId, priority, r.status);
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, r.status);
     return res.status(r.status).json({
       error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
     });
@@ -351,7 +357,7 @@ export default async (req, res) => {
     solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
     if (solrResponse.find((e) => e.status >= 500)) {
       const r = solrResponse.find((e) => e.status >= 500);
-      await logAndDequeue(locals, req.ip, userId, priority, r.status);
+      await logAndDequeue(locals, req.ip, userId, concurrentId, priority, r.status);
       return res.status(r.status).json({
         error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
       });
@@ -365,7 +371,7 @@ export default async (req, res) => {
 
   if (solrResults.find((e) => e.Error)) {
     console.log(solrResults.find((e) => e.Error));
-    await logAndDequeue(locals, req.ip, userId, priority, 500);
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 500);
     return res.status(500).json({
       error: solrResults.find((e) => e.Error).Error,
     });
@@ -462,6 +468,7 @@ export default async (req, res) => {
     locals,
     req.ip,
     userId,
+    concurrentId,
     priority,
     200,
     searchTime,
