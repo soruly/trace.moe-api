@@ -135,5 +135,15 @@ CREATE TABLE IF NOT EXISTS webhook (
 
 CREATE TABLE IF NOT EXISTS quota (
   ip inet PRIMARY KEY,
+  network inet GENERATED ALWAYS AS (
+    CASE
+      WHEN family(ip) = 6 THEN set_masklen(ip::cidr, 56)
+      ELSE set_masklen(ip::cidr, 32)
+    END
+  ) STORED,
   used integer NOT NULL DEFAULT 0
 );
+
+CREATE INDEX ON quota (ip);
+
+CREATE INDEX ON quota (network);

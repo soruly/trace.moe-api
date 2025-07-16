@@ -1,11 +1,11 @@
 import sql from "../sql.js";
 
 export default async (req, res) => {
-  let email = "";
   let priority = 0;
   let concurrency = 0;
   let quota = 0;
   let quotaUsed = 0;
+  let id = req.ip;
 
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
@@ -28,7 +28,7 @@ export default async (req, res) => {
         error: "Invalid API key",
       });
     } else {
-      email = user.email;
+      id = user.email;
       priority = user.priority;
       concurrency = user.concurrency;
       quota = user.quota;
@@ -48,20 +48,37 @@ export default async (req, res) => {
     priority = defaultTier.priority;
     concurrency = defaultTier.concurrency;
     quota = defaultTier.quota;
-
     const [row] = await sql`
       SELECT
-        used
+        network,
+        SUM(used) AS used
       FROM
         quota
       WHERE
-        ip = ${req.ip}
+        network = CASE
+          WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
+          ELSE set_masklen(${req.ip}::cidr, 32)
+        END
+      GROUP BY
+        network
     `;
-    quotaUsed = row?.used ?? 0;
+    if (row) {
+      id = row.network;
+      quotaUsed = row.used;
+    } else {
+      const [row] = await sql`
+        SELECT
+          CASE
+            WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
+            ELSE set_masklen(${req.ip}::cidr, 32)
+          END AS network
+      `;
+      id = row.network;
+    }
   }
 
   res.json({
-    id: apiKey ? email : req.ip,
+    id,
     priority,
     concurrency,
     quota,

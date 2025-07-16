@@ -215,11 +215,17 @@ export default async (req, res) => {
   } else {
     const [row] = await sql`
       SELECT
-        used
+        network,
+        SUM(used) AS used
       FROM
         quota
       WHERE
-        ip = ${req.ip}
+        network = CASE
+          WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
+          ELSE set_masklen(${req.ip}::cidr, 32)
+        END
+      GROUP BY
+        network
     `;
     quotaUsed = row?.used ?? 0;
   }
