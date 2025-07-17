@@ -21,9 +21,9 @@ export default async (req, res) => {
   }
   await sql`
     INSERT INTO
-      webhook (type, json)
+      webhook (source, json)
     VALUES
-      ('patreon', ${req.rawBody})
+      ('PATREON', ${JSON.parse(req.rawBody)})
   `;
 
   const {
@@ -44,7 +44,7 @@ export default async (req, res) => {
           SELECT
             id
           FROM
-            tier
+            tiers
           WHERE
             patreon_id = ${Number(rewardTierID)}
           LIMIT
@@ -55,7 +55,7 @@ export default async (req, res) => {
         SELECT
           *
         FROM
-          user
+          users
         WHERE
           email = ${email}
         LIMIT
@@ -66,11 +66,13 @@ export default async (req, res) => {
         console.log(result);
       } else {
         await sql`
-          UPDATE user
+          UPDATE users
           SET
             tier = ${tier}
           WHERE
             email = ${email}
+          LIMIT
+            1
         `;
       }
     }
@@ -79,7 +81,7 @@ export default async (req, res) => {
       SELECT
         *
       FROM
-        user
+        users
       WHERE
         email = ${email}
       LIMIT
@@ -87,11 +89,13 @@ export default async (req, res) => {
     `;
     if (rows.length) {
       await sql`
-        UPDATE user
+        UPDATE users
         SET
           tier = 0
         WHERE
           email = ${email}
+        LIMIT
+          1
       `;
     }
   }

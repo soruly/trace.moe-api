@@ -19,9 +19,9 @@ export default async (req, res) => {
   }
   await sql`
     INSERT INTO
-      webhook (type, json)
+      webhook (source, json)
     VALUES
-      ('github', ${req.rawBody})
+      ('GITHUB', ${JSON.parse(req.rawBody)})
   `;
   res.json({});
 };
