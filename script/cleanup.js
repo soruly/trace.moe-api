@@ -12,12 +12,13 @@ const unload = (relativePath, coreList) =>
         coreList.map((coreURL) =>
           fetch(`${coreURL}/update?wt=json&commit=true`, {
             method: "POST",
-            headers: { "Content-Type": "text/xml" },
+            headers: { "Content-Type": "application/json" },
             // http://lucene.apache.org/core/6_5_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#Escaping_Special_Characters
-            body: `<delete><query>id:${relativePath.replace(
-              /([ +\-!(){}[\]^"~*?:\\/])/g,
-              "\\$1",
-            )}\\/*</query></delete>`,
+            body: JSON.stringify({
+              delete: {
+                query: `id:${relativePath.replace(/([ +\-!(){}[\]^"~*?:\\/])/g, "\\$1")}\\/*`,
+              },
+            }),
           }),
         ),
       );
