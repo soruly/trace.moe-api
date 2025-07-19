@@ -12,12 +12,13 @@ const unload = (relativePath, coreList) =>
         coreList.map((coreURL) =>
           fetch(`${coreURL}/update?wt=json&commit=true`, {
             method: "POST",
-            headers: { "Content-Type": "text/xml" },
+            headers: { "Content-Type": "application/json" },
             // http://lucene.apache.org/core/6_5_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#Escaping_Special_Characters
-            body: `<delete><query>id:${relativePath.replace(
-              /([ +\-!(){}[\]^"~*?:\\/])/g,
-              "\\$1",
-            )}\\/*</query></delete>`,
+            body: JSON.stringify({
+              delete: {
+                query: `id:${relativePath.replace(/([ +\-!(){}[\]^"~*?:\\/])/g, "\\$1")}\\/*`,
+              },
+            }),
           }),
         ),
       );
@@ -56,13 +57,17 @@ for (const row of rows) {
     await fs.access(mp4FilePath);
   } catch {
     console.log(`Found ${mp4FilePath} deleted`);
-    // await unload(row.path, coreList);
+    await unload(row.path, coreList);
     try {
       await fs.access(hashFilePath);
       console.log(`Deleting ${hashFilePath}`);
-      // await fs.rm(hashFilePath);
+      await fs.rm(hashFilePath);
     } catch {}
-    // await sql`DELETE FROM files WHERE path=${row.path}`;
+    await sql`
+      DELETE FROM files
+      WHERE
+        path = ${row.path}
+    `;
   }
 }
 
