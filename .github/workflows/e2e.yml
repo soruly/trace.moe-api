@@ -1,4 +1,7 @@
 name: e2e Test
+permissions:
+  contents: read
+  pull-requests: write
 
 on:
   push:
