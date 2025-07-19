@@ -226,13 +226,6 @@ export default async (req, res) => {
     quotaUsed = row?.used ?? 0;
   }
 
-  if (quotaUsed >= quota) {
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
-    return res.status(402).json({
-      error: "Search quota depleted",
-    });
-  }
-
   const concurrentId =
     userId ??
     (
@@ -245,6 +238,13 @@ export default async (req, res) => {
       `
     )[0]?.network ??
     req.ip;
+
+  if (quotaUsed >= quota) {
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
+    return res.status(402).json({
+      error: "Search quota depleted",
+    });
+  }
 
   locals.searchConcurrent.set(concurrentId, (locals.searchConcurrent.get(concurrentId) ?? 0) + 1);
   if (locals.searchConcurrent.get(concurrentId) > concurrency) {
