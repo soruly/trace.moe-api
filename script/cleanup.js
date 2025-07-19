@@ -46,13 +46,13 @@ const rows = await sql`
 for (const row of rows) {
   if (["HASHED", "LOADING", "LOADED"].includes(row.status)) {
     try {
-      await fs.access(path.join(HASH_PATH, `${row.path}.xml.xz`));
+      await fs.access(path.join(HASH_PATH, `${row.path}.json.zst`));
     } catch {
       console.log(`Hash not found: ${row.path}`);
     }
   }
   const mp4FilePath = path.join(VIDEO_PATH, row.path);
-  const hashFilePath = path.join(HASH_PATH, `${row.path}.xml.xz`);
+  const hashFilePath = path.join(HASH_PATH, `${row.path}.json.zst`);
   try {
     await fs.access(mp4FilePath);
   } catch {

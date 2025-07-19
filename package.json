@@ -39,12 +39,10 @@
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",
-    "lzma-native": "^8.0.6",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.5",
     "postgres": "^3.4.7",
     "rss": "^1.2.2",
-    "sharp": "^0.34.3",
-    "xmldoc": "^2.0.2"
+    "sharp": "^0.34.3"
   }
 }

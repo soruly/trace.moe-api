@@ -21,7 +21,7 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 
 ### Prerequisites
 
-- Node.js
+- Node.js >= 22.15
 - PostgreSQL
 - ffmpeg
 - java (OpenJDK)
