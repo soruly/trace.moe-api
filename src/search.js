@@ -163,7 +163,7 @@ const cutBorders = async (imageBuffer) => {
   }
   // if detected area is not standard aspect ratio, do no crop
   // if detected area is 21:9 and original is also 21:9, do no crop
-  return imageBuffer;
+  return sharp(imageBuffer).jpeg().toBuffer();
 };
 
 export default async (req, res) => {
