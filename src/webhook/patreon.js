@@ -39,41 +39,41 @@ export default async (req, res) => {
       .sort((a, b) => b.attributes.amount - a.attributes.amount)
       .map((e) => e.id)[0];
     if (rewardTierID) {
-      const tier = (
-        await sql`
-          SELECT
-            id
-          FROM
-            tiers
-          WHERE
-            patreon_id = ${Number(rewardTierID)}
-          LIMIT
-            1
-        `
-      )[0].id;
-      const rows = await sql`
+      const [tier] = await sql`
         SELECT
-          *
+          id
         FROM
-          users
+          tiers
         WHERE
-          email = ${email}
+          patreon_id = ${Number(rewardTierID)}
         LIMIT
           1
       `;
-      if (!rows.length) {
-        const result = await createNewUser(email, tier, full_name);
-        console.log(result);
-      } else {
-        await sql`
-          UPDATE users
-          SET
-            tier = ${tier}
+      if (tier) {
+        const rows = await sql`
+          SELECT
+            *
+          FROM
+            users
           WHERE
             email = ${email}
           LIMIT
             1
         `;
+        if (!rows.length) {
+          const result = await createNewUser(email, tier.id, full_name);
+          console.log(result);
+        } else {
+          await sql`
+            UPDATE users
+            SET
+              tier = ${tier.id}
+            WHERE
+              email = ${email}
+            LIMIT
+              1
+          `;
+        }
       }
     }
   } else if (email && patron_status === "declined_patron") {
