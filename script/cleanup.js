@@ -56,13 +56,13 @@ for (const row of rows) {
     await fs.access(mp4FilePath);
   } catch {
     console.log(`Found ${mp4FilePath} deleted`);
-    // await unload(row.path, coreList);
+    await unload(row.path, coreList);
     try {
       await fs.access(hashFilePath);
       console.log(`Deleting ${hashFilePath}`);
-      // await fs.rm(hashFilePath);
+      await fs.rm(hashFilePath);
     } catch {}
-    // await sql`DELETE FROM files WHERE path=${row.path}`;
+    await sql`DELETE FROM files WHERE path=${row.path}`;
   }
 }
 
