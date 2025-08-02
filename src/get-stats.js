@@ -33,8 +33,8 @@ export default async (req, res) => {
             files
         `,
       ]);
-      mediaCount = count[0].count;
-      mediaDurationTotal = duration[0].sum;
+      mediaCount = Number(count[0].count);
+      mediaDurationTotal = Number(duration[0].sum);
       lastUpdate = row.updated;
     }
 
