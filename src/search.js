@@ -384,20 +384,20 @@ export default async (req, res) => {
 
   result = result
     .reduce((list, { d, id }) => {
-      // merge nearby results within 5 seconds in the same filename
+      // merge nearby results within 5 seconds in the same file
       const anilist_id = Number(id.split("/")[0]);
-      const filename = id.split("/")[1];
+      const fileId = Number(id.split("/")[1]);
       const t = Number(id.split("/")[2]);
       const index = list.findIndex(
         (e) =>
           e.anilist_id === anilist_id &&
-          e.filename === filename &&
+          e.fileId === fileId &&
           (Math.abs(e.from - t) < 5 || Math.abs(e.to - t) < 5),
       );
       if (index < 0) {
         return list.concat({
           anilist_id,
-          filename,
+          fileId,
           t,
           from: t,
           to: t,
@@ -414,40 +414,46 @@ export default async (req, res) => {
     .sort((a, b) => a.d - b.d) // sort in ascending order of difference
     .slice(0, 10); // return only top 10 results
 
-  const window = 60 * 60; // 3600 seconds
-  const now = ((Date.now() / 1000 / window) | 0) * window + window;
-  result = result.map(({ anilist_id, filename, t, from, to, d }) => {
-    const mid = from + (to - from) / 2;
-    const videoToken = crypto
-      .createHash("sha1")
-      .update([anilist_id, filename, mid, now, TRACE_API_SALT].join(""))
-      .digest("base64")
-      .replace(/[^0-9A-Za-z]/g, "");
-    const imageToken = crypto
-      .createHash("sha1")
-      .update([anilist_id, filename, mid, now, TRACE_API_SALT].join(""))
-      .digest("base64")
-      .replace(/[^0-9A-Za-z]/g, "");
+  const files = await sql`
+    SELECT
+      id,
+      anilist_id,
+      path,
+      duration
+    FROM
+      files
+    WHERE
+      id IN ${sql(result.map((e) => e.fileId))}
+  `;
 
-    return {
-      anilist: anilist_id,
-      filename,
-      episode: aniep(filename),
-      from,
-      to,
-      similarity: (100 - d) / 100,
-      video: `${req.protocol}://${req.get("host")}/video/${anilist_id}/${encodeURIComponent(filename)}?${[
-        `t=${mid}`,
-        `now=${now}`,
-        `token=${videoToken}`,
-      ].join("&")}`,
-      image: `${req.protocol}://${req.get("host")}/image/${anilist_id}/${encodeURIComponent(filename)}?${[
-        `t=${mid}`,
-        `now=${now}`,
-        `token=${imageToken}`,
-      ].join("&")}`,
-    };
-  });
+  const window = 60 * 60; // snap to nearest hour for better cache
+  const expire = ((Date.now() / 1000 / window) | 0) * window + window;
+  result = result
+    .filter((e) => files.find((f) => f.id === e.fileId))
+    .map(({ fileId, t, from, to, d }) => {
+      const { anilist_id, path, duration } = files.find((f) => f.id === fileId);
+
+      const time = (t * 10000) | 0; // convert 4dp time code to integer
+      const buf = Buffer.from(TRACE_API_SALT);
+      buf.writeUInt32LE(time ^ expire ^ fileId);
+      const hash = Buffer.from(
+        crypto.createHash("sha1").update(buf).digest("binary"),
+      ).readUInt32LE();
+      const previewId = locals.sqids.encode([fileId, time, expire, hash]);
+
+      return {
+        anilist: anilist_id,
+        filename: path.split("/").pop(),
+        episode: aniep(path.split("/").pop()),
+        from,
+        at: t,
+        to,
+        duration,
+        similarity: (100 - d) / 100,
+        video: `${req.protocol}://${req.get("host")}/video/${previewId}`,
+        image: `${req.protocol}://${req.get("host")}/image/${previewId}`,
+      };
+    });
 
   if ("anilistInfo" in req.query) {
     const anilist = await sql`

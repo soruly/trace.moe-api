@@ -3,6 +3,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import sql from "./sql.js";
 import app from "./src/app.js";
+import Sqids from "sqids";
 
 import v8 from "v8";
 console.log(
@@ -43,6 +44,14 @@ await sql`
     status = 'LOADING'
 `;
 
+app.locals.sqids = new Sqids({
+  alphabet: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    .split("")
+    .sort(() => (Math.random() > 0.5 ? 1 : -1))
+    .join(""),
+  minLength: 0,
+  blocklist: new Set(),
+});
 app.locals.workerCount = 0;
 app.locals.mutex = false;
 app.locals.mediaQueue = 0;
@@ -58,3 +67,4 @@ const server = app.listen(SERVER_PORT, SERVER_ADDR, () =>
 
 // check for new files every minute
 setInterval(async () => await fetch(`http://localhost:${server.address().port}/scan`), 60 * 1000);
+setTimeout(async () => await fetch(`http://localhost:${server.address().port}/scan`), 3 * 1000);

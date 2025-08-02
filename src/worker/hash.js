@@ -4,10 +4,11 @@ import fs from "node:fs/promises";
 import zlib from "node:zlib";
 import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
+import sql from "../../sql.js";
 
 const { TRACE_ALGO = "cl", VIDEO_PATH, HASH_PATH } = process.env;
 
-const { filePath } = workerData;
+const { id, filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Hashing ${filePath}`);
 
 const videoFilePath = path.join(VIDEO_PATH, filePath);
@@ -110,6 +111,15 @@ await fs.rm(tempPath, { recursive: true, force: true });
 parentPort.postMessage(
   `[${threadId}] Analyzing frames done in ${(performance.now() - analyzeStart).toFixed(0)} ms`,
 );
+
+await sql`
+  UPDATE files
+  SET
+    frame_count = ${hashList.length}
+  WHERE
+    id = ${id}
+`;
+await sql.end();
 
 const compressStart = performance.now();
 const hashFilePath = `${path.join(HASH_PATH, filePath)}.json.zst`;

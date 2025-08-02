@@ -85,8 +85,8 @@ app.all(
   multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }).any(),
   search,
 );
-app.get("/video/:anilistID/:filename", video);
-app.get("/image/:anilistID/:filename", image);
+app.get("/video/:id", video);
+app.get("/image/:id", image);
 app.all("/user/login", login);
 app.all("/user/create", create);
 app.all("/user/reset-key", resetKey);

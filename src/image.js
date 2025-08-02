@@ -2,6 +2,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import child_process from "node:child_process";
+import sql from "../sql.js";
 
 const { VIDEO_PATH, TRACE_API_SALT, MEDIA_QUEUE = Infinity } = process.env;
 
@@ -44,34 +45,27 @@ const generateImagePreview = async (filePath, t, format = "jpeg", size = "m") =>
   });
 
 export default async (req, res) => {
-  if (
-    req.query.token !==
-    crypto
-      .createHash("sha1")
-      .update(
-        [
-          req.params.anilistID,
-          req.params.filename,
-          req.query.t,
-          req.query.now,
-          TRACE_API_SALT,
-        ].join(""),
-      )
-      .digest("base64")
-      .replace(/[^0-9A-Za-z]/g, "")
-  ) {
-    return res.status(403).send("Forbidden");
-  }
-  if (((Date.now() / 1000) | 0) - Number(req.query.now) > 300) return res.status(410).send("Gone");
-  const t = parseFloat(req.query.t);
-  if (isNaN(t) || t < 0) {
-    return res.status(400).send("Bad Request. Invalid param: t");
-  }
-  const videoFile = path.join(req.params.anilistID, req.params.filename);
-  const videoFilePath = path.join(VIDEO_PATH, videoFile);
-  if (!videoFilePath.startsWith(VIDEO_PATH)) {
-    return res.status(403).send("Forbidden");
-  }
+  const [fileId, time, expire, hash] = req.app.locals.sqids.decode(req.params.id);
+  const buf = Buffer.from(TRACE_API_SALT);
+  buf.writeUInt32LE(time ^ expire ^ fileId);
+  const token = crypto.createHash("sha1").update(buf).digest("binary");
+  if (Buffer.from(token).readUInt32LE() !== hash) return res.status(403).send("Forbidden");
+
+  if (((Date.now() / 1000) | 0) - expire > 300) return res.status(410).send("Gone");
+
+  const [row] = await sql`
+    SELECT
+      path
+    FROM
+      files
+    WHERE
+      id = ${fileId}
+  `;
+  if (!row) return res.status(404).send("Not found");
+
+  const videoFilePath = path.join(VIDEO_PATH, row.path);
+  if (!videoFilePath.startsWith(VIDEO_PATH)) return res.status(403).send("Forbidden");
+
   try {
     await fs.access(videoFilePath);
   } catch {
@@ -91,7 +85,7 @@ export default async (req, res) => {
   if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
   try {
-    const image = await generateImagePreview(videoFilePath, t, format, size);
+    const image = await generateImagePreview(videoFilePath, time / 10000, format, size);
     res.set("Content-Type", `image/${format}`);
     res.send(image);
   } catch (e) {

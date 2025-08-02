@@ -5,7 +5,7 @@ import { parentPort, threadId, workerData } from "node:worker_threads";
 
 const { HASH_PATH, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;
 
-const { filePath, coreUrl } = workerData;
+const { id, anilist_id, filePath, commit, coreUrl } = workerData;
 parentPort.postMessage(`[${threadId}] Loading ${filePath}`);
 
 const hashFilePath = `${path.join(HASH_PATH, filePath)}.json.zst`;
@@ -32,14 +32,13 @@ for (const currentFrame of hashList) {
   }
 }
 
-await new Promise((resolve) => setTimeout(resolve, 500));
 parentPort.postMessage(`[${threadId}] Uploading hash to ${coreUrl}`);
-await fetch(`${coreUrl}/update?wt=json&commit=true`, {
+const res = await fetch(`${coreUrl}/update?wt=json${commit ? "&commit=true" : ""}`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(
     dedupedHashList.map(({ time, cl_hi, cl_ha }) => ({
-      id: `${filePath}/${time.toFixed(2)}`,
+      id: `${anilist_id}/${id}/${time}`,
       cl_hi,
       cl_ha,
     })),

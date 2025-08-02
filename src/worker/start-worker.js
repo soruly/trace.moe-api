@@ -38,6 +38,8 @@ export default async (app) => {
 
     const [row] = await sql`
       SELECT
+        id,
+        anilist_id,
         path,
         status
       FROM
@@ -87,7 +89,7 @@ export default async (app) => {
           path = ${row.path}
       `;
       const worker = new Worker("./src/worker/hash.js", {
-        workerData: { filePath: row.path },
+        workerData: { id: row.id, filePath: row.path },
       });
       worker.on("message", (message) => console.log(message));
       worker.on("error", (error) => console.error(error));
@@ -123,7 +125,10 @@ export default async (app) => {
       `;
       const worker = new Worker("./src/worker/load.js", {
         workerData: {
+          id: row.id,
+          anilist_id: row.anilist_id,
           filePath: row.path,
+          commit: size < getSolrCoreList().length,
           coreUrl:
             size < getSolrCoreList().length
               ? await getLeastPopulatedCore()

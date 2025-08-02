@@ -21,6 +21,7 @@ CREATE TYPE type_status AS ENUM(
 
 CREATE TABLE IF NOT EXISTS files (
   id serial PRIMARY KEY,
+  anilist_id integer,
   path text NOT NULL,
   status type_status NOT NULL,
   created timestamp NOT NULL DEFAULT NOW(),
@@ -39,10 +40,13 @@ CREATE TABLE IF NOT EXISTS files (
   bit_rate bigint GENERATED ALWAYS AS (
     CAST((media_info -> 'format' ->> 'bit_rate') AS bigint)
   ) STORED,
+  frame_count integer,
   scene_count integer GENERATED ALWAYS AS (1 + jsonb_array_length(scene_changes)) STORED,
   media_info jsonb,
   scene_changes jsonb
 );
+
+CREATE INDEX ON files (anilist_id);
 
 CREATE INDEX ON files (path);
 

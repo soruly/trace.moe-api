@@ -19,7 +19,8 @@ export default async (req, res) => {
 
   const videoFileList = fileList
     .filter((file) => file.isFile() && [".webm", ".mkv", ".mp4"].includes(path.extname(file.name)))
-    .map((e) => path.join(e.parentPath, e.name).replace(VIDEO_PATH, ""));
+    .map((e) => path.join(e.parentPath, e.name).replace(VIDEO_PATH, ""))
+    .filter((e) => e.match(/\d+\/.+/));
   const videoFileSet = new Set(videoFileList);
 
   const newFileList = videoFileList.filter((e) => !dbFileSet.has(e));
@@ -27,7 +28,11 @@ export default async (req, res) => {
   for (let i = 0; i < newFileList.length; i += 10000) {
     await sql`
       INSERT INTO
-        files ${sql(newFileList.slice(i, i + 10000).map((e) => ({ path: e, status: "NEW" })))}
+        files ${sql(
+        newFileList
+          .slice(i, i + 10000)
+          .map((e) => ({ anilist_id: Number(e.split("/")[0]), path: e, status: "NEW" })),
+      )}
     `;
   }
 

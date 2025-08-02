@@ -3,9 +3,9 @@ import fs from "node:fs/promises";
 import sql from "../sql.js";
 import getSolrCoreList from "../src/lib/get-solr-core-list.js";
 
-const { HASH_PATH, VIDEO_PATH, SOLA_SOLR_LIST } = process.env;
+const { VIDEO_PATH, SOLA_SOLR_LIST, HASH_PATH } = process.env;
 
-const unload = (relativePath, coreList) =>
+const unload = (id, anilist_id, coreList) =>
   new Promise(async (resolve, reject) => {
     try {
       await Promise.all(
@@ -16,7 +16,7 @@ const unload = (relativePath, coreList) =>
             // http://lucene.apache.org/core/6_5_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#Escaping_Special_Characters
             body: JSON.stringify({
               delete: {
-                query: `id:${relativePath.replace(/([ +\-!(){}[\]^"~*?:\\/])/g, "\\$1")}\\/*`,
+                query: `id:${anilist_id}\\/${id}\\/*`,
               },
             }),
           }),
@@ -37,6 +37,8 @@ console.log(
 console.log("Checking invalid states");
 const rows = await sql`
   SELECT
+    id,
+    anilist_id,
     path,
     status
   FROM
@@ -44,7 +46,7 @@ const rows = await sql`
 `;
 
 for (const row of rows) {
-  if (["HASHED", "LOADING", "LOADED"].includes(row.status)) {
+  if (["ANALYZED", "HASHED", "LOADING", "LOADED"].includes(row.status)) {
     try {
       await fs.access(path.join(HASH_PATH, `${row.path}.json.zst`));
     } catch {
@@ -57,7 +59,7 @@ for (const row of rows) {
     await fs.access(mp4FilePath);
   } catch {
     console.log(`Found ${mp4FilePath} deleted`);
-    await unload(row.path, coreList);
+    await unload(row.id, row.anilist_id, coreList);
     try {
       await fs.access(hashFilePath);
       console.log(`Deleting ${hashFilePath}`);
