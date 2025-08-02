@@ -41,13 +41,13 @@ app.use(
 
 app.use((req, res, next) => {
   const startTime = performance.now();
-  console.log("=>", new Date().toISOString(), req.ip, req.path);
+  console.log("=>", new Date().toISOString(), req.ip, req.url);
   res.on("finish", () => {
     console.log(
       "<=",
       new Date().toISOString(),
       req.ip,
-      req.path,
+      req.url,
       res.statusCode,
       `${(performance.now() - startTime).toFixed(0)}ms`,
     );
