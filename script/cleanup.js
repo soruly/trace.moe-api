@@ -62,7 +62,11 @@ for (const row of rows) {
       console.log(`Deleting ${hashFilePath}`);
       await fs.rm(hashFilePath);
     } catch {}
-    await sql`DELETE FROM files WHERE path=${row.path}`;
+    await sql`
+      DELETE FROM files
+      WHERE
+        path = ${row.path}
+    `;
   }
 }
 
