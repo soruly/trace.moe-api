@@ -2,6 +2,7 @@ import sql from "../sql.js";
 
 let lastUpdate = new Date();
 let mediaCount = 0;
+let mediaFramesTotal = 0;
 let mediaDurationTotal = 0;
 
 export default async (req, res) => {
@@ -19,27 +20,23 @@ export default async (req, res) => {
     `;
 
     if (row && row.updated != lastUpdate) {
-      const [count, duration] = await Promise.all([
-        sql`
-          SELECT
-            COUNT(*) AS count
-          FROM
-            files
-        `,
-        sql`
-          SELECT
-            SUM(duration) AS sum
-          FROM
-            files
-        `,
-      ]);
-      mediaCount = Number(count[0].count);
-      mediaDurationTotal = Number(duration[0].sum);
+      const [{ count, sum_frames, sum_duration }] = await sql`
+        SELECT
+          COUNT(*) AS count,
+          SUM(frame_count) AS sum_frames,
+          SUM(duration) AS sum_duration
+        FROM
+          files
+      `;
+      mediaCount = Number(count);
+      mediaDurationTotal = Number(sum_duration);
+      mediaFramesTotal = Number(sum_frames);
       lastUpdate = row.updated;
     }
 
     return res.json({
       mediaCount,
+      mediaFramesTotal,
       mediaDurationTotal,
       lastUpdate,
     });
