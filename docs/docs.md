@@ -245,11 +245,13 @@ The recommended resolution is 640 x 360px, higher resolution doesn't yield bette
       "anilist": 99939,
       "filename": "Nekopara - OVA (BD 1280x720 x264 AAC).mp4",
       "episode": null,
-      "from": 97.75,
-      "to": 98.92,
+      "duration": 3486.4817,
+      "from": 97.7226,
+      "to": 98.8905,
+      "at": 98.2231,
       "similarity": 0.9440424588727485,
-      "video": "https://api.trace.moe/video/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx",
-      "image": "https://api.trace.moe/image/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4.jpg?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx"
+      "video": "https://api.trace.moe/video/uAWzRPYDwVC2pxTsPyqvLeh",
+      "image": "https://api.trace.moe/image/uAWzRPYDwVC2pxTsPyqvLeh"
     }
   ]
 }
@@ -266,8 +268,10 @@ The recommended resolution is 640 x 360px, higher resolution doesn't yield bette
 | anilist    | The matching Anilist ID or Anilist info        | number or object                                  |
 | filename   | The filename of file where the match is found  | string                                            |
 | episode    | The extracted episode number from filename     | Refer to [aniep](https://github.com/soruly/aniep) |
-| from       | Starting time of the matching scene (seconds)  | number                                            |
-| to         | Ending time of the matching scene (seconds)    | number                                            |
+| duration   | Duration of the matching video (seconds)       | number                                            |
+| from       | Starting time of the matching scene (seconds)  | number (up to 4 decimal places)                   |
+| at         | Time of the matching frame (seconds)           | number (up to 4 decimal places)                   |
+| to         | Ending time of the matching scene (seconds)    | number (up to 4 decimal places)                   |
 | similarity | Similarity compared to the search image        | number (0 to 1)                                   |
 | video      | URL to the preview video of the matching scene | string                                            |
 | image      | URL to the preview image of the matching scene | string                                            |
@@ -338,11 +342,13 @@ Example response
       },
       "filename": "Nekopara - OVA (BD 1280x720 x264 AAC).mp4",
       "episode": null,
-      "from": 97.75,
-      "to": 98.92,
+      "duration": 3486.4817,
+      "from": 97.7226,
+      "to": 98.8905,
+      "at": 98.2231,
       "similarity": 0.9440424588727485,
-      "video": "https://api.trace.moe/video/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx",
-      "image": "https://api.trace.moe/image/99939/Nekopara%20-%20OVA%20(BD%201280x720%20x264%20AAC).mp4.jpg?t=98.335&now=1653892514&token=xxxxxxxxxxxxxx"
+      "video": "https://api.trace.moe/video/uAWzRPYDwVC2pxTsPyqvLeh",
+      "image": "https://api.trace.moe/image/uAWzRPYDwVC2pxTsPyqvLeh"
     }
   ]
 }
@@ -381,8 +387,8 @@ The url you obtained from `image` and `video` from search result would expire in
 It can generate image or video preview of 3 sizes by appending `size=l` (large), `size=m` (medium, default) or `size=s` (small) at the end of the url. e.g.
 
 ```
-https://api.trace.moe/image/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size=s
-https://api.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size=s
+https://api.trace.moe/image/s5ev1nvsjMo9dIteUKim6Gj?size=l
+https://api.trace.moe/video/s5ev1nvsjMo9dIteUKim6Gj?size=l
 ```
 
 Supported image format is jxl, webp and jpeg, which is decided by web browsers through the HTTP Accept header or fallback to jpeg as default.
@@ -390,8 +396,8 @@ Supported image format is jxl, webp and jpeg, which is decided by web browsers t
 For video preview, it can generate a video with sound (default), or a muted video by appending `mute` to the end of url. e.g.
 
 ```
-https://api.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&mute
-https://api.trace.moe/video/xxx/xxxxxx.mp4?t=0&now=1653892514&token=xxxxx&size=s&mute
+https://api.trace.moe/video/s5ev1nvsjMo9dIteUKim6Gj?mute
+https://api.trace.moe/video/s5ev1nvsjMo9dIteUKim6Gj?size=l&mute
 ```
 
 It would detect boundaries of the scene and cut videos at the boundaries. You cannot specify the length of video preview.
