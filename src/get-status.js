@@ -1,6 +1,7 @@
+import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import sql from "../sql.js";
 
-const { SOLA_SOLR_LIST } = process.env;
+const { MILVUS_ADDR, MILVUS_TOKEN } = process.env;
 
 export default async (req, res) => {
   const { id } = req.query;
@@ -24,23 +25,36 @@ export default async (req, res) => {
     );
   }
 
-  try {
-    const statusList = (
-      await Promise.all(
-        SOLA_SOLR_LIST.split(",").map((solrUrl) =>
-          fetch(`${solrUrl}admin/cores?wt=json`)
-            .then((res) => res.json())
-            .then(({ status }) => ({ solrUrl, cores: Object.values(status) }))
-            .catch((e) => res.status(503)),
-        ),
-      )
-    ).reduce((acc, cur) => {
-      acc[cur.solrUrl] = cur.cores;
-      return acc;
-    }, {});
-    return res.json(statusList);
-  } catch (e) {
-    console.log(e);
-    return res.status(503);
-  }
+  const [row] = await sql`
+    SELECT
+      updated
+    FROM
+      files
+    ORDER BY
+      updated DESC
+    LIMIT
+      1;
+  `;
+
+  const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
+
+  const collectionStatistics = await milvus.getCollectionStatistics({
+    collection_name: "frame_color_layout",
+  });
+
+  const metric = await milvus.getMetric({
+    request: {
+      metric_type: "system_info",
+    },
+  });
+  console.log(metric.response.nodes_info[0].infos);
+
+  await milvus.closeConnection();
+
+  return res.json({
+    updated: row.updated,
+    row_count: Number(collectionStatistics.data.row_count),
+    memory: metric.response.nodes_info[0].infos.hardware_infos.memory,
+    memory_usage: metric.response.nodes_info[0].infos.hardware_infos.memory_usage,
+  });
 };

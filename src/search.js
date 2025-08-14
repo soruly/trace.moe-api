@@ -6,35 +6,19 @@ import fs from "node:fs/promises";
 import aniep from "aniep";
 import sharp from "sharp";
 import { performance } from "node:perf_hooks";
+import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import sql from "../sql.js";
-import getSolrCoreList from "./lib/get-solr-core-list.js";
+import colorLayout from "./lib/color-layout.js";
 
 const {
   TRACE_API_SALT,
-  TRACE_ACCURACY = 1,
   SEARCH_QUEUE = Infinity,
   USE_IMAGE_PROXY = false,
+  MILVUS_ADDR,
+  MILVUS_TOKEN,
 } = process.env;
 
-const search = (image, candidates, anilistID) =>
-  Promise.all(
-    getSolrCoreList().map((coreURL) =>
-      fetch(
-        `${coreURL}/lireq?${[
-          "field=cl_ha",
-          "ms=false",
-          `accuracy=${TRACE_ACCURACY}`,
-          `candidates=${candidates}`,
-          "rows=30",
-          anilistID ? `fq=id:${anilistID}/*` : "",
-        ].join("&")}`,
-        {
-          method: "POST",
-          body: image,
-        },
-      ),
-    ),
-  );
+const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
 const logAndDequeue = async (
   locals,
@@ -329,65 +313,22 @@ export default async (req, res) => {
       ? await cutBorders(searchImagePNG)
       : await sharp(searchImagePNG).jpeg().toBuffer();
 
-  let candidates = 1000000;
   const startTime = performance.now();
-  let solrResponse = null;
-  try {
-    solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
-  } catch (e) {
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 503);
-    return res.status(503).json({
-      error: `Error: Database is not responding`,
-    });
-  }
-  if (solrResponse.find((e) => e.status >= 500)) {
-    const r = solrResponse.find((e) => e.status >= 500);
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, r.status);
-    return res.status(r.status).json({
-      error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
-    });
-  }
-  let solrResults = await Promise.all(solrResponse.map((e) => e.json()));
 
-  const maxRawDocsCount = Math.max(...solrResults.map((e) => Number(e.RawDocsCount)));
-  if (maxRawDocsCount > candidates) {
-    // found cluster has more candidates than expected
-    // search again with increased candidates count
-    candidates = maxRawDocsCount;
-    solrResponse = await search(searchImage, candidates, Number(req.query.anilistID));
-    if (solrResponse.find((e) => e.status >= 500)) {
-      const r = solrResponse.find((e) => e.status >= 500);
-      await logAndDequeue(locals, req.ip, userId, concurrentId, priority, r.status);
-      return res.status(r.status).json({
-        error: `Database is ${r.status === 504 ? "overloaded" : "offline"}`,
-      });
-    }
-    solrResults = await Promise.all(solrResponse.map((e) => e.json()));
-  }
+  const searchResult = await milvus.search({
+    collection_name: "frame_color_layout",
+    data: await colorLayout(searchImage),
+    limit: 1000,
+    filter: Number(req.query.anilistID) ? `anilist_id == ${Number(req.query.anilistID)}` : null,
+    output_fields: ["anilist_id", "file_id", "time"],
+  });
   const searchTime = (performance.now() - startTime) | 0;
 
-  let result = [];
-  let frameCountList = [];
-
-  if (solrResults.find((e) => e.Error)) {
-    console.log(solrResults.find((e) => e.Error));
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 500);
-    return res.status(500).json({
-      error: solrResults.find((e) => e.Error).Error,
-    });
-  }
-
-  for (const { RawDocsCount, response } of solrResults) {
-    frameCountList.push(Number(RawDocsCount));
-    result = result.concat(response.docs);
-  }
-
-  result = result
-    .reduce((list, { d, id }) => {
+  let result = searchResult.results
+    .reduce((list, { score: d, anilist_id, file_id, time }) => {
       // merge nearby results within 5 seconds in the same file
-      const anilist_id = Number(id.split("/")[0]);
-      const fileId = Number(id.split("/")[1]);
-      const t = Number(id.split("/")[2]);
+      const fileId = file_id;
+      const t = time;
       const index = list.findIndex(
         (e) =>
           e.anilist_id === anilist_id &&
@@ -445,11 +386,11 @@ export default async (req, res) => {
         anilist: anilist_id,
         filename: path.split("/").pop(),
         episode: aniep(path.split("/").pop()),
-        from,
-        at: t,
-        to,
+        from: Number(from.toFixed(4)),
+        at: Number(t.toFixed(4)),
+        to: Number(to.toFixed(4)),
         duration,
-        similarity: (100 - d) / 100,
+        similarity: (255 - d) / 255,
         video: `${req.protocol}://${req.get("host")}/video/${previewId}`,
         image: `${req.protocol}://${req.get("host")}/image/${previewId}`,
       };
@@ -482,7 +423,7 @@ export default async (req, res) => {
   );
 
   res.json({
-    frameCount: frameCountList.reduce((prev, curr) => prev + curr, 0),
+    frameCount: Number(searchResult.all_search_count),
     error: "",
     result,
   });

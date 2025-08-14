@@ -1,16 +1,79 @@
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
+import Sqids from "sqids";
+import { MilvusClient, DataType } from "@zilliz/milvus2-sdk-node";
 import sql from "./sql.js";
 import app from "./src/app.js";
-import Sqids from "sqids";
 
 import v8 from "v8";
 console.log(
   `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
 );
 
-const { SERVER_PORT, SERVER_ADDR } = process.env;
+const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN } = process.env;
+
+const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
+
+console.log("Checking milvus collection");
+const milvusCollection = await milvus.listCollections();
+if (milvusCollection.collection_names.includes("frame_color_layout")) {
+  console.log("Using milvus collection frame_color_layout");
+} else {
+  console.log("Creating milvus collection frame_color_layout");
+  console.log(
+    await milvus.createCollection({
+      collection_name: "frame_color_layout",
+      fields: [
+        {
+          name: "id",
+          data_type: DataType.Int64,
+          is_primary_key: true,
+          autoID: true,
+        },
+        {
+          name: "anilist_id",
+          data_type: DataType.Int32,
+        },
+        {
+          name: "file_id",
+          data_type: DataType.Int32,
+        },
+        {
+          name: "time",
+          data_type: DataType.Float,
+        },
+        {
+          name: "vector",
+          data_type: DataType.Float16Vector,
+          dim: 33,
+        },
+      ],
+      index_params: [
+        {
+          field_name: "id",
+          index_type: "AUTOINDEX",
+        },
+        {
+          field_name: "anilist_id",
+          index_type: "AUTOINDEX",
+        },
+        {
+          field_name: "file_id",
+          index_type: "AUTOINDEX",
+        },
+        {
+          field_name: "vector",
+          index_type: "IVF_SQ8",
+          metric_type: "L2",
+          params: { nlist: 16384 },
+        },
+      ],
+      shards_num: 1,
+    }),
+  );
+}
+await milvus.closeConnection();
 
 console.log("Cleaning up previous temp folders");
 // rm -rf /tmp/trace.moe-*

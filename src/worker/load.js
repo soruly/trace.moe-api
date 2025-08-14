@@ -2,10 +2,12 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import zlib from "node:zlib";
 import { parentPort, threadId, workerData } from "node:worker_threads";
+import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 
-const { HASH_PATH, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;
+const { HASH_PATH, MILVUS_ADDR, MILVUS_TOKEN, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } =
+  process.env;
 
-const { id, anilist_id, filePath, commit, coreUrl } = workerData;
+const { id, anilist_id, filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Loading ${filePath}`);
 
 const hashFilePath = `${path.join(HASH_PATH, filePath)}.json.zst`;
@@ -32,18 +34,19 @@ for (const currentFrame of hashList) {
   }
 }
 
-parentPort.postMessage(`[${threadId}] Uploading hash to ${coreUrl}`);
-const res = await fetch(`${coreUrl}/update?wt=json${commit ? "&commit=true" : ""}`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(
-    dedupedHashList.map(({ time, cl_hi, cl_ha }) => ({
-      id: `${anilist_id}/${id}/${time}`,
-      cl_hi,
-      cl_ha,
-    })),
-  ),
+const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
+
+await milvus.insert({
+  collection_name: "frame_color_layout",
+  data: dedupedHashList.map(({ time, cl_hi }) => ({
+    anilist_id,
+    file_id: id,
+    time,
+    vector: Array.from(Uint8Array.from(Buffer.from(cl_hi, "base64").subarray(2))),
+  })),
 });
+
+await milvus.closeConnection();
 
 parentPort.postMessage(`[${threadId}] Loaded ${filePath}`);
 

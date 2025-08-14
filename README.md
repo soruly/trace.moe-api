@@ -23,9 +23,9 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 
 - Node.js >= 22.15
 - PostgreSQL
+- Milvus
 - ffmpeg
 - java (OpenJDK)
-- [liresolr](https://github.com/soruly/liresolr)
 
 ### Install
 

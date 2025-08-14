@@ -1,34 +1,7 @@
 import { Worker } from "node:worker_threads";
 import sql from "../../sql.js";
-import getSolrCoreList from "../lib/get-solr-core-list.js";
 
-const { SOLA_SOLR_LIST, MAX_WORKER = 1 } = process.env;
-
-const selectCore = (function* (arr) {
-  let index = 0;
-  while (true) {
-    yield arr[index % arr.length];
-    index++;
-  }
-})(getSolrCoreList());
-
-const getLeastPopulatedCore = async () =>
-  (
-    await Promise.all(
-      SOLA_SOLR_LIST.split(",").map((solrUrl) =>
-        fetch(`${solrUrl}admin/cores?wt=json`)
-          .then((res) => res.json())
-          .then(({ status }) => {
-            return Object.values(status).map((e) => ({
-              name: `${solrUrl}${e.name}`,
-              numDocs: e.index.numDocs,
-            }));
-          }),
-      ),
-    )
-  )
-    .flat()
-    .sort((a, b) => a.numDocs - b.numDocs)[0].name;
+const { MAX_WORKER = 1 } = process.env;
 
 // NEW => ANALYZING => ANALYZED => HASHING => HASHED => LOADING => LOADED
 export default async (app) => {
@@ -105,16 +78,6 @@ export default async (app) => {
         await createWorker();
       });
     } else if (row.status === "HASHED") {
-      const size = (
-        await sql`
-          SELECT
-            COUNT(*) AS count
-          FROM
-            files
-          WHERE
-            status = 'HASHED'
-        `
-      )[0].count;
       await sql`
         UPDATE files
         SET
@@ -128,11 +91,6 @@ export default async (app) => {
           id: row.id,
           anilist_id: row.anilist_id,
           filePath: row.path,
-          commit: size < getSolrCoreList().length,
-          coreUrl:
-            size < getSolrCoreList().length
-              ? await getLeastPopulatedCore()
-              : selectCore.next().value,
         },
       });
       worker.on("message", (message) => console.log(message));

@@ -61,7 +61,7 @@ export default async (filePath, t, minDuration, maxDuration) => {
     }, []);
 
     for (const [start, end] of sceneList) {
-      if (start <= t && t <= end) {
+      if (start <= t && t < end) {
         return {
           start: Math.max(0, t - start > maxDuration ? t - maxDuration : start),
           end: Math.min(end - t > maxDuration ? t + maxDuration : end, file.duration),
