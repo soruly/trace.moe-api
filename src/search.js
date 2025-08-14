@@ -435,7 +435,7 @@ export default async (req, res) => {
 
       const time = (t * 10000) | 0; // convert 4dp time code to integer
       const buf = Buffer.from(TRACE_API_SALT);
-      buf.writeUInt32LE(time ^ expire ^ fileId);
+      buf.writeUInt32LE(Math.abs(time ^ expire ^ fileId));
       const hash = Buffer.from(
         crypto.createHash("sha1").update(buf).digest("binary"),
       ).readUInt32LE();
