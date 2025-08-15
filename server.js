@@ -13,6 +13,14 @@ console.log(
 
 const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN } = process.env;
 
+console.log("Cleaning up previous temp folders");
+// rm -rf /tmp/trace.moe-*
+await Promise.all(
+  (await fs.readdir(os.tmpdir()))
+    .filter((e) => e.startsWith("trace.moe-"))
+    .map((e) => fs.rm(path.join(os.tmpdir(), e), { recursive: true, force: true })),
+);
+
 console.log("Checking postgres database");
 const [tables] = await sql`
   SELECT
@@ -28,7 +36,33 @@ if (!Number(tables.count)) {
   await sql.file("./sql/1.init.sql");
 }
 
+console.log("Cleaning up previous worker states");
+// NEW => ANALYZING => ANALYZED => HASHING => HASHED => LOADING => LOADED
+await sql`
+  UPDATE files
+  SET
+    status = 'NEW'
+  WHERE
+    status = 'ANALYZING'
+`;
+await sql`
+  UPDATE files
+  SET
+    status = 'ANALYZED'
+  WHERE
+    status = 'HASHING'
+`;
+await sql`
+  UPDATE files
+  SET
+    status = 'HASHED'
+  WHERE
+    status = 'LOADING'
+`;
+
+console.log("Connecting to milvus");
 const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
+await milvus.connectPromise;
 
 console.log("Checking milvus collection");
 const milvusCollection = await milvus.listCollections();
@@ -89,38 +123,6 @@ if (milvusCollection.collection_names.includes("frame_color_layout")) {
   );
 }
 await milvus.closeConnection();
-
-console.log("Cleaning up previous temp folders");
-// rm -rf /tmp/trace.moe-*
-await Promise.all(
-  (await fs.readdir(os.tmpdir()))
-    .filter((e) => e.startsWith("trace.moe-"))
-    .map((e) => fs.rm(path.join(os.tmpdir(), e), { recursive: true, force: true })),
-);
-
-console.log("Cleaning up previous worker states");
-// NEW => ANALYZING => ANALYZED => HASHING => HASHED => LOADING => LOADED
-await sql`
-  UPDATE files
-  SET
-    status = 'NEW'
-  WHERE
-    status = 'ANALYZING'
-`;
-await sql`
-  UPDATE files
-  SET
-    status = 'ANALYZED'
-  WHERE
-    status = 'HASHING'
-`;
-await sql`
-  UPDATE files
-  SET
-    status = 'HASHED'
-  WHERE
-    status = 'LOADING'
-`;
 
 app.locals.sqids = new Sqids({
   alphabet: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
