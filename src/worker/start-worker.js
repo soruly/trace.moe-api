@@ -37,7 +37,7 @@ export default async (app) => {
           path = ${row.path}
       `;
       const worker = new Worker("./src/worker/analyze.js", {
-        workerData: { filePath: row.path },
+        workerData: { anilist_id: row.anilist_id, filePath: row.path },
       });
       worker.on("message", (message) => console.log(message));
       worker.on("error", (error) => console.error(error));

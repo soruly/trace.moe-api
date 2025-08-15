@@ -6,7 +6,7 @@ import sql from "../../sql.js";
 
 const { VIDEO_PATH } = process.env;
 
-const { filePath } = workerData;
+const { anilist_id, filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Analyzing ${filePath}`);
 
 const videoFilePath = path.join(VIDEO_PATH, filePath);
@@ -15,6 +15,43 @@ try {
 } catch {
   parentPort.postMessage(`[${threadId}] Error: No such file ${videoFilePath}`);
   process.exit(1);
+}
+
+const rows = await sql`
+  SELECT
+    id
+  FROM
+    anilist
+  WHERE
+    id = ${anilist_id}
+`;
+if (!rows.length) {
+  console.log(`Fetching anime info ID ${anilist_id} from anilist`);
+  const res = await fetch("https://graphql.anilist.co/", {
+    method: "POST",
+    body: JSON.stringify({
+      query: await fs.readFile(
+        path.join(import.meta.dirname, "../../script/anilist.graphql"),
+        "utf8",
+      ),
+      variables: { id: anilist_id },
+    }),
+    headers: { "Content-Type": "application/json" },
+  });
+  if (res.status === 200) {
+    const anime = (await res.json()).data.Page.media[0];
+    console.log(`Saving anime info ID ${anime.id} (${anime.title.native ?? anime.title.romaji})`);
+    await sql`
+      INSERT INTO
+        anilist (id, updated, json)
+      VALUES
+        (
+          ${Number(anime.id)},
+          now(),
+          ${anime}
+        )
+    `;
+  }
 }
 
 const start = performance.now();
