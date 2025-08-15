@@ -13,6 +13,21 @@ console.log(
 
 const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN } = process.env;
 
+console.log("Checking postgres database");
+const [tables] = await sql`
+  SELECT
+    COUNT(*)
+  FROM
+    information_schema.tables
+  WHERE
+    table_schema = 'public';
+`;
+
+if (!Number(tables.count)) {
+  console.log("Creating postgres database");
+  await sql.file("./sql/1.init.sql");
+}
+
 const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
 console.log("Checking milvus collection");
