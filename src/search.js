@@ -390,7 +390,7 @@ export default async (req, res) => {
         at: Number(t.toFixed(4)),
         to: Number(to.toFixed(4)),
         duration,
-        similarity: (255 - d) / 255,
+        similarity: Math.min(Math.max(0, (255 - d) / 255), 1),
         video: `${req.protocol}://${req.get("host")}/video/${previewId}`,
         image: `${req.protocol}://${req.get("host")}/image/${previewId}`,
       };
