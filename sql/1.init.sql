@@ -4,20 +4,22 @@ CREATE TABLE IF NOT EXISTS anilist (
   json jsonb NOT NULL
 );
 
-CREATE INDEX ON anilist (id);
-
-CREATE INDEX ON anilist (updated);
+CREATE INDEX IF NOT EXISTS anilist_updated_idx ON anilist (updated);
 
 -- NEW => ANALYZING => ANALYZED => HASHING => HASHED => LOADING => LOADED
-CREATE TYPE type_status AS ENUM(
-  'NEW',
-  'ANALYZING',
-  'ANALYZED',
-  'HASHING',
-  'HASHED',
-  'LOADING',
-  'LOADED'
-);
+DO $$ BEGIN
+  CREATE TYPE type_status AS ENUM(
+    'NEW',
+    'ANALYZING',
+    'ANALYZED',
+    'HASHING',
+    'HASHED',
+    'LOADING',
+    'LOADED'
+  );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS files (
   id serial PRIMARY KEY,
@@ -46,15 +48,15 @@ CREATE TABLE IF NOT EXISTS files (
   scene_changes jsonb
 );
 
-CREATE INDEX ON files (anilist_id);
+CREATE INDEX IF NOT EXISTS files_anilist_id_idx ON files (anilist_id);
 
-CREATE INDEX ON files (path);
+CREATE INDEX IF NOT EXISTS files_path_idx ON files (path);
 
-CREATE INDEX ON files (status);
+CREATE INDEX IF NOT EXISTS files_status_idx ON files (status);
 
-CREATE INDEX ON files (created);
+CREATE INDEX IF NOT EXISTS files_created_idx ON files (created);
 
-CREATE INDEX ON files (updated);
+CREATE INDEX IF NOT EXISTS files_updated_idx ON files (updated);
 
 CREATE TABLE IF NOT EXISTS logs (
   created timestamp NOT NULL DEFAULT NOW(),
@@ -65,17 +67,17 @@ CREATE TABLE IF NOT EXISTS logs (
   accuracy real DEFAULT NULL
 );
 
-CREATE INDEX ON logs (created);
+CREATE INDEX IF NOT EXISTS logs_created_idx ON logs (created);
 
-CREATE INDEX ON logs (ip);
+CREATE INDEX IF NOT EXISTS logs_ip_idx ON logs (ip);
 
-CREATE INDEX ON logs (user_id);
+CREATE INDEX IF NOT EXISTS logs_user_id_idx ON logs (user_id);
 
-CREATE INDEX ON logs (code);
+CREATE INDEX IF NOT EXISTS logs_code_idx ON logs (code);
 
-CREATE INDEX ON logs (search_time);
+CREATE INDEX IF NOT EXISTS logs_search_time_idx ON logs (search_time);
 
-CREATE INDEX ON logs (accuracy);
+CREATE INDEX IF NOT EXISTS logs_accuracy_idx ON logs (accuracy);
 
 CREATE TABLE IF NOT EXISTS tiers (
   id serial PRIMARY KEY,
@@ -118,7 +120,7 @@ CREATE TABLE IF NOT EXISTS users (
   notes text DEFAULT NULL
 );
 
-CREATE VIEW users_view AS
+CREATE OR REPLACE VIEW users_view AS
 SELECT
   users.*,
   tiers.priority,
@@ -128,7 +130,11 @@ FROM
   users
   LEFT JOIN tiers ON tier = tiers.id;
 
-CREATE TYPE type_source AS ENUM('PATREON', 'GITHUB');
+DO $$ BEGIN
+    CREATE TYPE type_source AS ENUM('PATREON', 'GITHUB');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS webhook (
   id serial PRIMARY KEY,
@@ -148,6 +154,4 @@ CREATE TABLE IF NOT EXISTS quota (
   used integer NOT NULL DEFAULT 0
 );
 
-CREATE INDEX ON quota (ip);
-
-CREATE INDEX ON quota (network);
+CREATE INDEX IF NOT EXISTS quota_network_idx ON quota (network);
