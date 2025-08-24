@@ -25,7 +25,6 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 - PostgreSQL
 - Milvus
 - ffmpeg
-- java (OpenJDK)
 
 ### Install
 

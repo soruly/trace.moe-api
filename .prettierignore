@@ -1,6 +1,5 @@
 coverage/
 docs/
-jar/
 .env
 .env.example
 .gitignore

@@ -6,7 +6,7 @@ import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import sql from "../../sql.js";
 
-const { TRACE_ALGO = "cl", VIDEO_PATH, HASH_PATH } = process.env;
+const { VIDEO_PATH, HASH_PATH } = process.env;
 
 const { id, filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Hashing ${filePath}`);
@@ -16,12 +16,6 @@ try {
   await fs.access(path.join(VIDEO_PATH, filePath));
 } catch {
   parentPort.postMessage(`[${threadId}] Error: No such file ${videoFilePath}`);
-  process.exit(1);
-}
-if (
-  !["cl", "eh", "jc", "oh", "ph", "ac", "ad", "ce", "fc", "fo", "jh", "sc"].includes(TRACE_ALGO)
-) {
-  parentPort.postMessage(`[${threadId}] Error: Unsupported image descriptor "${TRACE_ALGO}"`);
   process.exit(1);
 }
 
@@ -45,67 +39,49 @@ const myRe = /pts_time:\s*(\d+\.?\d*)\s*/g;
 let temp = [];
 const timeCodeList = [];
 while ((temp = myRe.exec(ffmpegLog)) !== null) {
-  timeCodeList.push(parseFloat(temp[1]).toFixed(4));
+  timeCodeList.push(parseFloat(temp[1]));
 }
 parentPort.postMessage(`[${threadId}] Extracted ${timeCodeList.length} timecode`);
 
-const thumbnailList = await fs.readdir(tempPath);
-parentPort.postMessage(`[${threadId}] Extracted ${thumbnailList.length} thumbnails`);
-
-const thumbnailListPath = path.join(tempPath, "frames.txt");
-await fs.writeFile(
-  thumbnailListPath,
-  thumbnailList
-    .slice(0, timeCodeList.length)
-    .map((each) => path.join(tempPath, each))
-    .join("\n"),
-);
+const fileList = await fs.readdir(tempPath);
+parentPort.postMessage(`[${threadId}] Extracted ${fileList.length} thumbnails`);
 
 parentPort.postMessage(`[${threadId}] Analyzing frames`);
-const lireSolrXMLPath = path.join(tempPath, "output.xml");
 const analyzeStart = performance.now();
-const { stdout, stderr } = child_process.spawnSync(
-  "java",
-  [
-    "-cp",
-    "jar/*",
-    "net.semanticmetadata.lire.solr.indexing.ParallelSolrIndexer",
-    "-i",
-    thumbnailListPath,
-    "-o",
-    lireSolrXMLPath,
-    "-f", // force to overwrite output file
-    // "-a", // use both BitSampling and MetricSpaces
-    // "-l", // disable bitSampling and use MetricSpaces instead
-    "-n", // number of threads
-    16,
-    "-y", // defines which feature classes are to be extracted, comma separated
-    TRACE_ALGO, // cl,eh,jc,oh,ph,ac,ad,ce,fc,fo,jh,sc
-  ],
-  { encoding: "utf-8", maxBuffer: 1024 * 1024 * 100 },
-);
-parentPort.postMessage(`[${threadId}] ${stdout.trim()}`);
-if (stderr.trim()) parentPort.postMessage(`[${threadId}] ${stderr.trim()}`);
 
-// replace frame numbers with time code
-// and sort by time code in ascending order
-const hashList = (await fs.readFile(lireSolrXMLPath, "utf-8"))
-  .split("\n")
-  .map((line) => {
-    const match = line.match(
-      /<doc><field name="id">.*\/(\d+\.jpg)<\/field><field name="cl_hi">(.+?)<\/field><field name="cl_ha">(.+?)<\/field><\/doc>/,
-    );
-    if (!match) return;
-    return {
-      time: parseFloat(timeCodeList[thumbnailList.indexOf(match[1])]),
-      cl_hi: match[2],
-      cl_ha: match[3],
-    };
-  })
-  .filter((e) => e)
-  .sort((a, b) => a.time - b.time);
+const threads = Math.min(os.availableParallelism(), 16);
 
-// await fs.writeFile("hashList.json", JSON.stringify(hashList, null, 2));
+const hashList = (
+  await Promise.all(
+    Array.from({ length: threads }).map(
+      (_, i) =>
+        new Promise((resolve) => {
+          const child = child_process.spawn(
+            "node",
+            ["./src/worker/cl_hi.js", tempPath, i, threads],
+            {
+              maxBuffer: 1024 * 1024 * 100,
+            },
+          );
+          let chunks = "";
+          child.stderr.on("data", (data) => {
+            console.error(data.toString());
+          });
+          child.stdout.on("data", (data) => {
+            chunks += data.toString();
+          });
+          child.on("close", () => {
+            resolve(JSON.parse(chunks));
+          });
+        }),
+    ),
+  )
+)
+  .flat()
+  .sort((a, b) => (a.file > b.file ? 1 : -1))
+  .map(({ cl_hi }, i) => ({ time: timeCodeList[i], cl_hi }))
+  .filter((e) => e.time >= 0);
+
 await fs.rm(tempPath, { recursive: true, force: true });
 
 parentPort.postMessage(
