@@ -5,13 +5,19 @@ import Sqids from "sqids";
 import { MilvusClient, DataType } from "@zilliz/milvus2-sdk-node";
 import sql from "./sql.js";
 import app from "./src/app.js";
-
 import v8 from "v8";
+import { verifyEnvironmentVariables } from "./src/environment-variables-verification.js";
+
 console.log(
   `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
 );
 
 const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN } = process.env;
+
+if (!verifyEnvironmentVariables()) {
+  console.log("Environment variables verification failed, shutting down the API.");
+  throw new Error("Environment variables verification failed");
+}
 
 console.log("Cleaning up previous temp folders");
 // rm -rf /tmp/trace.moe-*
