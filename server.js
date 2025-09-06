@@ -7,12 +7,13 @@ import sql from "./sql.js";
 import app from "./src/app.js";
 import v8 from "v8";
 import { verifyEnvironmentVariables } from "./src/environment-variables-verification.js";
+import { verifyAndCreateDirectoryIfNotExists } from "./src/lib/file-system-verify.js";
 
 console.log(
   `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
 );
 
-const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN } = process.env;
+const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN, VIDEO_PATH, HASH_PATH } = process.env;
 
 if (!verifyEnvironmentVariables()) {
   console.log("Environment variables verification failed, shutting down the API.");
@@ -26,6 +27,10 @@ await Promise.all(
     .filter((e) => e.startsWith("trace.moe-"))
     .map((e) => fs.rm(path.join(os.tmpdir(), e), { recursive: true, force: true })),
 );
+
+console.log("Verifying data directories");
+await verifyAndCreateDirectoryIfNotExists("VIDEO_PATH", VIDEO_PATH);
+await verifyAndCreateDirectoryIfNotExists("HASH_PATH", HASH_PATH);
 
 console.log("Checking postgres database");
 const [tables] = await sql`
