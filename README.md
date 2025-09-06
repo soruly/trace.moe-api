@@ -22,9 +22,10 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 ### Prerequisites
 
 - Node.js >= 22.15
-- PostgreSQL
-- Milvus
-- ffmpeg
+- PostgreSQL 17+
+- Milvus 2.6.0+
+- FFmpeg
+- Docker
 
 ### Install
 
@@ -39,7 +40,8 @@ npm install
 ### Configuration
 
 - Copy `.env.example` to `.env`
-- Edit `.env` as appropriate for your setup, i.e. `VIDEO_PATH` and `HASH_PATH`
+- Edit `.env` as appropriate for your setup, i.e. `VIDEO_PATH` and `HASH_PATH`.
+- Change `TRACE_API_SALT` to a unique value of at least 32 characters.
 
 ### Start server
 
@@ -62,3 +64,14 @@ By default, it will scan the `VIDEO_PATH` every minute for new video files (.mp4
 ```
 curl http://localhost:3001/scan
 ```
+
+## Local Development
+
+Follow the installation instructions until the `Start server` step. Then proceed from here.  
+A `compose.yml` file is included for local development containing all the required dependencies.  
+On the first start, all database tables will be created in the database.
+
+### Running Locally
+
+1. `docker compose up -d`
+2. `node server.js`
