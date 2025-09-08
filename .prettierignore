@@ -6,8 +6,5 @@ docs/
 .prettierignore
 .dockerignore
 .nvmrc
-.prettierrc.json
 package-lock.json
-package.json
 .idea/
-.github/
