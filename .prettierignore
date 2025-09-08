@@ -6,3 +6,5 @@ docs/
 .prettierignore
 .dockerignore
 .nvmrc
+package-lock.json
+.idea/
