@@ -12,12 +12,12 @@ const {
 } = process.env;
 
 export function verifyEnvironmentVariables() {
-  if (!VIDEO_PATH || HASH_PATH.length === 0) {
+  if (!VIDEO_PATH) {
     console.warn("`VIDEO_PATH` not set.");
     return false;
   }
 
-  if (!HASH_PATH || HASH_PATH.length === 0) {
+  if (!HASH_PATH) {
     console.warn("`VIDEO_PATH` not set.");
     return false;
   }
