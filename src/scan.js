@@ -4,6 +4,7 @@ import sql from "../sql.js";
 import startWorker from "./worker/start-worker.js";
 
 const { VIDEO_PATH } = process.env;
+const VIDEO_PATH_NORMALIZED = path.normalize(VIDEO_PATH);
 
 export default async (req, res) => {
   const [dbFileList, fileList] = await Promise.all([
@@ -13,14 +14,14 @@ export default async (req, res) => {
       FROM
         files
     `,
-    fs.readdir(VIDEO_PATH, { recursive: true, withFileTypes: true }),
+    fs.readdir(VIDEO_PATH_NORMALIZED, { recursive: true, withFileTypes: true }),
   ]);
   const dbFileSet = new Set(dbFileList.map((e) => e.path));
 
   const videoFileList = fileList
     .filter((file) => file.isFile() && [".webm", ".mkv", ".mp4"].includes(path.extname(file.name)))
-    .map((e) => path.join(e.parentPath, e.name).replace(VIDEO_PATH, ""))
-    .filter((e) => e.match(/\d+\/.+/));
+    .map((e) => path.join(e.parentPath, e.name).replace(VIDEO_PATH_NORMALIZED, ""))
+    .filter((e) => e.match(/\d+[\/\\].+/));
   const videoFileSet = new Set(videoFileList);
 
   const newFileList = videoFileList.filter((e) => !dbFileSet.has(e));
@@ -31,7 +32,7 @@ export default async (req, res) => {
         files ${sql(
         newFileList
           .slice(i, i + 10000)
-          .map((e) => ({ anilist_id: Number(e.split("/")[0]), path: e, status: "NEW" })),
+          .map((e) => ({ anilist_id: Number(path.parse(e).dir), path: e, status: "NEW" })),
       )}
     `;
   }
