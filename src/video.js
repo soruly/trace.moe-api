@@ -110,6 +110,18 @@ export default async (req, res) => {
   if (!["l", "m", "s"].includes(size)) {
     return res.status(400).send("Bad Request. Invalid param: size");
   }
+
+  const ifNoneMatch = req.header("If-None-Match");
+  if (
+    ifNoneMatch &&
+    ifNoneMatch
+      .split(",")
+      .map((tag) => tag.trim())
+      .includes("v0")
+  ) {
+    return res.status(304).end(); // Not Modified
+  }
+
   if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
 
@@ -129,6 +141,7 @@ export default async (req, res) => {
 
     res.set("Cache-Control", "max-age=86400");
     res.set("Content-Type", "video/mp4");
+    res.set("ETag", "v0");
     res.set("x-video-start", scene.start);
     res.set("x-video-end", scene.end);
     res.set("x-video-duration", scene.duration);
