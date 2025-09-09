@@ -1,26 +1,21 @@
 import path from "node:path";
-import fs from "node:fs/promises";
-import zlib from "node:zlib";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
+import * as hashStorage from "../lib/hash-storage.js";
 
-const { HASH_PATH, MILVUS_ADDR, MILVUS_TOKEN, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } =
-  process.env;
+const { MILVUS_ADDR, MILVUS_TOKEN, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;
 
 const { id, anilist_id, filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Loading ${filePath}`);
 
-const hashFilePath = `${path.join(HASH_PATH, filePath)}.json.zst`;
+let hashList = [];
+
 try {
-  await fs.access(hashFilePath);
+  hashList = await hashStorage.read(filePath);
 } catch {
-  parentPort.postMessage(`[${threadId}] Error: No such file ${hashFilePath}`);
+  parentPort.postMessage(`[${threadId}] Error: No such file ${hashStorage.getFilePath(filePath)}`);
   process.exit(1);
 }
-
-const hashList = JSON.parse(zlib.zstdDecompressSync(await fs.readFile(hashFilePath))).sort(
-  (a, b) => a.time - b.time,
-);
 
 const dedupedHashList = [];
 for (const currentFrame of hashList) {
