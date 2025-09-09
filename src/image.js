@@ -86,6 +86,7 @@ export default async (req, res) => {
   req.app.locals.mediaQueue++;
   try {
     const image = await generateImagePreview(videoFilePath, time / 10000, format, size);
+    res.set("Cache-Control", "max-age=86400");
     res.set("Content-Type", `image/${format}`);
     res.send(image);
   } catch (e) {

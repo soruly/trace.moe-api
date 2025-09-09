@@ -127,6 +127,7 @@ export default async (req, res) => {
     const muted = "mute" in req.query;
     const video = await generateVideoPreview(videoFilePath, scene.start, scene.end, size, muted);
 
+    res.set("Cache-Control", "max-age=86400");
     res.set("Content-Type", "video/mp4");
     res.set("x-video-start", scene.start);
     res.set("x-video-end", scene.end);
