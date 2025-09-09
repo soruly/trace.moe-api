@@ -17,7 +17,7 @@ for (const row of rows) {
       attributes: { patron_status, email, full_name },
     },
     included,
-  } = JSON.parse(row.json);
+  } = row.json;
   if (!email) {
     continue;
   }
