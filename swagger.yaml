@@ -208,6 +208,12 @@ components:
         to:
           type: number
           description: Ending time of the matching scene (seconds)
+        at:
+          type: number
+          description: Time of the matching frame (seconds)
+        duration:
+          type: number
+          description: Duration of the matching video (seconds)
         similarity:
           type: number
           description: Similarity compared to the search image
