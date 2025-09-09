@@ -406,7 +406,7 @@ export default async (req, res) => {
         id IN ${sql(result.map((e) => e.anilist))}
     `;
     result = result.map((entry) => {
-      entry.anilist = anilist.find((e) => e.id === entry.anilist).json;
+      entry.anilist = anilist.find((e) => e.id === entry.anilist)?.json ?? entry.anilist;
       return entry;
     });
   }
