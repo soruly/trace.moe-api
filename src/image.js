@@ -82,12 +82,25 @@ export default async (req, res) => {
   if (!["l", "m", "s"].includes(size)) {
     return res.status(400).send("Bad Request. Invalid param: size");
   }
+
+  const ifNoneMatch = req.header("If-None-Match");
+  if (
+    ifNoneMatch &&
+    ifNoneMatch
+      .split(",")
+      .map((tag) => tag.trim())
+      .includes("v0")
+  ) {
+    return res.status(304).end(); // Not Modified
+  }
+
   if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
   try {
     const image = await generateImagePreview(videoFilePath, time / 10000, format, size);
     res.set("Cache-Control", "max-age=86400");
     res.set("Content-Type", `image/${format}`);
+    res.set("ETag", "v0");
     res.send(image);
   } catch (e) {
     console.log(e);
