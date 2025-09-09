@@ -47,7 +47,6 @@ export default async (req, res) => {
       metric_type: "system_info",
     },
   });
-  console.log(metric.response.nodes_info[0].infos);
 
   await milvus.closeConnection();
 
