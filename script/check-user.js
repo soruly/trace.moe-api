@@ -1,3 +1,4 @@
+import "../env.js";
 import sql from "../sql.js";
 
 const rows = await sql`

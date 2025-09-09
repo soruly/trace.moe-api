@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
+import "../env.js";
 import sql from "../sql.js";
 
 const { VIDEO_PATH, HASH_PATH, MILVUS_ADDR, MILVUS_TOKEN } = process.env;

@@ -3,10 +3,10 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import Sqids from "sqids";
 import { MilvusClient, DataType } from "@zilliz/milvus2-sdk-node";
+import "./env.js";
 import sql from "./sql.js";
 import app from "./src/app.js";
 import v8 from "v8";
-import { verifyEnvironmentVariables } from "./src/environment-variables-verification.js";
 import { verifyAndCreateDirectoryIfNotExists } from "./src/lib/file-system-verify.js";
 
 console.log(
@@ -14,11 +14,6 @@ console.log(
 );
 
 const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN, VIDEO_PATH, HASH_PATH } = process.env;
-
-if (!verifyEnvironmentVariables()) {
-  console.log("Environment variables verification failed, shutting down the API.");
-  throw new Error("Environment variables verification failed");
-}
 
 console.log("Cleaning up previous temp folders");
 // rm -rf /tmp/trace.moe-*

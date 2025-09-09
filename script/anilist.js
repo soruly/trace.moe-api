@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import "../env.js";
 import sql from "../sql.js";
 
 const q = {};

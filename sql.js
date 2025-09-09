@@ -1,6 +1,5 @@
 import postgres from "postgres";
 
-process.loadEnvFile();
 const { DB_NAME, DB_USER, DB_PASS, DB_HOST, DB_PORT } = process.env;
 
 const sql = postgres({
