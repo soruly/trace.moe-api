@@ -32,6 +32,7 @@ export default async (req, res) => {
         files ${sql(
         newFileList
           .slice(i, i + 10000)
+          .filter((e) => path.parse(e).dir.match(/^\d+$/))
           .map((e) => ({ anilist_id: Number(path.parse(e).dir), path: e, status: "NEW" })),
       )}
     `;
