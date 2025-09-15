@@ -58,6 +58,13 @@ CREATE INDEX IF NOT EXISTS files_created_idx ON files (created);
 
 CREATE INDEX IF NOT EXISTS files_updated_idx ON files (updated);
 
+CREATE TABLE IF NOT EXISTS files_color_layout (
+  id integer REFERENCES files ON DELETE CASCADE,
+  color_layout bytea
+);
+
+CREATE INDEX IF NOT EXISTS files_color_layout_id_idx ON files_color_layout (id);
+
 CREATE TABLE IF NOT EXISTS logs (
   created timestamp NOT NULL DEFAULT NOW(),
   ip inet NOT NULL,

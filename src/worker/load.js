@@ -1,24 +1,26 @@
 import path from "node:path";
-import fs from "node:fs/promises";
 import zlib from "node:zlib";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
+import sql from "../../sql.js";
 
-const { HASH_PATH, MILVUS_ADDR, MILVUS_TOKEN, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } =
-  process.env;
+const { MILVUS_ADDR, MILVUS_TOKEN, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;
 
 const { id, anilist_id, filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Loading ${filePath}`);
 
-const hashFilePath = `${path.join(HASH_PATH, filePath)}.json.zst`;
-try {
-  await fs.access(hashFilePath);
-} catch {
-  parentPort.postMessage(`[${threadId}] Error: No such file ${hashFilePath}`);
-  process.exit(1);
-}
+const [row] = await sql`
+  SELECT
+    color_layout
+  FROM
+    files_color_layout
+  WHERE
+    id = ${id}
+`;
+await sql.end();
+if (!row) process.exit(1);
 
-const hashList = JSON.parse(zlib.zstdDecompressSync(await fs.readFile(hashFilePath))).sort(
+const hashList = JSON.parse(zlib.zstdDecompressSync(row.color_layout)).sort(
   (a, b) => a.time - b.time,
 );
 
@@ -28,7 +30,7 @@ for (const currentFrame of hashList) {
     !dedupedHashList
       .slice(-50) // search in last 50 frames
       .filter((frame) => currentFrame.time - frame.time < 2) // which is within 2 sec
-      .some((frame) => frame.cl_hi === currentFrame.cl_hi) // skip frames with exact hash
+      .some((frame) => frame.vector.every((value, i) => value === currentFrame.vector[i])) // skip frames with exact hash
   ) {
     dedupedHashList.push(currentFrame);
   }
@@ -38,12 +40,7 @@ const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
 await milvus.insert({
   collection_name: "frame_color_layout",
-  data: dedupedHashList.map(({ time, cl_hi }) => ({
-    anilist_id,
-    file_id: id,
-    time,
-    vector: Array.from(Uint8Array.from(Buffer.from(cl_hi, "base64").subarray(2))),
-  })),
+  data: dedupedHashList.map(({ time, vector }) => ({ anilist_id, file_id: id, time, vector })),
 });
 
 await milvus.closeConnection();

@@ -6,7 +6,7 @@ import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import sql from "../../sql.js";
 
-const { VIDEO_PATH, HASH_PATH } = process.env;
+const { VIDEO_PATH } = process.env;
 
 const { id, filePath } = workerData;
 parentPort.postMessage(`[${threadId}] Hashing ${filePath}`);
@@ -79,7 +79,7 @@ const hashList = (
 )
   .flat()
   .sort((a, b) => (a.file > b.file ? 1 : -1))
-  .map(({ cl_hi }, i) => ({ time: timeCodeList[i], cl_hi }))
+  .map(({ vector }, i) => ({ time: timeCodeList[i], vector }))
   .filter((e) => e.time >= 0);
 
 await fs.rm(tempPath, { recursive: true, force: true });
@@ -95,19 +95,29 @@ await sql`
   WHERE
     id = ${id}
 `;
+
+parentPort.postMessage(`[${threadId}] Saving ${filePath}`);
+const saveStart = performance.now();
+
+await sql`
+  DELETE FROM files_color_layout
+  WHERE
+    id = ${id}
+`;
+await sql`
+  INSERT INTO
+    files_color_layout
+  VALUES
+    (
+      ${id},
+      ${zlib.zstdCompressSync(JSON.stringify(hashList), {
+    params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
+  })}
+    )
+`;
+
 await sql.end();
 
-const compressStart = performance.now();
-const hashFilePath = `${path.join(HASH_PATH, filePath)}.json.zst`;
-parentPort.postMessage(`[${threadId}] Compressing ${hashFilePath}`);
-await fs.mkdir(path.dirname(hashFilePath), { recursive: true });
-await fs.writeFile(
-  hashFilePath,
-  zlib.zstdCompressSync(JSON.stringify(hashList), {
-    params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
-  }),
-);
 parentPort.postMessage(
-  `[${threadId}] Compressing done in ${(performance.now() - compressStart).toFixed(0)} ms`,
+  `[${threadId}] Saved  ${filePath} in ${(performance.now() - saveStart).toFixed(0)} ms`,
 );
-parentPort.postMessage(`[${threadId}] Saved  ${hashFilePath}`);

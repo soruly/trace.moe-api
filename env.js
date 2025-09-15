@@ -2,7 +2,6 @@ process.loadEnvFile();
 if (
   [
     "VIDEO_PATH",
-    "HASH_PATH",
     "TRACE_API_SALT",
     "MILVUS_ADDR",
     "MILVUS_TOKEN",

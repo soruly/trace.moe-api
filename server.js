@@ -13,7 +13,7 @@ console.log(
   `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
 );
 
-const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN, VIDEO_PATH, HASH_PATH } = process.env;
+const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN, VIDEO_PATH } = process.env;
 
 console.log("Cleaning up previous temp folders");
 // rm -rf /tmp/trace.moe-*

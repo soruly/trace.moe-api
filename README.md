@@ -40,7 +40,7 @@ npm install
 ### Configuration
 
 - Copy `.env.example` to `.env`
-- Edit `.env` as appropriate for your setup, i.e. `VIDEO_PATH` and `HASH_PATH`.
+- Edit `.env` as appropriate for your setup, i.e. `VIDEO_PATH`.
 - Change `TRACE_API_SALT` to a unique value of at least 32 characters.
 
 ### Start server
