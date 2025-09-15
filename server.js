@@ -7,7 +7,7 @@ import "./env.js";
 import sql from "./sql.js";
 import app from "./src/app.js";
 import v8 from "v8";
-import { verifyAndCreateDirectoryIfNotExists } from "./src/lib/file-system-verify.js";
+import { ensureDir } from "./src/lib/ensure-dir.js";
 
 console.log(
   `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
@@ -24,8 +24,7 @@ await Promise.all(
 );
 
 console.log("Verifying data directories");
-await verifyAndCreateDirectoryIfNotExists("VIDEO_PATH", VIDEO_PATH);
-await verifyAndCreateDirectoryIfNotExists("HASH_PATH", HASH_PATH);
+await ensureDir(VIDEO_PATH);
 
 console.log("Checking postgres database");
 const [tables] = await sql`
