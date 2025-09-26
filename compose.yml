@@ -46,8 +46,8 @@ services:
       - "9001:9001"
       - "9000:9000"
     volumes:
-      - minio:/minio_data
-    command: minio server /minio_data --console-address ":9001"
+      - minio:/data
+    command: minio server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
