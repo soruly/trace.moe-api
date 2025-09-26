@@ -1,13 +1,13 @@
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     restart: unless-stopped
     ports:
       - ${DB_PORT}:5432
     environment:
       POSTGRES_PASSWORD: ${DB_PASS}
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres:/var/lib/postgresql
 
   adminer:
     image: adminer:latest
