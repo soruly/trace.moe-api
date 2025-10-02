@@ -70,8 +70,6 @@ export default async (req, res) => {
               tier = ${tier.id}
             WHERE
               email = ${email}
-            LIMIT
-              1
           `;
         }
       }
@@ -94,8 +92,6 @@ export default async (req, res) => {
           tier = 0
         WHERE
           email = ${email}
-        LIMIT
-          1
       `;
     }
   }
