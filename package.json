@@ -36,7 +36,7 @@
     "aniep": "^0.6.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "express-rate-limit": "^8.1.0",
+    "express-rate-limit": "^8.2.0",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
     "postgres": "^3.4.7",
