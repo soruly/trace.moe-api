@@ -38,7 +38,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.10",
+    "nodemailer": "^7.0.11",
     "postgres": "^3.4.7",
     "sharp": "^0.34.5",
     "sqids": "^0.3.0"
