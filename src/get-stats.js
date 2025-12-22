@@ -56,8 +56,8 @@ export default async (req, res) => {
         logs
       WHERE
         created > now() - ${{ minute: "60 minutes", hour: "72 hours", day: "60 days" }[
-        period
-      ]}::interval
+          period
+        ]}::interval
       GROUP BY
         date_time,
         code
@@ -122,8 +122,8 @@ export default async (req, res) => {
           logs
         WHERE
           created > now() - ${{ minute: "60 minutes", hour: "72 hours", day: "60 days" }[
-          period
-        ]}::interval
+            period
+          ]}::interval
         GROUP BY
           time
         ORDER BY
@@ -167,8 +167,8 @@ export default async (req, res) => {
           logs
         WHERE
           created > now() - ${{ minute: "60 minutes", hour: "72 hours", day: "60 days" }[
-          period
-        ]}::interval
+            period
+          ]}::interval
         GROUP BY
           time
         ORDER BY

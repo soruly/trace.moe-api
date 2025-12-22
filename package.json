@@ -28,11 +28,11 @@
   "homepage": "https://github.com/soruly/trace.moe-api#readme",
   "devDependencies": {
     "prettier": "^3.7.4",
-    "prettier-plugin-embed": "^0.5.0",
+    "prettier-plugin-embed": "^0.5.1",
     "prettier-plugin-sql": "^0.19.2"
   },
   "dependencies": {
-    "@zilliz/milvus2-sdk-node": "^2.6.5",
+    "@zilliz/milvus2-sdk-node": "^2.6.6",
     "aniep": "^0.6.0",
     "cors": "^2.8.5",
     "express": "^5.2.1",

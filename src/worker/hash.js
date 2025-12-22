@@ -111,8 +111,8 @@ await sql`
     (
       ${id},
       ${zlib.zstdCompressSync(JSON.stringify(hashList), {
-    params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
-  })}
+        params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
+      })}
     )
 `;
 
