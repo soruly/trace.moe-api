@@ -24,17 +24,18 @@ export default async (req, res) => {
     .filter((e) => e.match(/\d+[\/\\].+/));
   const videoFileSet = new Set(videoFileList);
 
-  const newFileList = videoFileList.filter((e) => !dbFileSet.has(e));
+  const newFileList = videoFileList.filter(
+    (e) => !dbFileSet.has(e) && path.parse(e).dir.match(/^\d+$/),
+  );
 
   for (let i = 0; i < newFileList.length; i += 10000) {
     await sql`
       INSERT INTO
         files ${sql(
-          newFileList
-            .slice(i, i + 10000)
-            .filter((e) => path.parse(e).dir.match(/^\d+$/))
-            .map((e) => ({ anilist_id: Number(path.parse(e).dir), path: e, status: "NEW" })),
-        )}
+            newFileList
+              .slice(i, i + 10000)
+              .map((e) => ({ anilist_id: Number(path.parse(e).dir), path: e, status: "NEW" })),
+          )}
     `;
   }
 
