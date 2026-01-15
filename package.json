@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/soruly/trace.moe-api#readme",
   "devDependencies": {
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.0",
     "prettier-plugin-embed": "^0.5.1",
     "prettier-plugin-sql": "^0.19.2"
   },
