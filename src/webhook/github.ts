@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import sql from "../../sql.ts";
 
 const { WEBHOOK_GITHUB_SECRET } = process.env;
 

@@ -7,8 +7,8 @@ import aniep from "aniep";
 import sharp from "sharp";
 import { performance } from "node:perf_hooks";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
-import sql from "../sql.js";
-import colorLayout from "./lib/color-layout.js";
+import sql from "../sql.ts";
+import colorLayout from "./lib/color-layout.ts";
 
 const {
   TRACE_API_SALT,
@@ -248,7 +248,7 @@ export default async (req, res) => {
     });
   }
 
-  let searchFile = new Buffer.alloc(0);
+  let searchFile;
   if (req.query.url) {
     // console.log(req.query.url);
     try {
@@ -276,11 +276,11 @@ export default async (req, res) => {
         ? `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
         : req.query.url,
     ).catch((_) => {
-      return { status: 400 };
+      return null;
     });
-    if (response.status >= 400) {
+    if (!response || response.status >= 400) {
       await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
-      return res.status(response.status).json({
+      return res.status(response?.status ?? 400).json({
         error: `Failed to fetch image ${req.query.url}`,
       });
     }

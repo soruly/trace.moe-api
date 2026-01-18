@@ -12,4 +12,4 @@ RUN touch /app/.env
 COPY ["package.json", "package-lock.json*", "./"]
 RUN npm install --omit=dev
 COPY . .
-CMD [ "node", "server.js" ]
+CMD [ "node", "server.ts" ]

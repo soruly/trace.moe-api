@@ -1,5 +1,5 @@
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
-import sql from "../sql.js";
+import sql from "../sql.ts";
 
 const { MILVUS_ADDR, MILVUS_TOKEN } = process.env;
 

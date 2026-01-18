@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import sharp from "sharp";
-import colorLayout from "../lib/color-layout.js";
+import colorLayout from "../lib/color-layout.ts";
 
 console.log(
   JSON.stringify(

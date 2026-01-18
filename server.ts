@@ -3,11 +3,11 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import Sqids from "sqids";
 import { MilvusClient, DataType } from "@zilliz/milvus2-sdk-node";
-import "./env.js";
-import sql from "./sql.js";
-import app from "./src/app.js";
+import "./env.ts";
+import sql from "./sql.ts";
+import app from "./src/app.ts";
 import v8 from "v8";
-import { ensureDir } from "./src/lib/ensure-dir.js";
+import { ensureDir } from "./src/lib/ensure-dir.ts";
 
 console.log(
   `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
@@ -71,7 +71,7 @@ await milvus.connectPromise;
 
 console.log("Checking milvus collection");
 const milvusCollection = await milvus.listCollections();
-if (milvusCollection.collection_names.includes("frame_color_layout")) {
+if (milvusCollection.data.find((e) => e.name === "frame_color_layout")) {
   console.log("Using milvus collection frame_color_layout");
 } else {
   console.log("Creating milvus collection frame_color_layout");

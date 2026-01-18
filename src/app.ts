@@ -4,19 +4,19 @@ import rateLimit from "express-rate-limit";
 import cors from "cors";
 import multer from "multer";
 
-import getMe from "./get-me.js";
-import getStatus from "./get-status.js";
-import getStats from "./get-stats.js";
-import search from "./search.js";
-import scan from "./scan.js";
-import video from "./video.js";
-import image from "./image.js";
-import github from "./webhook/github.js";
-import patreon from "./webhook/patreon.js";
-import create from "./user/create.js";
-import login from "./user/login.js";
-import resetKey from "./user/reset-key.js";
-import resetPassword from "./user/reset-password.js";
+import getMe from "./get-me.ts";
+import getStatus from "./get-status.ts";
+import getStats from "./get-stats.ts";
+import search from "./search.ts";
+import scan from "./scan.ts";
+import video from "./video.ts";
+import image from "./image.ts";
+import github from "./webhook/github.ts";
+import patreon from "./webhook/patreon.ts";
+import create from "./user/create.ts";
+import login from "./user/login.ts";
+import resetKey from "./user/reset-key.ts";
+import resetPassword from "./user/reset-password.ts";
 
 const app = express();
 
@@ -33,8 +33,8 @@ app.use((req, res, next) => {
 
 app.use(
   rateLimit({
-    max: 100, // limit each IP to max requests per 60 seconds
-    delayMs: 0, // disable delaying - full speed until the max limit is reached
+    limit: 100, // limit each IPv4 (or IPv6 /56 subnet) to 100 requests per 60 seconds
+    windowMs: 60 * 1000,
   }),
 );
 

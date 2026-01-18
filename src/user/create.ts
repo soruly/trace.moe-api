@@ -1,5 +1,5 @@
-import sql from "../../sql.js";
-import generateAPIKey from "../lib/generate-api-key.js";
+import sql from "../../sql.ts";
+import createNewUser from "../lib/create-new-user.ts";
 
 export default async (req, res) => {
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
@@ -8,6 +8,7 @@ export default async (req, res) => {
       error: "Missing API key",
     });
   }
+
   const rows = await sql`
     SELECT
       id
@@ -23,16 +24,23 @@ export default async (req, res) => {
       error: "Invalid API key",
     });
   }
-  const key = generateAPIKey(rows[0].id);
-  await sql`
-    UPDATE users
-    SET
-      api_key = ${key}
-    WHERE
-      id = ${rows[0].id}
-  `;
+  if (rows[0].id >= 1000) {
+    return res.status(403).json({
+      error: "Forbidden",
+    });
+  }
 
-  return res.json({
-    key,
-  });
+  const result = await createNewUser(
+    req.body.email,
+    req.body.tier,
+    req.body.email.split("@").shift(),
+  );
+
+  if (result) {
+    return res.status(400).json({
+      error: result,
+    });
+  }
+
+  return res.json({});
 };

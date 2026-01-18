@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import sql from "../sql.js";
-import startWorker from "./worker/start-worker.js";
+import sql from "../sql.ts";
+import startWorker from "./worker/start-worker.ts";
 
 const { VIDEO_PATH } = process.env;
 const VIDEO_PATH_NORMALIZED = path.normalize(VIDEO_PATH);

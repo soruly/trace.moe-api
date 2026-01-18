@@ -1,4 +1,4 @@
-import sql from "../sql.js";
+import sql from "../sql.ts";
 
 let lastUpdate = new Date();
 let mediaCount = 0;

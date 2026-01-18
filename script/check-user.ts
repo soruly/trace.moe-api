@@ -1,5 +1,5 @@
-import "../env.js";
-import sql from "../sql.js";
+import "../env.ts";
+import sql from "../sql.ts";
 
 const rows = await sql`
   SELECT

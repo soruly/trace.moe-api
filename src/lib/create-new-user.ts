@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import { URL } from "node:url";
 import nodemailer from "nodemailer";
-import sql from "../../sql.js";
-import generateAPIKey from "./generate-api-key.js";
+import sql from "../../sql.ts";
+import generateAPIKey from "./generate-api-key.ts";
 
 const { TRACE_API_SALT, EMAIL_SMTP, EMAIL_SMTP_PORT } = process.env;
 let { EMAIL_USER, EMAIL_PASS, EMAIL_FROM } = process.env;

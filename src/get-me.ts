@@ -1,4 +1,4 @@
-import sql from "../sql.js";
+import sql from "../sql.ts";
 
 export default async (req, res) => {
   let priority = 0;

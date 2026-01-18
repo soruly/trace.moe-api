@@ -1,5 +1,5 @@
 import { Worker } from "node:worker_threads";
-import sql from "../../sql.js";
+import sql from "../../sql.ts";
 
 const { MAX_WORKER = 1 } = process.env;
 
@@ -36,7 +36,7 @@ export default async (app) => {
         WHERE
           path = ${row.path}
       `;
-      const worker = new Worker("./src/worker/analyze.js", {
+      const worker = new Worker("./src/worker/analyze.ts", {
         workerData: { anilist_id: row.anilist_id, filePath: row.path },
       });
       worker.on("message", (message) => console.log(message));
@@ -61,7 +61,7 @@ export default async (app) => {
         WHERE
           path = ${row.path}
       `;
-      const worker = new Worker("./src/worker/hash.js", {
+      const worker = new Worker("./src/worker/hash.ts", {
         workerData: { id: row.id, filePath: row.path },
       });
       worker.on("message", (message) => console.log(message));
@@ -86,7 +86,7 @@ export default async (app) => {
         WHERE
           path = ${row.path}
       `;
-      const worker = new Worker("./src/worker/load.js", {
+      const worker = new Worker("./src/worker/load.ts", {
         workerData: {
           id: row.id,
           anilist_id: row.anilist_id,

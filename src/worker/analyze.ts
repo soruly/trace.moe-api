@@ -2,7 +2,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
-import sql from "../../sql.js";
+import sql from "../../sql.ts";
 
 const { VIDEO_PATH } = process.env;
 
@@ -70,14 +70,14 @@ if (stdout.length) {
   await sql`
     UPDATE files
     SET
-      media_info = ${JSON.parse(stdout)},
+      media_info = ${JSON.parse(stdout.toString())},
       updated = now()
     WHERE
       path = ${filePath}
   `;
 }
 
-const sceneList = await new Promise((resolve) => {
+const sceneList: [number, number][] = await new Promise((resolve) => {
   const list = [];
   const ls = child_process.spawn("ffmpeg", [
     "-hide_banner",

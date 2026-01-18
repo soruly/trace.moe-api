@@ -1,10 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import "../env.js";
-import sql from "../sql.js";
+import "../env.ts";
+import sql from "../sql.ts";
 
-const q = {};
-q.query = await fs.readFile(path.join(import.meta.dirname, "anilist.graphql"), "utf8");
+const q = {
+  query: await fs.readFile(path.join(import.meta.dirname, "anilist.graphql"), "utf8"),
+  variables: {},
+};
 
 const anilistChinese = await fetch(
   "https://raw.githubusercontent.com/soruly/anilist-chinese/refs/heads/master/anilist-chinese.json",
@@ -73,7 +75,7 @@ if (arg === "--anime" && value) {
   await save(anime);
 } else if (arg === "--page" && value) {
   const format = /^(\d+)(-)?(\d+)?$/;
-  const startPage = value.match(format)[1];
+  const startPage = Number(value.match(format)[1]);
   const lastPage = value.match(format)[2] ? Number(value.match(format)[3]) : startPage;
 
   console.log(`Crawling page ${startPage} to ${lastPage || "end"}`);
@@ -93,10 +95,10 @@ if (arg === "--anime" && value) {
   }
   console.log("Crawling complete");
 } else {
-  console.log("Usage: node anilist.js --anime 1");
-  console.log("       node anilist.js --page 1");
-  console.log("       node anilist.js --page 1-");
-  console.log("       node anilist.js --page 1-2");
+  console.log("Usage: node anilist.ts --anime 1");
+  console.log("       node anilist.ts --page 1");
+  console.log("       node anilist.ts --page 1-");
+  console.log("       node anilist.ts --page 1-2");
 }
 
 await sql.end();

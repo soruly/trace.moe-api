@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import zlib from "node:zlib";
 import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
-import sql from "../../sql.js";
+import sql from "../../sql.ts";
 
 const { VIDEO_PATH } = process.env;
 
@@ -28,7 +28,7 @@ parentPort.postMessage(`[${threadId}] Extracting thumbnails`);
 const extractStart = performance.now();
 const { stderr: ffmpegLog } = child_process.spawnSync(
   "ffmpeg",
-  ["-i", videoFilePath, "-q:v", 2, "-an", "-vf", "scale=-2:180,showinfo", `${tempPath}/%08d.jpg`],
+  ["-i", videoFilePath, "-q:v", "2", "-an", "-vf", "scale=-2:180,showinfo", `${tempPath}/%08d.jpg`],
   { encoding: "utf-8", maxBuffer: 1024 * 1024 * 100 },
 );
 parentPort.postMessage(
@@ -51,18 +51,22 @@ const analyzeStart = performance.now();
 
 const threads = Math.min(os.availableParallelism(), 16);
 
+interface CL_HI_Result {
+  file: string;
+  vector: number[];
+}
+
 const hashList = (
   await Promise.all(
     Array.from({ length: threads }).map(
-      (_, i) =>
+      (_, i): Promise<CL_HI_Result[]> =>
         new Promise((resolve) => {
-          const child = child_process.spawn(
-            "node",
-            ["./src/worker/cl_hi.js", tempPath, i, threads],
-            {
-              maxBuffer: 1024 * 1024 * 100,
-            },
-          );
+          const child = child_process.spawn("node", [
+            "./src/worker/cl_hi.ts",
+            tempPath,
+            `${i}`,
+            `${threads}`,
+          ]);
           let chunks = "";
           child.stderr.on("data", (data) => {
             console.error(data.toString());

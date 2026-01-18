@@ -2,7 +2,7 @@
   "name": "trace.moe-api",
   "version": "1.0.0",
   "description": "API server of trace.moe",
-  "main": "server.js",
+  "main": "server.ts",
   "type": "module",
   "scripts": {
     "start": "pm2 start ecosystem.config.json",
@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/soruly/trace.moe-api#readme",
   "devDependencies": {
+    "@types/node": "^25.0.9",
     "prettier": "^3.8.0",
     "prettier-plugin-embed": "^0.5.1",
     "prettier-plugin-sql": "^0.19.2"

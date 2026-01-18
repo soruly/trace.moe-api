@@ -1,4 +1,4 @@
-import sql from "../../sql.js";
+import sql from "../../sql.ts";
 
 const { VIDEO_PATH } = process.env;
 

@@ -74,4 +74,4 @@ On the first start, all database tables will be created in the database.
 ### Running Locally
 
 1. `docker compose up -d`
-2. `node server.js`
+2. `node server.ts`

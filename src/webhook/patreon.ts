@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import sql from "../../sql.js";
-import createNewUser from "../lib/create-new-user.js";
+import sql from "../../sql.ts";
+import createNewUser from "../lib/create-new-user.ts";
 
 const { WEBHOOK_PATREON_SECRET } = process.env;
 

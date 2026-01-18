@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import sql from "../../sql.js";
+import sql from "../../sql.ts";
 
 const { TRACE_API_SALT } = process.env;
 
