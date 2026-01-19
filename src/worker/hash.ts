@@ -67,15 +67,15 @@ const hashList = (
             `${i}`,
             `${threads}`,
           ]);
-          let chunks = "";
+          const chunks: Buffer[] = [];
           child.stderr.on("data", (data) => {
             console.error(data.toString());
           });
           child.stdout.on("data", (data) => {
-            chunks += data.toString();
+            chunks.push(data);
           });
           child.on("close", () => {
-            resolve(JSON.parse(chunks));
+            resolve(JSON.parse(Buffer.concat(chunks).toString()));
           });
         }),
     ),
