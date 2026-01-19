@@ -70,12 +70,12 @@ const generateVideoPreview = async (filePath, start, end, size = "m", mute = fal
     ffmpeg.stderr.on("data", (data) => {
       console.log(data.toString());
     });
-    let chunks = Buffer.alloc(0);
+    const chunks = [];
     ffmpeg.stdout.on("data", (data) => {
-      chunks = Buffer.concat([chunks, data]);
+      chunks.push(data);
     });
     ffmpeg.on("close", () => {
-      resolve(chunks);
+      resolve(Buffer.concat(chunks));
     });
   });
 
