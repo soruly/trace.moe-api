@@ -8,6 +8,7 @@ import getMe from "./get-me.ts";
 import getStatus from "./get-status.ts";
 import getStats from "./get-stats.ts";
 import search from "./search.ts";
+import search2 from "./search2.ts";
 import scan from "./scan.ts";
 import video from "./video.ts";
 import image from "./image.ts";
@@ -84,6 +85,7 @@ app.all(
   multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }).any(),
   search,
 );
+app.all("/search2", search2);
 app.get("/video/:id", video);
 app.get("/image/:id", image);
 app.all("/user/login", login);
