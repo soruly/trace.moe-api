@@ -14,7 +14,8 @@
     "prettier": "prettier",
     "format": "prettier --write \"**/*.*\"",
     "lint": "prettier --check \"**/*.*\"",
-    "test": "prettier --check \"**/*.*\""
+    "test": "prettier --check \"**/*.*\"",
+    "build:wasm": "asc assembly/color-layout.ts -o build/color-layout.wasm --optimize --exportRuntime"
   },
   "repository": {
     "type": "git",
@@ -28,6 +29,7 @@
   "homepage": "https://github.com/soruly/trace.moe-api#readme",
   "devDependencies": {
     "@types/node": "^25.0.9",
+    "assemblyscript": "^0.28.9",
     "prettier": "^3.8.0",
     "prettier-plugin-embed": "^0.5.1",
     "prettier-plugin-sql": "^0.19.2"

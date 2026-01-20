@@ -8,3 +8,4 @@ docs/
 .nvmrc
 package-lock.json
 .idea/
+build/
