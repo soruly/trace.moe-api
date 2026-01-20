@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import aniep from "aniep";
 import sql from "../sql.ts";
 import startWorker from "./worker/start-worker.ts";
 
@@ -32,9 +33,16 @@ export default async (req, res) => {
     await sql`
       INSERT INTO
         files ${sql(
-          newFileList
-            .slice(i, i + 10000)
-            .map((e) => ({ anilist_id: Number(path.parse(e).dir), path: e, status: "NEW" })),
+          newFileList.slice(i, i + 10000).map((e) => {
+            const ep = aniep(path.basename(e));
+            const episode = typeof ep === "number" && Math.floor(ep) === ep ? ep : null;
+            return {
+              anilist_id: Number(path.parse(e).dir),
+              episode,
+              path: e,
+              status: "NEW",
+            };
+          }),
         )}
     `;
   }

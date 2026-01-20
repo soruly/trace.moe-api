@@ -93,6 +93,7 @@ if (arg === "--anime" && value) {
     if (!data.Page.pageInfo.hasNextPage) break;
     page++;
   }
+  await sql`REFRESH MATERIALIZED VIEW anilist_view`;
   console.log("Crawling complete");
 } else {
   console.log("Usage: node anilist.ts --anime 1");

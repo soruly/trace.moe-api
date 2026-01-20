@@ -24,6 +24,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS files (
   id serial PRIMARY KEY,
   anilist_id integer,
+  episode smallint,
   path text NOT NULL,
   status type_status NOT NULL,
   created timestamp NOT NULL DEFAULT NOW(),
@@ -49,6 +50,8 @@ CREATE TABLE IF NOT EXISTS files (
 );
 
 CREATE INDEX IF NOT EXISTS files_anilist_id_idx ON files (anilist_id);
+
+CREATE INDEX IF NOT EXISTS files_episode_idx ON files (episode);
 
 CREATE INDEX IF NOT EXISTS files_path_idx ON files (path);
 
