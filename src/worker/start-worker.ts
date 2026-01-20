@@ -1,7 +1,14 @@
+import path from "node:path";
+import fs from "node:fs/promises";
 import { Worker } from "node:worker_threads";
 import sql from "../../sql.ts";
 
 const { MAX_WORKER = 1 } = process.env;
+
+const ANILIST_QUERY = await fs.readFile(
+  path.join(import.meta.dirname, "../../script/anilist.graphql"),
+  "utf8",
+);
 
 // NEW => ANALYZING => ANALYZED => HASHING => HASHED => LOADING => LOADED
 export default async (app) => {
@@ -37,7 +44,11 @@ export default async (app) => {
           path = ${row.path}
       `;
       const worker = new Worker("./src/worker/analyze.ts", {
-        workerData: { anilist_id: row.anilist_id, filePath: row.path },
+        workerData: {
+          anilist_id: row.anilist_id,
+          filePath: row.path,
+          anilistQuery: ANILIST_QUERY,
+        },
       });
       worker.on("message", (message) => console.log(message));
       worker.on("error", (error) => console.error(error));
