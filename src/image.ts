@@ -35,7 +35,7 @@ const generateImagePreview = async (filePath, t, format = "jpeg", size = "m") =>
     ffmpeg.stderr.on("data", (data) => {
       console.log(data.toString());
     });
-    const chunks: Buffer[] = [];
+    const chunks = [];
     ffmpeg.stdout.on("data", (data) => {
       chunks.push(data);
     });
