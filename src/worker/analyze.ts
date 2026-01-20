@@ -1,5 +1,4 @@
 import path from "node:path";
-import fs from "node:fs/promises";
 import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import sql from "../../sql.ts";
@@ -10,12 +9,6 @@ const { anilist_id, filePath, anilistQuery } = workerData;
 parentPort.postMessage(`[${threadId}] Analyzing ${filePath}`);
 
 const videoFilePath = path.join(VIDEO_PATH, filePath);
-try {
-  await fs.access(path.join(VIDEO_PATH, filePath));
-} catch {
-  parentPort.postMessage(`[${threadId}] Error: No such file ${videoFilePath}`);
-  process.exit(1);
-}
 
 const rows = await sql`
   SELECT
