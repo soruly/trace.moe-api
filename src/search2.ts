@@ -10,8 +10,6 @@ const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 export default async (req, res) => {
   const locals = req.app.locals;
 
-  console.log(req.body);
-
   const searchResult = await milvus.search({
     collection_name: "frame_color_layout",
     data: req.body.vectors,
@@ -19,8 +17,6 @@ export default async (req, res) => {
     filter: Number(req.query.anilistID) ? `anilist_id == ${Number(req.query.anilistID)}` : null,
     output_fields: ["anilist_id", "file_id", "time"],
   });
-
-  console.log(searchResult);
 
   const results = await Promise.all(
     searchResult.results.map(async (r) => {
