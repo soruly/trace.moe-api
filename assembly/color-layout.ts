@@ -62,16 +62,20 @@ export function getColorLayout(width: i32, height: i32, dataPtr: usize): usize {
   let CbCoeff = new Uint8Array(numCCoeff);
   let CrCoeff = new Uint8Array(numCCoeff);
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      let offset = (y * width + x) * 3;
-      let R = load<u8>(dataPtr + offset + 0);
-      let G = load<u8>(dataPtr + offset + 1);
-      let B = load<u8>(dataPtr + offset + 2);
+  let ptr = dataPtr;
 
-      let y_axis = (y as f64) / ((height as f64) / 8.0);
-      let x_axis = (x as f64) / ((width as f64) / 8.0);
-      let k = ((y_axis as i32) << 3) + (x_axis as i32);
+  for (let y = 0; y < height; y++) {
+    let y_axis = (y * 8) / height;
+    let k_base = y_axis << 3;
+
+    for (let x = 0; x < width; x++) {
+      let R = load<u8>(ptr);
+      let G = load<u8>(ptr + 1);
+      let B = load<u8>(ptr + 2);
+      ptr += 3;
+
+      let x_axis = (x * 8) / width;
+      let k = k_base + x_axis;
 
       let yy = (0.299 * (R as f64) + 0.587 * (G as f64) + 0.114 * (B as f64)) / 256.0;
 
