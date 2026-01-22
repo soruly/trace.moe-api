@@ -2,6 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import zlib from "node:zlib";
+import readline from "node:readline";
 import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import sql from "../../sql.ts";
@@ -60,22 +61,30 @@ const hashList = (
   await Promise.all(
     Array.from({ length: threads }).map(
       (_, i): Promise<CL_HI_Result[]> =>
-        new Promise((resolve) => {
+        new Promise((resolve, reject) => {
           const child = child_process.spawn("node", [
             "./src/worker/cl_hi.ts",
             tempPath,
             `${i}`,
             `${threads}`,
           ]);
-          const chunks: Buffer[] = [];
+          const results: CL_HI_Result[] = [];
+          const rl = readline.createInterface({
+            input: child.stdout,
+            crlfDelay: Infinity,
+          });
           child.stderr.on("data", (data) => {
             console.error(data.toString());
           });
-          child.stdout.on("data", (data) => {
-            chunks.push(data);
+          rl.on("line", (line) => {
+            results.push(JSON.parse(line));
           });
-          child.on("close", () => {
-            resolve(JSON.parse(Buffer.concat(chunks).toString()));
+          child.on("close", (code) => {
+            if (code === 0) {
+              resolve(results);
+            } else {
+              reject(new Error(`cl_hi.ts exited with code ${code}`));
+            }
           });
         }),
     ),
