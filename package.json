@@ -35,7 +35,7 @@
   "dependencies": {
     "@zilliz/milvus2-sdk-node": "^2.6.9",
     "aniep": "^0.6.0",
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "multer": "^2.0.2",
