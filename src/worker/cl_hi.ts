@@ -3,15 +3,17 @@ import fs from "node:fs/promises";
 import sharp from "sharp";
 import colorLayout from "../lib/color-layout.ts";
 
-console.log(
-  JSON.stringify(
-    await Promise.all(
-      (await fs.readdir(process.argv[2]))
-        .filter((_, i) => i % Number(process.argv[4]) === Number(process.argv[3]))
-        .map(async (file) => ({
-          file,
-          vector: await colorLayout(await sharp(path.join(process.argv[2], file)).toBuffer()),
-        })),
-    ),
-  ),
-);
+const dir = process.argv[2];
+const threadId = Number(process.argv[3]);
+const totalThreads = Number(process.argv[4]);
+
+const files = await fs.readdir(dir);
+
+for (let i = 0; i < files.length; i++) {
+  if (i % totalThreads === threadId) {
+    const file = files[i];
+    const buffer = await sharp(path.join(dir, file)).toBuffer();
+    const vector = await colorLayout(buffer);
+    console.log(JSON.stringify({ file, vector }));
+  }
+}
