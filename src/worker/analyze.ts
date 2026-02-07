@@ -1,21 +1,14 @@
 import path from "node:path";
-import fs from "node:fs/promises";
 import child_process from "node:child_process";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import sql from "../../sql.ts";
 
 const { VIDEO_PATH } = process.env;
 
-const { anilist_id, filePath } = workerData;
+const { anilist_id, filePath, anilistQuery } = workerData;
 parentPort.postMessage(`[${threadId}] Analyzing ${filePath}`);
 
 const videoFilePath = path.join(VIDEO_PATH, filePath);
-try {
-  await fs.access(path.join(VIDEO_PATH, filePath));
-} catch {
-  parentPort.postMessage(`[${threadId}] Error: No such file ${videoFilePath}`);
-  process.exit(1);
-}
 
 const rows = await sql`
   SELECT
@@ -30,10 +23,7 @@ if (!rows.length) {
   const res = await fetch("https://graphql.anilist.co/", {
     method: "POST",
     body: JSON.stringify({
-      query: await fs.readFile(
-        path.join(import.meta.dirname, "../../script/anilist.graphql"),
-        "utf8",
-      ),
+      query: anilistQuery,
       variables: { id: anilist_id },
     }),
     headers: { "Content-Type": "application/json" },
