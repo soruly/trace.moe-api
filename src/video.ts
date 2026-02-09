@@ -61,7 +61,11 @@ export default async (req, res) => {
       Math.min(Math.max(Number(req.query.minDuration) || 0, 0.5), 2), // default: 0.5s before and after t, range: 0.5s ~ 2.0s
       Math.min(Math.max(Number(req.query.maxDuration) || 5, 0.5), 5), // default: 5.0s before and after t, range: 0.5s ~ 5.0s
     );
-    if (!scene) return res.status(500).send("Internal Server Error");
+    if (scene === null) {
+      return res.status(500).send("Internal Server Error");
+    }
+
+    const muted = "mute" in req.query;
 
     res.set("Cache-Control", "max-age=86400");
     res.set("Content-Type", "video/mp4");
@@ -71,13 +75,7 @@ export default async (req, res) => {
     res.set("x-video-duration", scene.duration);
     res.set("Access-Control-Expose-Headers", "x-video-start, x-video-end, x-video-duration");
 
-    const ffmpeg = generateVideoPreview(
-      videoFilePath,
-      scene.start,
-      scene.end,
-      size,
-      "mute" in req.query,
-    );
+    const ffmpeg = generateVideoPreview(videoFilePath, scene.start, scene.end, size, muted);
 
     ffmpeg.stdout.pipe(res);
 
@@ -85,13 +83,15 @@ export default async (req, res) => {
       ffmpeg.on("close", () => resolve());
       ffmpeg.on("error", (err) => {
         console.log(err);
-        res.end();
+        res.end(); // terminate the stream to signal error to client
         resolve();
       });
     });
   } catch (e) {
     console.log(e);
-    if (!res.headersSent) res.status(500).send("Internal Server Error");
+    if (!res.headersSent) {
+      res.status(500).send("Internal Server Error");
+    }
   }
   req.app.locals.mediaQueue--;
 };
