@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
+import os from "node:os";
 import { Buffer } from "node:buffer";
 import sql from "../sql.ts";
 import detectScene from "./lib/detect-scene.ts";
@@ -54,6 +55,9 @@ export default async (req, res) => {
   if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
 
+  const tempFile = path.join(os.tmpdir(), `video-preview-${crypto.randomUUID()}.mp4`);
+  let released = false;
+
   try {
     const scene = await detectScene(
       videoFilePath,
@@ -62,10 +66,36 @@ export default async (req, res) => {
       Math.min(Math.max(Number(req.query.maxDuration) || 5, 0.5), 5), // default: 5.0s before and after t, range: 0.5s ~ 5.0s
     );
     if (scene === null) {
+      if (!released) {
+        req.app.locals.mediaQueue--;
+        released = true;
+      }
       return res.status(500).send("Internal Server Error");
     }
 
     const muted = "mute" in req.query;
+
+    const ffmpeg = generateVideoPreview(
+      videoFilePath,
+      scene.start,
+      scene.end,
+      size,
+      muted,
+      tempFile,
+    );
+
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg.on("close", (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`ffmpeg exited with code ${code}`));
+      });
+      ffmpeg.on("error", reject);
+    });
+
+    if (!released) {
+      req.app.locals.mediaQueue--;
+      released = true;
+    }
 
     res.set("Cache-Control", "max-age=86400");
     res.set("Content-Type", "video/mp4");
@@ -75,23 +105,33 @@ export default async (req, res) => {
     res.set("x-video-duration", scene.duration);
     res.set("Access-Control-Expose-Headers", "x-video-start, x-video-end, x-video-duration");
 
-    const ffmpeg = generateVideoPreview(videoFilePath, scene.start, scene.end, size, muted);
-
-    ffmpeg.stdout.pipe(res);
-
-    await new Promise<void>((resolve) => {
-      ffmpeg.on("close", () => resolve());
-      ffmpeg.on("error", (err) => {
-        console.log(err);
-        res.end(); // terminate the stream to signal error to client
-        resolve();
-      });
-    });
+    res.sendFile(
+      tempFile,
+      {
+        headers: {
+          "Content-Type": "video/mp4",
+        },
+        etag: false,
+        lastModified: false,
+      },
+      (err) => {
+        fs.unlink(tempFile).catch(() => {});
+        if (err) {
+          console.log(err);
+        }
+      },
+    );
   } catch (e) {
     console.log(e);
+    fs.unlink(tempFile).catch(() => {});
+
+    if (!released) {
+      req.app.locals.mediaQueue--;
+      released = true;
+    }
+
     if (!res.headersSent) {
       res.status(500).send("Internal Server Error");
     }
   }
-  req.app.locals.mediaQueue--;
 };
