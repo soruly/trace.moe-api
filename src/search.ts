@@ -1,8 +1,5 @@
 import crypto from "node:crypto";
-import os from "node:os";
-import path from "node:path";
 import child_process from "node:child_process";
-import fs from "node:fs/promises";
 import aniep from "aniep";
 import sharp from "sharp";
 import { performance } from "node:perf_hooks";
@@ -75,32 +72,33 @@ const logAndDequeue = async (
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
 
-const extractImageByFFmpeg = async (searchFile) => {
-  const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
-  await fs.writeFile(tempFilePath, searchFile);
-  const ffmpeg = child_process.spawnSync("ffmpeg", [
-    "-hide_banner",
-    "-loglevel",
-    "error",
-    "-nostats",
-    "-y",
-    "-i",
-    tempFilePath,
-    "-ss",
-    "00:00:00",
-    "-map_metadata",
-    "-1",
-    "-vf",
-    "scale=320:-2",
-    "-c:v",
-    "mjpeg",
-    "-vframes",
-    "1",
-    "-f",
-    "image2pipe",
-    "pipe:1",
-  ]);
-  await fs.rm(tempFilePath, { force: true });
+const extractImageByFFmpeg = async (searchFile: Buffer) => {
+  const ffmpeg = child_process.spawnSync(
+    "ffmpeg",
+    [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-nostats",
+      "-y",
+      "-i",
+      "pipe:0",
+      "-ss",
+      "00:00:00",
+      "-map_metadata",
+      "-1",
+      "-vf",
+      "scale=320:-2",
+      "-c:v",
+      "mjpeg",
+      "-vframes",
+      "1",
+      "-f",
+      "image2pipe",
+      "pipe:1",
+    ],
+    { input: searchFile },
+  );
   return ffmpeg.stdout;
 };
 
