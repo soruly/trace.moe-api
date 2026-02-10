@@ -311,11 +311,16 @@ export default async (req, res) => {
       ? await cutBorders(searchImagePNG)
       : await sharp(searchImagePNG).jpeg().toBuffer();
 
+  const {
+    data,
+    info: { width, height },
+  } = await sharp(searchImage).raw().toBuffer({ resolveWithObject: true });
+
   const startTime = performance.now();
 
   const searchResult = await milvus.search({
     collection_name: "frame_color_layout",
-    data: await colorLayout(searchImage),
+    data: colorLayout(data, width, height),
     limit: 1000,
     filter: Number(req.query.anilistID) ? `anilist_id == ${Number(req.query.anilistID)}` : null,
     output_fields: ["anilist_id", "file_id", "time"],

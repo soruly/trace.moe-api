@@ -1,18 +1,10 @@
-import sharp from "sharp";
+export default (data: Buffer, width: number, height: number) => {
+  const numCCoeff = 6;
+  const numYCoeff = 21;
 
-export default async (imageBuffer) => {
-  const input = await sharp(imageBuffer);
-  const {
-    data,
-    info: { width, height },
-  } = await input.raw().toBuffer({ resolveWithObject: true });
-
-  let numCCoeff = 6;
-  let numYCoeff = 21;
-
-  let YCoeff = new Uint8Array(numYCoeff);
-  let CbCoeff = new Uint8Array(numCCoeff);
-  let CrCoeff = new Uint8Array(numCCoeff);
+  const YCoeff = new Uint8Array(numYCoeff);
+  const CbCoeff = new Uint8Array(numCCoeff);
+  const CrCoeff = new Uint8Array(numCCoeff);
 
   const shape = [new Int16Array(64), new Int16Array(64), new Int16Array(64)];
   const sum = [new Uint32Array(64), new Uint32Array(64), new Uint32Array(64)];
