@@ -1,3 +1,4 @@
+import os from "node:os";
 import path from "node:path";
 import zlib from "node:zlib";
 import child_process from "node:child_process";
@@ -57,6 +58,8 @@ const ffmpeg = child_process.spawn("ffmpeg", [
   "rgb24",
   "-",
 ]);
+
+os.setPriority(ffmpeg.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
 
 ffmpeg.stdout.on("data", (data) => {
   stdoutBuffer = Buffer.concat([stdoutBuffer, data]);

@@ -1,3 +1,4 @@
+import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import child_process from "node:child_process";
@@ -79,7 +80,7 @@ if (stdout.length) {
 
 const sceneList: [number, number][] = await new Promise((resolve) => {
   const list = [];
-  const ls = child_process.spawn("ffmpeg", [
+  const ffmpeg = child_process.spawn("ffmpeg", [
     "-hide_banner",
     "-loglevel",
     "info",
@@ -96,13 +97,14 @@ const sceneList: [number, number][] = await new Promise((resolve) => {
     "null",
     "-",
   ]);
-  ls.stderr.on("data", (data) => {
+  os.setPriority(ffmpeg.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
+  ffmpeg.stderr.on("data", (data) => {
     const match = data.toString().match(/pts_time:(\d+\.\d+).*scene_score=(\d+\.\d+)/s);
     if (!match) return;
     const [_, pts_time, scene_score] = match;
     list.push([Number(pts_time), Number(scene_score)]);
   });
-  ls.on("close", async (code) => {
+  ffmpeg.on("close", async (code) => {
     resolve(list);
   });
 });
