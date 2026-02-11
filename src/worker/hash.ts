@@ -47,6 +47,8 @@ const ffmpeg = child_process.spawn("ffmpeg", [
   "-nostats",
   "-i",
   videoFilePath,
+  "-fps_mode",
+  "passthrough",
   "-an",
   "-vf",
   `scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT},showinfo`,
