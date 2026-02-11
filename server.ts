@@ -2,7 +2,7 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import Sqids from "sqids";
-import { MilvusClient, DataType } from "@zilliz/milvus2-sdk-node";
+import { MilvusClient, DataType, IndexType, MetricType } from "@zilliz/milvus2-sdk-node";
 import "./env.ts";
 import sql from "./sql.ts";
 import app from "./src/app.ts";
@@ -78,6 +78,7 @@ if (milvusCollection.data.find((e) => e.name === "frame_color_layout")) {
   console.log(
     await milvus.createCollection({
       collection_name: "frame_color_layout",
+      properties: { "mmap.enabled": true },
       fields: [
         {
           name: "id",
@@ -105,21 +106,17 @@ if (milvusCollection.data.find((e) => e.name === "frame_color_layout")) {
       ],
       index_params: [
         {
-          field_name: "id",
-          index_type: "AUTOINDEX",
-        },
-        {
           field_name: "anilist_id",
-          index_type: "AUTOINDEX",
+          index_type: IndexType.AUTOINDEX,
         },
         {
           field_name: "file_id",
-          index_type: "AUTOINDEX",
+          index_type: IndexType.AUTOINDEX,
         },
         {
           field_name: "vector",
-          index_type: "IVF_SQ8",
-          metric_type: "L2",
+          index_type: IndexType.IVF_SQ8,
+          metric_type: MetricType.L2,
           params: { nlist: 16384 },
         },
       ],
