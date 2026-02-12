@@ -40,14 +40,53 @@ if (!rows.length) {
     headers: { "Content-Type": "application/json" },
   });
   if (res.status === 200) {
-    const anime = (await res.json()).data.Page.media[0];
+    const dummy = {
+      id: anilist_id,
+      type: "ANIME",
+      idMal: anilist_id,
+      title: {
+        native: "",
+        romaji: "",
+        english: "",
+      },
+      format: "",
+      genres: [],
+      season: "",
+      source: "",
+      status: "",
+      endDate: {
+        day: 0,
+        year: 0,
+        month: 0,
+      },
+      isAdult: false,
+      siteUrl: "",
+      studios: {
+        edges: [],
+      },
+      duration: 0,
+      episodes: 0,
+      synonyms: [],
+      startDate: {
+        day: 0,
+        year: 0,
+        month: 0,
+      },
+      coverImage: {
+        large: "",
+        medium: "",
+      },
+      bannerImage: "",
+      externalLinks: [],
+    };
+    const anime = (await res.json()).data.Page.media?.[0] ?? dummy;
     console.log(`Saving anime info ID ${anime.id} (${anime.title.native ?? anime.title.romaji})`);
     await sql`
       INSERT INTO
         anilist (id, updated, json)
       VALUES
         (
-          ${Number(anime.id)},
+          ${Number(anilist_id)},
           now(),
           ${anime}
         )
