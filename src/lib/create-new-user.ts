@@ -12,6 +12,15 @@ let { EMAIL_USER, EMAIL_PASS, EMAIL_FROM } = process.env;
 const __filename = new URL("", import.meta.url).pathname;
 const __dirname = new URL(".", import.meta.url).pathname;
 
+const escapeHtml = (unsafe: string) => {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 export default async (email, tier, full_name = "") => {
   if (!email) {
     return "Error: email cannot be empty";
@@ -93,8 +102,8 @@ export default async (email, tier, full_name = "") => {
     bcc: EMAIL_USER,
     subject: "Thank you for supporting trace.moe",
     html: (await fs.readFile(path.join(__dirname, "email.html"), "utf8"))
-      .replace("<!--user-->", full_name)
-      .replace("<!--email-->", email)
-      .replace("<!--password-->", plainPassword),
+      .replace("<!--user-->", escapeHtml(full_name))
+      .replace("<!--email-->", escapeHtml(email))
+      .replace("<!--password-->", escapeHtml(plainPassword)),
   });
 };
