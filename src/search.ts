@@ -93,7 +93,7 @@ const extractImageByFFmpeg = async (searchFile) => {
     "-vf",
     "scale=320:-2",
     "-c:v",
-    "mjpeg",
+    "png",
     "-vframes",
     "1",
     "-f",
@@ -126,8 +126,9 @@ const cutBorders = async (imageBuffer) => {
         width: newWidth,
         height: newHeight,
       })
-      .jpeg()
-      .toBuffer();
+      .flatten({ background: "#000000" })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
   } else if (Math.abs(newWidth / newHeight - 21 / 9) < 0.1) {
     // if detected area is near 21:9
     const { width, height } = await sharp(imageBuffer).metadata();
@@ -141,13 +142,17 @@ const cutBorders = async (imageBuffer) => {
           height: newHeight,
         })
         .resize({ width: 320, height: 180, fit: "contain" })
-        .jpeg()
-        .toBuffer();
+        .flatten({ background: "#000000" })
+        .raw()
+        .toBuffer({ resolveWithObject: true });
     }
   }
   // if detected area is not standard aspect ratio, do no crop
   // if detected area is 21:9 and original is also 21:9, do no crop
-  return sharp(imageBuffer).jpeg().toBuffer();
+  return sharp(imageBuffer)
+    .flatten({ background: "#000000" })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
 };
 
 export default async (req, res) => {
@@ -296,12 +301,12 @@ export default async (req, res) => {
     });
   }
 
-  const searchImagePNG = await sharp(searchFile)
+  const searchImageResized = await sharp(searchFile)
     .resize({ width: 320, height: 320, fit: "inside" })
     .toBuffer()
     .catch(async () => await extractImageByFFmpeg(searchFile));
 
-  if (!searchImagePNG.length) {
+  if (!searchImageResized.length) {
     await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
     return res.status(400).json({
       error: "Failed to process image",
@@ -310,19 +315,17 @@ export default async (req, res) => {
 
   const searchImage =
     "cutBorders" in req.query
-      ? await cutBorders(searchImagePNG)
-      : await sharp(searchImagePNG).jpeg().toBuffer();
-
-  const {
-    data,
-    info: { width, height },
-  } = await sharp(searchImage).raw().toBuffer({ resolveWithObject: true });
+      ? await cutBorders(searchImageResized)
+      : await sharp(searchImageResized)
+          .flatten({ background: "#000000" })
+          .raw()
+          .toBuffer({ resolveWithObject: true });
 
   const startTime = performance.now();
 
   const searchResult = await milvus.search({
     collection_name: "frame_color_layout",
-    data: colorLayout(data, width, height),
+    data: colorLayout(searchImage.data, searchImage.info.width, searchImage.info.height),
     limit: 1000,
     filter: Number(req.query.anilistID) ? `anilist_id == ${Number(req.query.anilistID)}` : null,
     output_fields: ["anilist_id", "file_id", "time"],
