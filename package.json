@@ -33,7 +33,7 @@
     "prettier-plugin-sql": "^0.19.2"
   },
   "dependencies": {
-    "@zilliz/milvus2-sdk-node": "^2.6.9",
+    "@zilliz/milvus2-sdk-node": "^2.6.10",
     "aniep": "^0.6.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
