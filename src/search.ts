@@ -321,13 +321,29 @@ export default async (req, res) => {
           .raw()
           .toBuffer({ resolveWithObject: true });
 
+  let expr = null;
+  let exprValues = null;
+  if (req.query.anilistID?.match(/^\d+$/)) {
+    const files = await sql`
+      SELECT
+        id
+      FROM
+        files
+      WHERE
+        anilist_id = ${Number(req.query.anilistID)}
+    `;
+    expr = "file_id IN {list}";
+    exprValues = { list: files.map((e) => e.id) };
+  }
+
   const startTime = performance.now();
 
   const searchResult = await milvus.search({
     collection_name: "frame_color_layout",
     data: colorLayout(searchImage.data, searchImage.info.width, searchImage.info.height),
     limit: 1000,
-    filter: Number(req.query.anilistID) ? `anilist_id == ${Number(req.query.anilistID)}` : null,
+    expr,
+    exprValues,
     output_fields: ["file_id", "time"],
   });
   const searchTime = (performance.now() - startTime) | 0;
