@@ -328,35 +328,29 @@ export default async (req, res) => {
     data: colorLayout(searchImage.data, searchImage.info.width, searchImage.info.height),
     limit: 1000,
     filter: Number(req.query.anilistID) ? `anilist_id == ${Number(req.query.anilistID)}` : null,
-    output_fields: ["anilist_id", "file_id", "time"],
+    output_fields: ["file_id", "time"],
   });
   const searchTime = (performance.now() - startTime) | 0;
 
   let result = searchResult.results
-    .reduce((list, { score: d, anilist_id, file_id, time }) => {
+    .reduce((list, { score: d, file_id, time }) => {
       // merge nearby results within 5 seconds in the same file
-      const fileId = file_id;
-      const t = time;
       const index = list.findIndex(
-        (e) =>
-          e.anilist_id === anilist_id &&
-          e.fileId === fileId &&
-          (Math.abs(e.from - t) < 5 || Math.abs(e.to - t) < 5),
+        (e) => e.file_id === file_id && (Math.abs(e.from - time) < 5 || Math.abs(e.to - time) < 5),
       );
       if (index < 0) {
         return list.concat({
-          anilist_id,
-          fileId,
-          t,
-          from: t,
-          to: t,
+          file_id,
+          t: time,
+          from: time,
+          to: time,
           d,
         });
       } else {
-        list[index].from = list[index].from < t ? list[index].from : t;
-        list[index].to = list[index].to > t ? list[index].to : t;
+        list[index].from = list[index].from < time ? list[index].from : time;
+        list[index].to = list[index].to > time ? list[index].to : time;
         list[index].d = list[index].d < d ? list[index].d : d;
-        list[index].t = list[index].d < d ? list[index].t : t;
+        list[index].t = list[index].d < d ? list[index].t : time;
         return list;
       }
     }, [])
@@ -372,23 +366,23 @@ export default async (req, res) => {
     FROM
       files
     WHERE
-      id IN ${sql(result.map((e) => e.fileId))}
+      id IN ${sql(result.map((e) => e.file_id))}
   `;
 
   const window = 60 * 60; // snap to nearest hour for better cache
   const expire = ((Date.now() / 1000 / window) | 0) * window + window;
   result = result
-    .filter((e) => files.find((f) => f.id === e.fileId))
-    .map(({ fileId, t, from, to, d }) => {
-      const { anilist_id, path, duration } = files.find((f) => f.id === fileId);
+    .filter((e) => files.find((f) => f.id === e.file_id))
+    .map(({ file_id, t, from, to, d }) => {
+      const { anilist_id, path, duration } = files.find((f) => f.id === file_id);
 
       const time = (t * 10000) | 0; // convert 4dp time code to integer
       const buf = Buffer.from(TRACE_API_SALT);
-      buf.writeUInt32LE(Math.abs(time ^ expire ^ fileId));
+      buf.writeUInt32LE(Math.abs(time ^ expire ^ file_id));
       const hash = Buffer.from(
         crypto.createHash("sha1").update(buf).digest("binary"),
       ).readUInt32LE();
-      const previewId = locals.sqids.encode([fileId, time, expire, hash]);
+      const previewId = locals.sqids.encode([file_id, time, expire, hash]);
 
       return {
         anilist: anilist_id,
