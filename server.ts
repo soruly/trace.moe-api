@@ -7,7 +7,6 @@ import "./env.ts";
 import sql from "./sql.ts";
 import app from "./src/app.ts";
 import v8 from "v8";
-import { ensureDir } from "./src/lib/ensure-dir.ts";
 
 console.log(
   `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
@@ -23,8 +22,8 @@ await Promise.all(
     .map((e) => fs.rm(path.join(os.tmpdir(), e), { recursive: true, force: true })),
 );
 
-console.log("Verifying data directories");
-await ensureDir(VIDEO_PATH);
+console.log(`Creating video directory if not exists: ${VIDEO_PATH}`);
+await fs.mkdir(VIDEO_PATH, { recursive: true });
 
 console.log("Checking postgres database");
 const [tables] = await sql`
