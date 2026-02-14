@@ -348,29 +348,42 @@ export default async (req, res) => {
   });
   const searchTime = (performance.now() - startTime) | 0;
 
-  let result = searchResult.results
-    .reduce((list, { score: d, file_id, time }) => {
-      // merge nearby results within 5 seconds in the same file
-      const index = list.findIndex(
-        (e) => e.file_id === file_id && (Math.abs(e.from - time) < 5 || Math.abs(e.to - time) < 5),
-      );
-      if (index < 0) {
-        return list.concat({
-          file_id,
-          t: time,
-          from: time,
-          to: time,
-          d,
-        });
-      } else {
-        list[index].from = list[index].from < time ? list[index].from : time;
-        list[index].to = list[index].to > time ? list[index].to : time;
-        list[index].d = list[index].d < d ? list[index].d : d;
-        list[index].t = list[index].d < d ? list[index].t : time;
-        return list;
+  // merge results from same file where time is within 5 seconds
+  const list = [];
+  const fileMap = new Map();
+  for (const { score, file_id, time } of searchResult.results) {
+    let entries = fileMap.get(file_id);
+    if (!entries) {
+      entries = [];
+      fileMap.set(file_id, entries);
+    }
+    let match = null;
+    for (const entry of entries) {
+      if (Math.abs(entry.from - time) < 5 || Math.abs(entry.to - time) < 5) {
+        match = entry;
+        break;
       }
-    }, [])
-    .sort((a, b) => a.d - b.d) // sort in ascending order of difference
+    }
+    if (!match) {
+      const newEntry = {
+        file_id,
+        at: time,
+        from: time,
+        to: time,
+        score,
+      };
+      entries.push(newEntry);
+      list.push(newEntry);
+    } else {
+      match.from = match.from < time ? match.from : time;
+      match.to = match.to > time ? match.to : time;
+      match.score = match.score < score ? match.score : score;
+      match.at = match.score < score ? match.at : time;
+    }
+  }
+
+  let result = list
+    .sort((a, b) => a.score - b.score) // sort in ascending order of difference
     .slice(0, 10); // return only top 10 results
 
   const files = await sql`
@@ -389,10 +402,10 @@ export default async (req, res) => {
   const expire = ((Date.now() / 1000 / window) | 0) * window + window;
   result = result
     .filter((e) => files.find((f) => f.id === e.file_id))
-    .map(({ file_id, t, from, to, d }) => {
+    .map(({ file_id, at, from, to, score }) => {
       const { anilist_id, path, duration } = files.find((f) => f.id === file_id);
 
-      const time = (t * 10000) | 0; // convert 4dp time code to integer
+      const time = (at * 10000) | 0; // convert 4dp time code to integer
       const buf = Buffer.from(TRACE_API_SALT);
       buf.writeUInt32LE(Math.abs(time ^ expire ^ file_id));
       const hash = Buffer.from(
@@ -405,10 +418,10 @@ export default async (req, res) => {
         filename: path.split("/").pop(),
         episode: aniep(path.split("/").pop()),
         from: Number(from.toFixed(4)),
-        at: Number(t.toFixed(4)),
+        at: Number(at.toFixed(4)),
         to: Number(to.toFixed(4)),
         duration,
-        similarity: Math.min(Math.max(0, (255 - d) / 255), 1),
+        similarity: Math.min(Math.max(0, (255 - score) / 255), 1),
         video: `${req.protocol}://${req.get("host")}/video/${previewId}`,
         image: `${req.protocol}://${req.get("host")}/image/${previewId}`,
       };
