@@ -33,8 +33,11 @@ app.use((req, res, next) => {
 
 app.use(
   rateLimit({
-    limit: 100, // limit each IPv4 (or IPv6 /56 subnet) to 100 requests per 60 seconds
     windowMs: 60 * 1000,
+    limit: 100,
+    standardHeaders: true,
+    legacyHeaders: true,
+    ipv6Subnet: 56,
   }),
 );
 
@@ -86,10 +89,19 @@ app.all(
 );
 app.get("/video/:id", video);
 app.get("/image/:id", image);
-app.all("/user/login", login);
-app.all("/user/create", create);
-app.all("/user/reset-key", resetKey);
-app.all("/user/reset-password", resetPassword);
+
+const userRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: true,
+  ipv6Subnet: 56,
+});
+
+app.all("/user/login", userRateLimiter, login);
+app.all("/user/create", userRateLimiter, create);
+app.all("/user/reset-key", userRateLimiter, resetKey);
+app.all("/user/reset-password", userRateLimiter, resetPassword);
 app.all("/", async (req, res) => {
   res.send("ok");
 });
