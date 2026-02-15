@@ -2,22 +2,9 @@
 
 ## HTTP Rate Limits
 
-The API server has a global request rate limit of 60/min per IP address. Regardless of which url endpoint you're calling. This is always counted by IP address, even if you request with an API Key.
+The API server has a global request rate limit of 100 requests/min per IP address (or IPv6 /56 block) with or without an API Key.
 
-The rate limit info is included in the HTTP header. If you hit this HTTP rate limit, request would fail with HTTP 429 (Too Many Requests).
-
-```
-x-ratelimit-limit: 100
-x-ratelimit-remaining: 99
-x-ratelimit-reset: 1620537960
-```
-
-This limit also applies to to other HTTP servers.
-
-| Server     | Hostname      | HTTP Rate Limit |
-| ---------- | ------------- | --------------- |
-| Web server | trace.moe     | 600/min         |
-| API server | api.trace.moe | 100/min         |
+The rate limit info is included in the HTTP response header. If you hit this HTTP rate limit, request would fail with HTTP 429 (Too Many Requests).
 
 ## API Search Quota and Limits
 
