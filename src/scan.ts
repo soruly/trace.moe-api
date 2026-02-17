@@ -6,27 +6,49 @@ import startWorker from "./worker/start-worker.ts";
 const { VIDEO_PATH } = process.env;
 const VIDEO_PATH_NORMALIZED = path.normalize(VIDEO_PATH);
 
-export default async (req, res) => {
-  const [dbFileList, fileList] = await Promise.all([
+const addAnilist = async () => {
+  const [dbSet, dirList] = await Promise.all([
+    sql`
+      SELECT
+        id
+      FROM
+        anilist
+    `.then((e) => new Set(e.map((e) => e.id))),
+    fs
+      .readdir(VIDEO_PATH_NORMALIZED, { withFileTypes: true })
+      .then((e) =>
+        e.filter((e) => e.isDirectory() && e.name.match(/^\d+$/)).map((e) => Number(e.name)),
+      ),
+  ]);
+
+  const newList = dirList.filter((dir) => !dbSet.has(dir));
+
+  return { current: dbSet.size, new: newList.length };
+};
+
+const addFile = async () => {
+  const [dbSet, fileList] = await Promise.all([
     sql`
       SELECT
         path
       FROM
         files
-    `,
-    fs.readdir(VIDEO_PATH_NORMALIZED, { recursive: true, withFileTypes: true }),
+    `.then((e) => new Set(e.map((e) => e.path))),
+    fs
+      .readdir(VIDEO_PATH_NORMALIZED, { recursive: true, withFileTypes: true })
+      .then((e) =>
+        e
+          .filter(
+            (e) =>
+              e.isFile() &&
+              path.relative(VIDEO_PATH_NORMALIZED, e.parentPath).match(/^\d+$/) &&
+              [".webm", ".mkv", ".mp4"].includes(path.extname(e.name)),
+          )
+          .map((e) => path.join(path.relative(VIDEO_PATH_NORMALIZED, e.parentPath), e.name)),
+      ),
   ]);
-  const dbFileSet = new Set(dbFileList.map((e) => e.path));
 
-  const videoFileList = fileList
-    .filter((file) => file.isFile() && [".webm", ".mkv", ".mp4"].includes(path.extname(file.name)))
-    .map((e) => path.join(e.parentPath, e.name).replace(VIDEO_PATH_NORMALIZED, ""))
-    .filter((e) => e.match(/\d+[\/\\].+/));
-  const videoFileSet = new Set(videoFileList);
-
-  const newFileList = videoFileList.filter(
-    (e) => !dbFileSet.has(e) && path.parse(e).dir.match(/^\d+$/),
-  );
+  const newFileList = fileList.filter((e) => !dbSet.has(e));
 
   for (let i = 0; i < newFileList.length; i += 10000) {
     await sql`
@@ -38,12 +60,15 @@ export default async (req, res) => {
         )}
     `;
   }
+  return { current: dbSet.size, new: newFileList.length };
+};
+
+export default async (req, res) => {
+  const [anilist, file] = await Promise.all([addAnilist(), addFile()]);
 
   res.json({
-    fs: videoFileList.length,
-    db: dbFileList.length,
-    added: newFileList.length,
-    missing: dbFileList.map((e) => e.path).filter((e) => !videoFileSet.has(e)).length,
+    anilist,
+    file,
   });
 
   await startWorker(req.app);
