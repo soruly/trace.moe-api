@@ -7,6 +7,7 @@ import "./env.ts";
 import sql from "./sql.ts";
 import app from "./src/app.ts";
 import v8 from "v8";
+import TaskManager from "./src/worker/task-manager.ts";
 
 console.log(
   `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
@@ -39,30 +40,6 @@ if (!Number(tables.count)) {
   console.log("Creating postgres database");
   await sql.file("./sql/1.init.sql");
 }
-
-console.log("Cleaning up previous worker states");
-// NEW => ANALYZING => ANALYZED => HASHING => HASHED => LOADING => LOADED
-await sql`
-  UPDATE files
-  SET
-    status = 'NEW'
-  WHERE
-    status = 'ANALYZING'
-`;
-await sql`
-  UPDATE files
-  SET
-    status = 'ANALYZED'
-  WHERE
-    status = 'HASHING'
-`;
-await sql`
-  UPDATE files
-  SET
-    status = 'HASHED'
-  WHERE
-    status = 'LOADING'
-`;
 
 console.log("Connecting to milvus");
 const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
@@ -133,19 +110,15 @@ app.locals.sqids = new Sqids({
   minLength: 0,
   blocklist: new Set(),
 });
-app.locals.workerCount = 0;
-app.locals.mutex = false;
 app.locals.mediaQueue = 0;
 app.locals.searchQueue = [];
 app.locals.searchConcurrent = new Map();
+app.locals.taskManager = new TaskManager();
 setInterval(() => (app.locals.mediaQueue = 0), 15 * 60 * 1000);
 setInterval(() => (app.locals.searchQueue = []), 15 * 60 * 1000);
 setInterval(() => app.locals.searchConcurrent.clear(), 15 * 60 * 1000);
 
-const server = app.listen(SERVER_PORT, SERVER_ADDR, () =>
-  console.log(`API server listening on port ${server.address().port}`),
-);
-
-// check for new files every minute
-setInterval(async () => await fetch(`http://localhost:${server.address().port}/scan`), 60 * 1000);
-setTimeout(async () => await fetch(`http://localhost:${server.address().port}/scan`), 3 * 1000);
+const server = app.listen(SERVER_PORT, SERVER_ADDR, () => {
+  console.log(`API server listening on port ${server.address().port}`);
+  app.locals.taskManager.runScanTask(60); // check for new files every minute
+});

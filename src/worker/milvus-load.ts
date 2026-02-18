@@ -1,13 +1,13 @@
 import path from "node:path";
 import zlib from "node:zlib";
-import { parentPort, threadId, workerData } from "node:worker_threads";
+import { workerData } from "node:worker_threads";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import sql from "../../sql.ts";
 
 const { MILVUS_ADDR, MILVUS_TOKEN, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;
 
 const { id, anilist_id, filePath } = workerData;
-parentPort.postMessage(`[${threadId}] Loading ${filePath}`);
+console.info(`[milvus-load][doing] ${filePath}`);
 
 const [row] = await sql`
   SELECT
@@ -17,8 +17,6 @@ const [row] = await sql`
   WHERE
     id = ${id}
 `;
-await sql.end();
-if (!row) process.exit(1);
 
 const hashList = JSON.parse(zlib.zstdDecompressSync(row.color_layout).toString()).sort(
   (a, b) => a.time - b.time,
@@ -45,7 +43,17 @@ await milvus.insert({
 
 await milvus.closeConnection();
 
-parentPort.postMessage(`[${threadId}] Loaded ${filePath}`);
+await sql`
+  UPDATE files
+  SET
+    status = 'LOADED'
+  WHERE
+    id = ${id}
+`;
+
+await sql.end();
+
+console.info(`[milvus-load][done]  ${filePath}`);
 
 if (TELEGRAM_ID && TELEGRAM_URL) {
   fetch(TELEGRAM_URL, {
