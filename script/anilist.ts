@@ -45,11 +45,6 @@ const save = async (anime) => {
     anime.synonyms_chinese = chinese.synonyms;
   }
   await sql`
-    DELETE FROM anilist
-    WHERE
-      id = ${Number(anime.id)}
-  `;
-  await sql`
     INSERT INTO
       anilist (id, updated, json)
     VALUES
@@ -58,6 +53,10 @@ const save = async (anime) => {
         now(),
         ${anime}
       )
+    ON CONFLICT (id) DO UPDATE
+    SET
+      updated = now(),
+      json = EXCLUDED.json
   `;
 };
 
@@ -73,6 +72,7 @@ if (arg === "--anime" && value) {
   console.log(`Crawling anime ${value}`);
   const anime = (await submitQuery(q, { id: value })).Page.media[0];
   await save(anime);
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_view`;
 } else if (arg === "--page" && value) {
   const format = /^(\d+)(-)?(\d+)?$/;
   const startPage = Number(value.match(format)[1]);
@@ -93,6 +93,7 @@ if (arg === "--anime" && value) {
     if (!data.Page.pageInfo.hasNextPage) break;
     page++;
   }
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_view`;
   console.log("Crawling complete");
 } else {
   console.log("Usage: node anilist.ts --anime 1");

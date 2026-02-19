@@ -3,6 +3,7 @@ import { Worker } from "node:worker_threads";
 import path from "node:path";
 import sql from "../../sql.ts";
 import type { ServerResponse } from "node:http";
+import aniep from "aniep";
 
 const VIDEO_PATH = path.normalize(process.env.VIDEO_PATH);
 const MAX_WORKER = Number(process.env.MAX_WORKER) || 1;
@@ -45,9 +46,12 @@ export default class TaskManager {
       await sql`
         INSERT INTO
           files ${sql(
-            newFileList
-              .slice(i, i + 10000)
-              .map((e) => ({ anilist_id: Number(path.parse(e).dir), path: e, status: "NEW" })),
+            newFileList.slice(i, i + 10000).map((e) => ({
+              anilist_id: Number(path.parse(e).dir),
+              episode: Number(`${aniep(path.basename(e))}`.match(/^(\d+)$/)?.[1]) || null,
+              path: e,
+              loaded: false,
+            })),
           )}
       `;
     }
@@ -212,15 +216,14 @@ export default class TaskManager {
 
   async runMilvusLoadTask() {
     if (this.milvusLoadTaskList.size >= this.milvusLoadTaskListMax) return;
-    for (const { id, anilist_id, path: relativePath } of await sql`
+    for (const { id, path: relativePath } of await sql`
       SELECT
         id,
-        anilist_id,
         path
       FROM
         files
       WHERE
-        status != 'LOADED'
+        loaded = false
         AND media_info IS NOT NULL
         AND scene_changes IS NOT NULL
         AND anilist_id IN (
@@ -243,7 +246,7 @@ export default class TaskManager {
       const filePath = path.join(VIDEO_PATH, relativePath);
       if (this.milvusLoadTaskList.has(id)) continue;
       const worker = new Worker("./src/worker/milvus-load.ts", {
-        workerData: { id, anilist_id, filePath },
+        workerData: { id, filePath },
       });
       worker.on("error", (error) => console.error(error));
       worker.on("exit", () => {
@@ -251,7 +254,7 @@ export default class TaskManager {
         this.publish();
         this.runMilvusLoadTask();
       });
-      this.milvusLoadTaskList.set(id, { id, anilist_id, filePath, worker });
+      this.milvusLoadTaskList.set(id, { id, filePath, worker });
       this.publish();
     }
   }

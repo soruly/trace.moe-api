@@ -63,10 +63,6 @@ if (milvusCollection.data.find((e) => e.name === "frame_color_layout")) {
           autoID: true,
         },
         {
-          name: "anilist_id",
-          data_type: DataType.Int32,
-        },
-        {
           name: "file_id",
           data_type: DataType.Int32,
         },
@@ -81,10 +77,6 @@ if (milvusCollection.data.find((e) => e.name === "frame_color_layout")) {
         },
       ],
       index_params: [
-        {
-          field_name: "anilist_id",
-          index_type: IndexType.AUTOINDEX,
-        },
         {
           field_name: "file_id",
           index_type: IndexType.AUTOINDEX,
