@@ -29,16 +29,33 @@ query ($page: Int = 1, $perPage: Int = 1, $id: Int, $type: MediaType = ANIME) {
         day
       }
       season
+      seasonYear
+      seasonInt
       episodes
       duration
+      countryOfOrigin
       source
       coverImage {
+        extraLarge
         large
         medium
+        color
       }
       bannerImage
       genres
       synonyms
+      popularity
+      relations {
+        edges {
+          node {
+            id
+            title {
+              native
+            }
+          }
+          relationType
+        }
+      }
       studios {
         edges {
           isMain

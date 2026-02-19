@@ -30,16 +30,33 @@ query ($ids: [Int]) {
         day
       }
       season
+      seasonYear
+      seasonInt
       episodes
       duration
+      countryOfOrigin
       source
       coverImage {
+        extraLarge
         large
         medium
+        color
       }
       bannerImage
       genres
       synonyms
+      popularity
+      relations {
+        edges {
+          node {
+            id
+            title {
+              native
+            }
+          }
+          relationType
+        }
+      }
       studios {
         edges {
           isMain
@@ -120,17 +137,26 @@ for (let i = 0; i < ids.length; i += 50) {
       duration: 0,
       episodes: 0,
       synonyms: [],
+      relations: {
+        edges: [],
+      },
+      seasonInt: 0,
       startDate: {
         day: 0,
         year: 0,
         month: 0,
       },
       coverImage: {
+        color: "",
         large: "",
         medium: "",
+        extraLarge: "",
       },
+      popularity: 0,
+      seasonYear: 0,
       bannerImage: "",
       externalLinks: [],
+      countryOfOrigin: "",
     });
   }
 
