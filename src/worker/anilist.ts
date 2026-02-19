@@ -168,5 +168,6 @@ for (let i = 0; i < ids.length; i += 50) {
       updated = now(),
       json = EXCLUDED.json
   `;
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_view`;
 }
 console.info(`[anilist][done]  ${ids}`);

@@ -77,25 +77,13 @@ ffmpeg.on("close", async (code) => {
   await sql`
     UPDATE files
     SET
+      updated = now(),
       frame_count = ${frameData.length},
-      updated = now()
+      color_layout = ${zlib.zstdCompressSync(JSON.stringify(frameData), {
+        params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
+      })}
     WHERE
       id = ${id}
-  `;
-
-  await sql`
-    INSERT INTO
-      files_color_layout
-    VALUES
-      (
-        ${id},
-        ${zlib.zstdCompressSync(JSON.stringify(frameData), {
-          params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
-        })}
-      )
-    ON CONFLICT (id) DO UPDATE
-    SET
-      color_layout = EXCLUDED.color_layout
   `;
 
   await sql.end();

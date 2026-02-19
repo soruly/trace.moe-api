@@ -6,14 +6,14 @@ import sql from "../../sql.ts";
 
 const { MILVUS_ADDR, MILVUS_TOKEN, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;
 
-const { id, anilist_id, filePath } = workerData;
+const { id, filePath } = workerData;
 console.info(`[milvus-load][doing] ${filePath}`);
 
 const [row] = await sql`
   SELECT
     color_layout
   FROM
-    files_color_layout
+    files
   WHERE
     id = ${id}
 `;
@@ -38,7 +38,7 @@ const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
 await milvus.insert({
   collection_name: "frame_color_layout",
-  data: dedupedHashList.map(({ time, vector }) => ({ anilist_id, file_id: id, time, vector })),
+  data: dedupedHashList.map(({ time, vector }) => ({ file_id: id, time, vector })),
 });
 
 await milvus.closeConnection();
@@ -46,7 +46,7 @@ await milvus.closeConnection();
 await sql`
   UPDATE files
   SET
-    status = 'LOADED'
+    loaded = true
   WHERE
     id = ${id}
 `;
