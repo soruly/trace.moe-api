@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import { Worker } from "node:worker_threads";
 import path from "node:path";
 import sql from "../../sql.ts";
+import type { ServerResponse } from "node:http";
 
 const VIDEO_PATH = path.normalize(process.env.VIDEO_PATH);
 const MAX_WORKER = Number(process.env.MAX_WORKER) || 1;
@@ -122,10 +123,12 @@ export default class TaskManager {
       worker.on("error", (error) => console.error(error));
       worker.on("exit", () => {
         this.mediaInfoTaskList.delete(id);
+        this.publish();
         this.runMediaInfoTask();
         this.runMilvusLoadTask();
       });
       this.mediaInfoTaskList.set(id, { id, filePath, worker });
+      this.publish();
     }
   }
 
@@ -155,10 +158,12 @@ export default class TaskManager {
       worker.on("error", (error) => console.error(error));
       worker.on("exit", () => {
         this.sceneChangesTaskList.delete(id);
+        this.publish();
         this.runSceneChangesTask();
         this.runMilvusLoadTask();
       });
       this.sceneChangesTaskList.set(id, { id, filePath, worker });
+      this.publish();
     }
   }
 
@@ -193,10 +198,12 @@ export default class TaskManager {
       worker.on("error", (error) => console.error(error));
       worker.on("exit", () => {
         this.colorLayoutTaskList.delete(id);
+        this.publish();
         this.runColorLayoutTask();
         this.runMilvusLoadTask();
       });
       this.colorLayoutTaskList.set(id, { id, filePath, worker });
+      this.publish();
     }
   }
 
@@ -241,9 +248,33 @@ export default class TaskManager {
       worker.on("error", (error) => console.error(error));
       worker.on("exit", () => {
         this.milvusLoadTaskList.delete(id);
+        this.publish();
         this.runMilvusLoadTask();
       });
       this.milvusLoadTaskList.set(id, { id, anilist_id, filePath, worker });
+      this.publish();
+    }
+  }
+
+  sseClients = new Set<ServerResponse>();
+
+  subscribe(res) {
+    res.on("close", () => {
+      this.sseClients.delete(res);
+    });
+    this.sseClients.add(res);
+    this.publish();
+  }
+
+  publish() {
+    const tasks = {
+      mediaInfoTaskList: Array.from(this.mediaInfoTaskList.values()).map((e) => e.filePath),
+      sceneChangesTaskList: Array.from(this.sceneChangesTaskList.values()).map((e) => e.filePath),
+      colorLayoutTaskList: Array.from(this.colorLayoutTaskList.values()).map((e) => e.filePath),
+      milvusLoadTaskList: Array.from(this.milvusLoadTaskList.values()).map((e) => e.filePath),
+    };
+    for (const client of this.sseClients) {
+      client.write(`data: ${JSON.stringify(tasks)}\n\n`);
     }
   }
 }

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tasks</title>
+  </head>
+  <body>
+    <pre id="tasks"></pre>
+    <script>
+      const evtSource = new EventSource("/tasks");
+      evtSource.onmessage = function (event) {
+        document.getElementById("tasks").innerText = JSON.stringify(
+          JSON.parse(event.data),
+          null,
+          2,
+        );
+      };
+    </script>
+  </body>
+</html>
