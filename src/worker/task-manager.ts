@@ -110,7 +110,7 @@ export default class TaskManager {
       WHERE
         media_info IS NULL
       ORDER BY
-        created
+        id DESC
       LIMIT
         ${this.mediaInfoTaskListMax}
     `) {
@@ -143,7 +143,7 @@ export default class TaskManager {
       WHERE
         scene_changes IS NULL
       ORDER BY
-        created
+        id DESC
       LIMIT
         ${this.sceneChangesTaskListMax}
     `) {
@@ -181,7 +181,7 @@ export default class TaskManager {
             files_color_layout
         )
       ORDER BY
-        created
+        id DESC
       LIMIT
         ${this.colorLayoutTaskListMax}
     `) {
@@ -229,7 +229,7 @@ export default class TaskManager {
             files_color_layout
         )
       ORDER BY
-        created DESC
+        id DESC
       LIMIT
         ${this.milvusLoadTaskListMax}
     `) {
