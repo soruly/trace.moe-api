@@ -266,7 +266,10 @@ export default class TaskManager {
     this.publish();
   }
 
+  publishTimer: NodeJS.Timeout;
+
   publish() {
+    clearTimeout(this.publishTimer);
     const tasks = {
       mediaInfoTaskList: Array.from(this.mediaInfoTaskList.values()).map((e) => e.filePath),
       sceneChangesTaskList: Array.from(this.sceneChangesTaskList.values()).map((e) => e.filePath),
@@ -276,5 +279,6 @@ export default class TaskManager {
     for (const client of this.sseClients) {
       client.write(`data: ${JSON.stringify(tasks)}\n\n`);
     }
+    this.publishTimer = setTimeout(() => this.publish(), 30000); // keep alive to prevent cloudflare timeout
   }
 }
