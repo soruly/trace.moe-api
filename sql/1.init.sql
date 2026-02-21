@@ -26,31 +26,31 @@ SELECT
 FROM
   anilist;
 
-CREATE UNIQUE INDEX ON anilist_view (id);
+CREATE UNIQUE INDEX IF NOT EXISTS anilist_view_id_idx ON anilist_view (id);
 
-CREATE INDEX ON anilist_view (season_year);
+CREATE INDEX IF NOT EXISTS anilist_view_season_year_idx ON anilist_view (season_year);
 
-CREATE INDEX ON anilist_view (season);
+CREATE INDEX IF NOT EXISTS anilist_view_season_idx ON anilist_view (season);
 
-CREATE INDEX ON anilist_view (status);
+CREATE INDEX IF NOT EXISTS anilist_view_status_idx ON anilist_view (status);
 
-CREATE INDEX ON anilist_view (country_of_origin);
+CREATE INDEX IF NOT EXISTS anilist_view_country_of_origin_idx ON anilist_view (country_of_origin);
 
-CREATE INDEX ON anilist_view (format);
+CREATE INDEX IF NOT EXISTS anilist_view_format_idx ON anilist_view (format);
 
-CREATE INDEX ON anilist_view (is_adult);
+CREATE INDEX IF NOT EXISTS anilist_view_is_adult_idx ON anilist_view (is_adult);
 
-CREATE INDEX ON anilist_view (episodes);
+CREATE INDEX IF NOT EXISTS anilist_view_episodes_idx ON anilist_view (episodes);
 
-CREATE INDEX ON anilist_view (duration);
+CREATE INDEX IF NOT EXISTS anilist_view_duration_idx ON anilist_view (duration);
 
-CREATE INDEX ON anilist_view (popularity);
+CREATE INDEX IF NOT EXISTS anilist_view_popularity_idx ON anilist_view (popularity);
 
-CREATE INDEX ON anilist_view (title_native);
+CREATE INDEX IF NOT EXISTS anilist_view_title_native_idx ON anilist_view (title_native);
 
-CREATE INDEX ON anilist_view (title_chinese);
+CREATE INDEX IF NOT EXISTS anilist_view_title_chinese_idx ON anilist_view (title_chinese);
 
-CREATE INDEX ON anilist_view (title_romaji);
+CREATE INDEX IF NOT EXISTS anilist_view_title_romaji_idx ON anilist_view (title_romaji);
 
 CREATE TABLE IF NOT EXISTS files (
   id serial PRIMARY KEY,
