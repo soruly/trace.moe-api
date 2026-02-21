@@ -36,12 +36,12 @@ ffmpeg.stderr.on("data", (data) => {
 });
 
 ffmpeg.on("close", async (code) => {
-  if (code !== 0) return console.error(`[scene-changes][error] ffmpeg exited with code ${code}`);
+  if (code !== 0) console.error(`[scene-changes][error] ffmpeg exited with code ${code}`);
 
   await sql`
     UPDATE files
     SET
-      scene_changes = ${list},
+      scene_changes = ${code === 0 ? list : []},
       updated = now()
     WHERE
       id = ${id}

@@ -72,14 +72,14 @@ ffmpeg.stderr.on("data", (data) => {
 });
 
 ffmpeg.on("close", async (code) => {
-  if (code !== 0) return console.error(`[color-layout][error] ffmpeg exited with code ${code}`);
+  if (code !== 0) console.error(`[color-layout][error] ffmpeg exited with code ${code}`);
 
   await sql`
     UPDATE files
     SET
       updated = now(),
-      frame_count = ${frameData.length},
-      color_layout = ${zlib.zstdCompressSync(JSON.stringify(frameData), {
+      frame_count = ${code === 0 ? frameData.length : 0},
+      color_layout = ${zlib.zstdCompressSync(JSON.stringify(code === 0 ? frameData : []), {
         params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
       })}
     WHERE

@@ -36,20 +36,30 @@ for (const currentFrame of hashList) {
 
 const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
-await milvus.insert({
-  collection_name: "frame_color_layout",
-  data: dedupedHashList.map(({ time, vector }) => ({ file_id: id, time, vector })),
-});
+try {
+  await milvus.insert({
+    collection_name: "frame_color_layout",
+    data: dedupedHashList.map(({ time, vector }) => ({ file_id: id, time, vector })),
+  });
+  await sql`
+    UPDATE files
+    SET
+      loaded = true
+    WHERE
+      id = ${id}
+  `;
+} catch (error) {
+  console.error(`[milvus-load][error] ${error}`);
+  await sql`
+    UPDATE files
+    SET
+      loaded = false
+    WHERE
+      id = ${id}
+  `;
+}
 
 await milvus.closeConnection();
-
-await sql`
-  UPDATE files
-  SET
-    loaded = true
-  WHERE
-    id = ${id}
-`;
 
 await sql.end();
 

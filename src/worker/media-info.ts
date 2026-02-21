@@ -27,12 +27,12 @@ ffprobe.stdout.on("data", async (chunk) => {
 ffprobe.stderr.on("data", (data) => console.error(`[media-info][error] ${data.toString()}`));
 
 ffprobe.on("close", async (code) => {
-  if (code !== 0) return console.error(`[media-info][error] ffprobe exited with code ${code}`);
+  if (code !== 0) console.error(`[media-info][error] ffprobe exited with code ${code}`);
 
   await sql`
     UPDATE files
     SET
-      media_info = ${JSON.parse(data)},
+      media_info = ${code === 0 ? JSON.parse(data) : {}},
       updated = now()
     WHERE
       id = ${id}
