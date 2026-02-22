@@ -1,83 +1,16 @@
 import { workerData } from "node:worker_threads";
+import fs from "node:fs/promises";
+import path from "node:path";
 import sql from "../../sql.ts";
 
 const { ids } = workerData;
 
 console.info(`[anilist][doing] ${ids}`);
 
-const query = `
-query ($ids: [Int]) {
-  Page(page: 1, perPage: 50) {
-    media(id_in: $ids, type: ANIME) {
-      id
-      idMal
-      title {
-        native
-        romaji
-        english
-      }
-      type
-      format
-      status
-      startDate {
-        year
-        month
-        day
-      }
-      endDate {
-        year
-        month
-        day
-      }
-      season
-      seasonYear
-      seasonInt
-      episodes
-      duration
-      countryOfOrigin
-      source
-      coverImage {
-        extraLarge
-        large
-        medium
-        color
-      }
-      bannerImage
-      genres
-      synonyms
-      popularity
-      relations {
-        edges {
-          node {
-            id
-            title {
-              native
-            }
-          }
-          relationType
-        }
-      }
-      studios {
-        edges {
-          isMain
-          node {
-            id
-            name
-            siteUrl
-          }
-        }
-      }
-      isAdult
-      externalLinks {
-        id
-        url
-        site
-      }
-      siteUrl
-    }
-  }
-}
-`;
+const query = await fs.readFile(
+  path.join(import.meta.dirname, "../../script/anilist.graphql"),
+  "utf8",
+);
 
 const submitQuery = async (body) => {
   for (let retry = 0; retry < 5; retry++) {
@@ -106,7 +39,6 @@ const submitQuery = async (body) => {
 for (let i = 0; i < ids.length; i += 50) {
   const chunk = ids.slice(i, i + 50);
   const list = await submitQuery({ query, variables: { ids: chunk } });
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   for (const anilist_id of chunk) {
     if (list.find((e) => e.id === anilist_id)) continue;

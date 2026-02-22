@@ -70,7 +70,7 @@ if (process.argv.slice(2).includes("--clean")) {
 
 if (arg === "--anime" && value) {
   console.log(`Crawling anime ${value}`);
-  const anime = (await submitQuery(q, { id: value })).Page.media[0];
+  const anime = (await submitQuery(q, { ids: [value] })).Page.media[0];
   await save(anime);
   await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_view`;
 } else if (arg === "--page" && value) {
@@ -83,10 +83,7 @@ if (arg === "--anime" && value) {
   let page = startPage;
   while (!lastPage || page <= lastPage) {
     console.log(`Crawling page ${page}`);
-    const data = await submitQuery(q, {
-      page,
-      perPage: 50,
-    });
+    const data = await submitQuery(q, { page });
     for (const anime of data.Page.media) {
       await save(anime);
     }

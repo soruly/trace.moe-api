@@ -1,5 +1,5 @@
-query ($page: Int = 1, $perPage: Int = 1, $id: Int, $type: MediaType = ANIME) {
-  Page(page: $page, perPage: $perPage) {
+query ($page: Int = 1, $ids: [Int]) {
+  Page(page: $page, perPage: 50) {
     pageInfo {
       total
       perPage
@@ -7,7 +7,7 @@ query ($page: Int = 1, $perPage: Int = 1, $id: Int, $type: MediaType = ANIME) {
       lastPage
       hasNextPage
     }
-    media(id: $id, type: $type) {
+    media(id_in: $ids, type: ANIME) {
       id
       idMal
       title {
