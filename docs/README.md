@@ -6,7 +6,7 @@ Using the API, you can develop programs such as: chat bots, browser plugins, vid
 
 ## What is trace.moe
 
-trace.moe is a Anime Scene Seach Engine that can trace back the scene where an anime screenshots is taken from. It tells you which anime, which episode, and the exact moment this scene appears.
+trace.moe is an Anime Scene Search Engine that can trace back the scene where an anime screenshot is taken from. It tells you which anime, which episode, and the exact moment this scene appears.
 
 ![](https://raw.githubusercontent.com/soruly/trace.moe/master/demo-result.jpg)
 

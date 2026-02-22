@@ -1,6 +1,6 @@
 # API Docs
 
-You may also refer to swagger docs on [SwaggerHub](https://app.swaggerhub.com/apis/soruly/api.trace.moe/1.0.0#/)
+You may also refer to the swagger docs on [SwaggerHub](https://app.swaggerhub.com/apis/soruly/api.trace.moe/1.0.0#/)
 
 ## /search
 
@@ -85,7 +85,7 @@ requests.post("https://api.trace.moe/search",
 
 <!-- tabs:end -->
 
-Supported Content-Types are `image/*`, `video/*`, `application/octet-stream` and `application/x-www-form-urlencoded`
+Supported Content-Types are `image/*`, `video/*`, `application/octet-stream`, and `application/x-www-form-urlencoded`
 
 File size is limited to 25MB. The server would throw HTTP 413 Payload Too Large if it is too large.
 
@@ -142,7 +142,7 @@ requests.post("https://api.trace.moe/search",
 
 ### Cut Black Borders
 
-trace.moe can detect black borders automatically and cut away unnecessary parts of the images that would affect search results accuracy. This is useful if your image is a screencap from a smartphone or iPad that contains black bars.
+trace.moe can detect black borders automatically and cut away unnecessary parts of the images that would affect search result accuracy. This is useful if your image is a screencap from a smartphone or iPad that contains black bars.
 
 To enable black border crop, add `cutBorders` to the query string. e.g.
 
@@ -187,7 +187,7 @@ requests
 
 You can search for a matching scene only in a particular anime by Anilist ID. This is useful when you are certain about the anime name but cannot remember which episode.
 
-First you have to look for the Anilist ID of your anime from [AniList](https://anilist.co/) first. Then add `anilistID=1` to the query string. e.g. Anilist ID of Cowboy Bebop is 1
+First, you have to look for the Anilist ID of your anime from [AniList](https://anilist.co/). Then add `anilistID=1` to the query string. e.g. Anilist ID of Cowboy Bebop is 1
 
 <!-- tabs:start -->
 
@@ -228,11 +228,11 @@ requests
 
 ### Search Image Format
 
-trace.moe support any media format that can be decoded by [ffmpeg](https://www.ffmpeg.org/), including video and gif. When using video / gif, only the 1st frame would be extracted for searching.
+trace.moe supports any media format that can be decoded by [ffmpeg](https://www.ffmpeg.org/), including video and gif. When using video / gif, only the 1st frame would be extracted for searching.
 
 Your image / video must be smaller than 10MB. Otherwise it would fail with HTTP 413 (Request Entity Too Large).
 
-The recommended resolution is 640 x 360px, higher resolution doesn't yield better search results. The algorithm is also resistant to jpeg artifacts, so you don't have to use uncompressed formats like png.
+The recommended resolution is 640 x 360px. Higher resolution doesn't yield better search results. The algorithm is also resistant to jpeg artifacts, so you don't have to use uncompressed formats like png.
 
 ### Response format
 
@@ -280,13 +280,13 @@ The recommended resolution is 640 x 360px, higher resolution doesn't yield bette
 - Similarity lower than 90% are most likely incorrect results. It's up to you to judge what is a match and what is just visually similar.
 - `episode` can be null because it is just a result of parsing the `filename` with [aniep](https://github.com/soruly/aniep)
 
-By default, it only returns Anilist ID for search results. To get more anime info, make a second query to [AniList API](https://github.com/AniList/ApiV2-GraphQL-Docs). If you need chinese-translated titles, take a look at [anilist-chinese](https://github.com/soruly/anilist-chinese)
+By default, it only returns Anilist ID for search results. To get more anime info, make a second query to [AniList API](https://github.com/AniList/ApiV2-GraphQL-Docs). If you need Chinese-translated titles, take a look at [anilist-chinese](https://github.com/soruly/anilist-chinese)
 
 ### Include Anilist info
 
-Asking for Anilist info would slow down your request because it takes additional query to Anilist, and may fail depending on their availability.
+Asking for Anilist info would slow down your request because it takes an additional query to Anilist, and may fail depending on their availability.
 
-Only ask for it when you need nothing more than `idMal`, `title`, `synonyms`, `isAdult` from Anilist, you can add `anilistInfo` to query string. e.g.
+If you only need `idMal`, `title`, `synonyms`, and `isAdult` from Anilist, you can add `anilistInfo` to the query string. e.g.
 
 <!-- tabs:start -->
 
@@ -354,7 +354,7 @@ Example response
 }
 ```
 
-The data inside the anilist object is an unmodified response from Anilist API. These data are managed by Anilist and they may change or delete these entries anytime.
+The data inside the anilist object is an unmodified response from Anilist API. This data is managed by Anilist and they may change or delete these entries at any time.
 
 Some title variants would be null. Please read [this section on Anilist API Docs](https://anilist.gitbook.io/anilist-apiv2-docs/overview/migrating-from-apiv1#media-titles) for explanations. It is recommended to have some fallback when selecting your preferred title.
 
@@ -391,7 +391,7 @@ https://api.trace.moe/image/s5ev1nvsjMo9dIteUKim6Gj?size=l
 https://api.trace.moe/video/s5ev1nvsjMo9dIteUKim6Gj?size=l
 ```
 
-Supported image format is jxl, webp and jpeg, which is decided by web browsers through the HTTP Accept header or fallback to jpeg as default.
+Supported image formats are jxl, webp, and jpeg, which are decided by web browsers through the HTTP Accept header, with a fallback to jpeg as the default.
 
 For video preview, it can generate a video with sound (default), or a muted video by appending `mute` to the end of url. e.g.
 
@@ -513,7 +513,7 @@ requests.get("https://api.trace.moe/me", headers={
 
 ### Using API Keys in query string
 
-If you're lazy and don't mind your API Key being exposed to browser history or logs. Just put your key in key in query string
+If you're lazy and don't mind your API Key being exposed to browser history or logs, just put your key in the query string.
 
 <!-- tabs:start -->
 

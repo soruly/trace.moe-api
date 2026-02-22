@@ -18,9 +18,9 @@ This is a list of notable changes compared to the old, beta version of API of tr
 
 ## Search
 
-- The `base64` image is no longer supported,the  image must be sent in `blob`. Reason for this being `base64` has always been an inefficient way. Additionally, this means `HTTP POST` of `Form/JSON` with the base64 image is removed as well.
+- The `base64` image is no longer supported; the image must be sent as a `blob`. The reason for this being that `base64` has always been an inefficient way. Additionally, this means `HTTP POST` of `Form/JSON` with the base64 image is removed as well.
 - The `filter` param has been renamed to `anilistID`.
-- Use the `cutBorders` param to turn on automatic black borders cutting. This has been always on for the old API, however it's now turned off by default.
+- Use the `cutBorders` param to turn on automatic black borders cutting. This was always on for the old API; however, it's now turned off by default.
 
 ## Search Results
 
@@ -30,16 +30,16 @@ This is a list of notable changes compared to the old, beta version of API of tr
 - Anilist info is not included in the search response by default. It only returns an Anilist ID. Use the `anilistInfo` param to include additional anime info.
 - `at`, `season`, `anime`, `tokenthumb`, `title`, `mal_id`, `synonyms`, `is_adult` have been removed from each result of the search response.
 - `anilist_id` has been renamed to `anilist`.
-- If `anilistInfo` is used, all anime info coming from Anilist are all contained inside one object under the "anilist" key.
+- If `anilistInfo` is used, all anime info coming from Anilist is contained inside one object under the "anilist" key.
 
 ## Me
 
 - The response object from /me now uses IP address / email address. The following fields have been removed: "id" field, "user_id" and the "email" field.
-- There are also addition fields added, see the new API Docs for details.
+- There are also additional fields added, see the new API Docs for details.
 
 ## Quota and Limits
 
-- The rate limit per minute, per 5 minutes and per hour have been removed; now added concurrency (parallel request) limit, defaults to 1 which means you have to make requests one after another.
+- The rate limit per minute, per 5 minutes, and per hour have been removed; now added a concurrency (parallel request) limit, which defaults to 1, meaning you have to make requests one after another.
 - Daily search quota has been removed; now has monthly search quota.
 - Headers like `X-whatanime-limit`, `X-whatanime-quota` have been removed (This wasn't renamed to x-ratelimit-limit).
 - Previously I may manually tune down search accuracy when there is busy traffic. I won't do that anymore.
