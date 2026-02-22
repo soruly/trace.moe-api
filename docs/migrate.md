@@ -10,7 +10,7 @@ This is a list of notable changes compared to the old, beta version of API of tr
 
 ## Accounts
 
-- Renaming: *API Token* => **API Key** (It's more appropriate to call it a key instead of a token!)
+- Renaming: _API Token_ => **API Key** (It's more appropriate to call it a key instead of a token!)
 - You can use the API with or without an API Key.
 - The existing old API Token cannot be used as an API Key, you have to become a [sponsor](https://github.com/sponsors/soruly) to get an account with an API Key.
 - Once you have an account, you can log into the new account page on trace.moe so you can reset the API Key yourself anytime you want and need to.
@@ -25,7 +25,7 @@ This is a list of notable changes compared to the old, beta version of API of tr
 ## Search Results
 
 - Fields that got removed from the search response:
-`RawDocsCount`, `RawDocsSearchTim`, `ReRankSearchTime`, `CacheHit`, `trial`, `limit`, `limit_ttl`, `quota`, and `quota_ttl`. 
+  `RawDocsCount`, `RawDocsSearchTim`, `ReRankSearchTime`, `CacheHit`, `trial`, `limit`, `limit_ttl`, `quota`, and `quota_ttl`.
 - `docs` has been renamed to `result` in search response.
 - Anilist info is not included in the search response by default. It only returns an Anilist ID. Use the `anilistInfo` param to include additional anime info.
 - `at`, `season`, `anime`, `tokenthumb`, `title`, `mal_id`, `synonyms`, `is_adult` have been removed from each result of the search response.
