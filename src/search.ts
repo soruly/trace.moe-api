@@ -30,30 +30,6 @@ const logAndDequeue = async (
   searchTime = null,
   accuracy = null,
 ) => {
-  if (code === 200) {
-    while (locals.mut) await new Promise((resolve) => setTimeout(resolve, 0));
-    locals.mut = true;
-    if (userId) {
-      await sql`
-        UPDATE users
-        SET
-          quota_used = quota_used + 1
-        WHERE
-          id = ${userId}
-      `;
-    } else {
-      await sql`
-        INSERT INTO
-          quota (ip, used)
-        VALUES
-          (${ip}, 1)
-        ON CONFLICT (ip) DO UPDATE
-        SET
-          used = quota.used + 1
-      `;
-    }
-    locals.mut = false;
-  }
   await sql`
     INSERT INTO
       logs (created, ip, user_id, code, search_time, accuracy)
@@ -173,6 +149,7 @@ export default async (req, res) => {
   let concurrency = defaultTier.concurrency;
   let priority = defaultTier.priority;
   let userId = null;
+  let concurrentId = req.ip;
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
   if (apiKey) {
     const [user] = await sql`
@@ -197,36 +174,31 @@ export default async (req, res) => {
     concurrency = user.concurrency;
     priority = user.priority;
     userId = user.id;
+    concurrentId = user.id;
   } else {
     const [row] = await sql`
       SELECT
         network,
-        SUM(used) AS used
+        quota_used,
+        quota,
+        priority,
+        concurrency
       FROM
-        quota
+        logs_view
       WHERE
         network = CASE
           WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
           ELSE set_masklen(${req.ip}::cidr, 32)
         END
-      GROUP BY
-        network
     `;
-    quotaUsed = row?.used ?? 0;
+    if (row) {
+      quotaUsed = row.quota_used;
+      quota = row.quota;
+      priority = row.priority;
+      concurrency = row.concurrency;
+      concurrentId = row.network;
+    }
   }
-
-  const concurrentId =
-    userId ??
-    (
-      await sql`
-        SELECT
-          CASE
-            WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
-            ELSE set_masklen(${req.ip}::cidr, 32)
-          END AS network
-      `
-    )[0]?.network ??
-    req.ip;
 
   if (quotaUsed >= quota) {
     await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);

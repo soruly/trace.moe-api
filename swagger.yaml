@@ -151,10 +151,10 @@ components:
           description: Number of parallel search requests you can make
         quota:
           type: integer
-          description: Search quota you have for this month
+          description: Daily search quota you have
         quotaUsed:
           type: integer
-          description: Search quota you have used this month
+          description: Daily search quota you have used last 24 hours
       required:
         - id
         - priority

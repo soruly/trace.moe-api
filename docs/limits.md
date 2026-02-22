@@ -10,25 +10,25 @@ The rate limit info is included in the HTTP response header. If you hit this HTT
 
 ### Sponsor tiers
 
-| Sponsor tiers | monthly quota | concurrency | priority    |
-| ------------- | ------------- | ----------- | ----------- |
-| free          | 1000          | 1           | 0 (lowest)  |
-| $1            | 1000          | 1           | 2           |
-| $5            | 5000          | 1           | 2           |
-| $10           | 10000         | 1           | 5           |
-| $20           | 20000         | 2           | 5           |
-| $50           | 50000         | 3           | 5           |
-| $100          | 100000        | 4           | 6 (highest) |
+| Sponsor tiers | daily quota | concurrency | priority    |
+| ------------- | ----------- | ----------- | ----------- |
+| free          | 100         | 1           | 0 (lowest)  |
+| $1            | 100         | 1           | 2           |
+| $5            | 500         | 1           | 2           |
+| $10           | 1000        | 1           | 5           |
+| $20           | 2000        | 2           | 5           |
+| $50           | 5000        | 3           | 5           |
+| $100          | 10000       | 4           | 6 (highest) |
 
 free tier (non-sponsors) has no account and has no API Key. But they can still use the API without and API Key. They would be identified by IP address. Any unique IP address would be considered as one unique user.
 
 ### Search Quota
 
-If you are a sponsor, you can still use the API without an API Key. This grant you extra quota in addition to free tiers. Which means if your program use the API Key in a tricky way, you could get 1000 (without API Key) + 1000 (with API Key) = 2000 monthly quota.
+If you are a sponsor, you can still use the API without an API Key. This grant you extra quota in addition to free tiers. Which means if your program use the API Key in a tricky way, you could get 100 (without API Key) + 100 (with API Key) = 200 daily quota.
 
-Search quota only deducts when server has successfully returned the results (HTTP 200). It doesn't count failed search requests, including HTTP 4xx and 5xx. So you don't have to worry about wasting quota on malformed requests, broken images, throttled requests or database errors.
+Failed search requests like HTTP 4xx and 5xx don't count. You don't have to worry about wasting quota on malformed requests, broken images, throttled requests or database errors.
 
-Search Quota reset every 1st of each month. It you have reached your monthly quota, search request would fail with HTTP 402.
+Search quota counts in a rolling window of 24 hours. If you have reached your daily quota, search request would fail with HTTP 402.
 
 ### Concurrency
 

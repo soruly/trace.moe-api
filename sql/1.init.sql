@@ -112,6 +112,12 @@ FROM
 CREATE TABLE IF NOT EXISTS logs (
   created timestamp NOT NULL DEFAULT NOW(),
   ip inet NOT NULL,
+  network inet GENERATED ALWAYS AS (
+    CASE
+      WHEN family(ip) = 6 THEN set_masklen(ip::cidr, 56)
+      ELSE set_masklen(ip::cidr, 32)
+    END
+  ) STORED,
   user_id integer,
   code integer NOT NULL,
   search_time integer DEFAULT NULL,
@@ -121,6 +127,8 @@ CREATE TABLE IF NOT EXISTS logs (
 CREATE INDEX IF NOT EXISTS logs_created_idx ON logs (created);
 
 CREATE INDEX IF NOT EXISTS logs_ip_idx ON logs (ip);
+
+CREATE INDEX IF NOT EXISTS logs_network_idx ON logs (network);
 
 CREATE INDEX IF NOT EXISTS logs_user_id_idx ON logs (user_id);
 
@@ -149,13 +157,13 @@ INSERT INTO
     patreon_id
   )
 VALUES
-  (0, 0, 1, 1000, 'public', 0),
-  (1, 2, 1, 1000, '$1', 0),
-  (2, 2, 1, 5000, '$5', 0),
-  (3, 5, 1, 10000, '$10', 0),
-  (4, 5, 2, 20000, '$20', 0),
-  (5, 5, 3, 50000, '$50', 0),
-  (6, 6, 4, 100000, '$100', 0),
+  (0, 0, 1, 100, 'public', 0),
+  (1, 2, 1, 100, '$1', 0),
+  (2, 2, 1, 500, '$5', 0),
+  (3, 5, 1, 1000, '$10', 0),
+  (4, 5, 2, 2000, '$20', 0),
+  (5, 5, 3, 5000, '$50', 0),
+  (6, 6, 4, 10000, '$100', 0),
   (9, 9, 255, 2147483647, 'god', 0)
 ON CONFLICT (id) DO NOTHING;
 
@@ -165,7 +173,6 @@ CREATE TABLE IF NOT EXISTS users (
   email text UNIQUE NOT NULL,
   password text NOT NULL,
   api_key text UNIQUE NOT NULL,
-  quota_used integer NOT NULL DEFAULT 0,
   created timestamp NOT NULL DEFAULT NOW(),
   updated timestamp NOT NULL DEFAULT NOW(),
   notes text DEFAULT NULL
@@ -173,13 +180,63 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE OR REPLACE VIEW users_view AS
 SELECT
-  users.*,
+  users.id,
+  users.email,
+  users.api_key,
+  users.created,
+  users.updated,
+  users.notes,
+  users.tier,
+  COALESCE(logs.quota_used, 0) AS quota_used,
+  tiers.quota,
   tiers.priority,
-  tiers.concurrency,
-  tiers.quota
+  tiers.concurrency
 FROM
   users
-  LEFT JOIN tiers ON tier = tiers.id;
+  LEFT JOIN tiers ON tier = tiers.id
+  LEFT JOIN (
+    SELECT
+      user_id,
+      COUNT(*) AS quota_used
+    FROM
+      logs
+    WHERE
+      code = 200
+      AND created > now() - '1 day'::interval
+    GROUP BY
+      user_id
+  ) AS logs ON logs.user_id = users.id;
+
+CREATE OR REPLACE VIEW logs_view AS
+SELECT
+  network,
+  COALESCE(logs.quota_used, 0) AS quota_used,
+  tiers.quota,
+  tiers.priority,
+  tiers.concurrency
+FROM
+  (
+    SELECT
+      quota,
+      priority,
+      concurrency
+    FROM
+      tiers
+    WHERE
+      id = 0
+  ) AS tiers,
+  (
+    SELECT
+      network,
+      COUNT(*) AS quota_used
+    FROM
+      logs
+    WHERE
+      code = 200
+      AND created > now() - '1 day'::interval
+    GROUP BY
+      network
+  ) AS logs;
 
 DO $$ BEGIN
     CREATE TYPE type_source AS ENUM('PATREON', 'GITHUB');
@@ -193,16 +250,3 @@ CREATE TABLE IF NOT EXISTS webhook (
   source type_source NOT NULL,
   json jsonb NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS quota (
-  ip inet PRIMARY KEY,
-  network inet GENERATED ALWAYS AS (
-    CASE
-      WHEN family(ip) = 6 THEN set_masklen(ip::cidr, 56)
-      ELSE set_masklen(ip::cidr, 32)
-    END
-  ) STORED,
-  used integer NOT NULL DEFAULT 0
-);
-
-CREATE INDEX IF NOT EXISTS quota_network_idx ON quota (network);

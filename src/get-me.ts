@@ -35,45 +35,27 @@ export default async (req, res) => {
       quotaUsed = user.quota_used;
     }
   } else {
-    const [defaultTier] = await sql`
-      SELECT
-        priority,
-        concurrency,
-        quota
-      FROM
-        tiers
-      WHERE
-        id = 0
-    `;
-    priority = defaultTier.priority;
-    concurrency = defaultTier.concurrency;
-    quota = defaultTier.quota;
     const [row] = await sql`
       SELECT
         network,
-        SUM(used) AS used
+        quota_used,
+        quota,
+        priority,
+        concurrency
       FROM
-        quota
+        logs_view
       WHERE
         network = CASE
           WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
           ELSE set_masklen(${req.ip}::cidr, 32)
         END
-      GROUP BY
-        network
     `;
     if (row) {
       id = row.network;
-      quotaUsed = row.used;
-    } else {
-      const [row] = await sql`
-        SELECT
-          CASE
-            WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
-            ELSE set_masklen(${req.ip}::cidr, 32)
-          END AS network
-      `;
-      id = row.network;
+      priority = row.priority;
+      concurrency = row.concurrency;
+      quota = row.quota;
+      quotaUsed = row.quota_used;
     }
   }
 

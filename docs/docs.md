@@ -465,8 +465,8 @@ Example Response
 | id          | IP address (guest) or email address (user)      | string             |
 | priority    | Your priority in search queue                   | number (0: lowest) |
 | concurrency | Number of parallel search requests you can make | number             |
-| quota       | Search quota you have for this month            | number             |
-| quotaUsed   | Search quota you have used this month           | number             |
+| quota       | Daily search quota you have                     | number             |
+| quotaUsed   | Daily search quota you have used last 24 hours  | number             |
 
 ## Using the API with API Keys
 
