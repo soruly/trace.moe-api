@@ -13,7 +13,7 @@ import colorLayout from "./lib/color-layout.ts";
 const {
   TRACE_API_SALT,
   SEARCH_QUEUE = Infinity,
-  USE_IMAGE_PROXY = false,
+  IMAGE_PROXY_URL = "",
   MILVUS_ADDR,
   MILVUS_TOKEN,
 } = process.env;
@@ -266,7 +266,7 @@ export default async (req, res) => {
     }
 
     const response = await fetch(
-      USE_IMAGE_PROXY &&
+      IMAGE_PROXY_URL &&
         ![
           // list of trusted hostnames that you don't mind exposing your server's ip address
           "api.telegram.org",
@@ -278,7 +278,7 @@ export default async (req, res) => {
           "images-ext-1.discordapp.net",
           "images-ext-2.discordapp.net",
         ].includes(new URL(req.query.url).hostname)
-        ? `https://trace.moe/image-proxy?url=${encodeURIComponent(req.query.url)}`
+        ? `${IMAGE_PROXY_URL}?url=${encodeURIComponent(req.query.url)}`
         : req.query.url,
     ).catch((_) => {
       return null;
