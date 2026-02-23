@@ -9,6 +9,7 @@ import { performance } from "node:perf_hooks";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import sql from "../sql.ts";
 import colorLayout from "./lib/color-layout.ts";
+import isSafeURL from "./lib/is-valid-url.ts";
 
 const {
   TRACE_API_SALT,
@@ -227,38 +228,48 @@ export default async (req, res) => {
 
   let searchFile;
   if (req.query.url) {
-    // console.log(req.query.url);
+    const imageURL = String(req.query.url);
     try {
-      new URL(req.query.url);
+      new URL(imageURL);
     } catch (e) {
       await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
       return res.status(400).json({
-        error: `Invalid image url ${req.query.url}`,
+        error: `Invalid image url ${imageURL}`,
       });
     }
 
-    const response = await fetch(
+    const useProxy =
       IMAGE_PROXY_URL &&
-        ![
-          // list of trusted hostnames that you don't mind exposing your server's ip address
-          "api.telegram.org",
-          "telegra.ph",
-          "t.me",
-          "discord.com",
-          "cdn.discordapp.com",
-          "media.discordapp.net",
-          "images-ext-1.discordapp.net",
-          "images-ext-2.discordapp.net",
-        ].includes(new URL(req.query.url).hostname)
-        ? `${IMAGE_PROXY_URL}?url=${encodeURIComponent(req.query.url)}`
-        : req.query.url,
+      ![
+        // list of trusted hostnames to always fetch directly without proxy
+        "api.telegram.org",
+        "telegra.ph",
+        "t.me",
+        "discord.com",
+        "cdn.discordapp.com",
+        "media.discordapp.net",
+        "images-ext-1.discordapp.net",
+        "images-ext-2.discordapp.net",
+      ].includes(new URL(imageURL).hostname);
+
+    if (!useProxy && !(await isSafeURL(imageURL))) {
+      await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+      return res.status(400).json({
+        error: `URL not allowed ${imageURL}`,
+      });
+    }
+
+    console.log(`Fetching image ${useProxy ? "with proxy" : "directly"} ${imageURL}`);
+
+    const response = await fetch(
+      useProxy ? `${IMAGE_PROXY_URL}?url=${encodeURIComponent(imageURL)}` : imageURL,
     ).catch((_) => {
       return null;
     });
     if (!response || response.status >= 400) {
       await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
       return res.status(response?.status ?? 400).json({
-        error: `Failed to fetch image ${req.query.url}`,
+        error: `Failed to fetch image ${imageURL}`,
       });
     }
     searchFile = Buffer.from(await response.arrayBuffer());

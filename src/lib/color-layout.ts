@@ -74,32 +74,52 @@ export default (data: Buffer, width: number, height: number) => {
   const CrCoeff = new Uint8Array(6);
 
   const shape = [new Int16Array(64), new Int16Array(64), new Int16Array(64)];
-  const sum = [new Uint32Array(64), new Uint32Array(64), new Uint32Array(64)];
-  const cnt = new Int16Array(64);
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const R = data[(y * width + x) * 3 + 0];
-      const G = data[(y * width + x) * 3 + 1];
-      const B = data[(y * width + x) * 3 + 2];
-      const y_axis = (y / (height / 8)) | 0;
-      const x_axis = (x / (width / 8)) | 0;
-      const k = (y_axis << 3) + x_axis;
-      //RGB to YCbCr, partition and average-calculation
-      const yy = (0.299 * R + 0.587 * G + 0.114 * B) / 256;
-      sum[0][k] += (219 * yy + 16.5) | 0; // Y
-      sum[1][k] += (224 * 0.564 * (B / 256 - yy) + 128.5) | 0; // Cb
-      sum[2][k] += (224 * 0.713 * (R / 256 - yy) + 128.5) | 0; // Cr
-      cnt[k]++;
-    }
+  const x_start = new Int32Array(9);
+  const y_start = new Int32Array(9);
+  for (let i = 0; i <= 8; i++) {
+    x_start[i] = Math.ceil((i * width) / 8);
+    y_start[i] = Math.ceil((i * height) / 8);
   }
 
-  for (let i = 0; i < 8; i++) {
-    for (let j = 0; j < 8; j++) {
-      for (let k = 0; k < 3; k++) {
-        if (cnt[(i << 3) + j] != 0)
-          shape[k][(i << 3) + j] = (sum[k][(i << 3) + j] / cnt[(i << 3) + j]) | 0;
-        else shape[k][(i << 3) + j] = 0;
+  for (let by = 0; by < 8; by++) {
+    const y_begin = y_start[by];
+    const y_end = y_start[by + 1];
+
+    for (let bx = 0; bx < 8; bx++) {
+      const x_begin = x_start[bx];
+      const x_end = x_start[bx + 1];
+      const k_idx = (by << 3) + bx;
+
+      let s0 = 0;
+      let s1 = 0;
+      let s2 = 0;
+      let count = 0;
+
+      for (let y = y_begin; y < y_end; y++) {
+        let ptr = (y * width + x_begin) * 3;
+        for (let x = x_begin; x < x_end; x++) {
+          const R = data[ptr];
+          const G = data[ptr + 1];
+          const B = data[ptr + 2];
+          ptr += 3;
+
+          const yy = (0.299 * R + 0.587 * G + 0.114 * B) / 256;
+          s0 += (219 * yy + 16.5) | 0; // Y
+          s1 += (224 * 0.564 * (B / 256 - yy) + 128.5) | 0; // Cb
+          s2 += (224 * 0.713 * (R / 256 - yy) + 128.5) | 0; // Cr
+          count++;
+        }
+      }
+
+      if (count !== 0) {
+        shape[0][k_idx] = (s0 / count) | 0;
+        shape[1][k_idx] = (s1 / count) | 0;
+        shape[2][k_idx] = (s2 / count) | 0;
+      } else {
+        shape[0][k_idx] = 0;
+        shape[1][k_idx] = 0;
+        shape[2][k_idx] = 0;
       }
     }
   }
