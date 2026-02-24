@@ -73,7 +73,10 @@ export default (data: Buffer, width: number, height: number) => {
   const CbCoeff = new Uint8Array(6);
   const CrCoeff = new Uint8Array(6);
 
-  const shape = [new Int16Array(64), new Int16Array(64), new Int16Array(64)];
+  // Use Int32Array to prevent overflow during accumulation.
+  // Original implementation used Int16Array for `shape`, but we reuse this array
+  // for accumulation which can exceed Int16 range (max ~376,000).
+  const shape = [new Int32Array(64), new Int32Array(64), new Int32Array(64)];
 
   const x_start = new Int32Array(9);
   const y_start = new Int32Array(9);
@@ -82,40 +85,51 @@ export default (data: Buffer, width: number, height: number) => {
     y_start[i] = Math.ceil((i * height) / 8);
   }
 
+  let ptr = 0;
+
+  // Optimized loop: iterates over the image buffer sequentially for better cache locality.
+  // Instead of nested loops over blocks then pixels (which jumps around in memory),
+  // we iterate rows (y), then blocks in that row (bx), then pixels in that block (x).
   for (let by = 0; by < 8; by++) {
-    const y_begin = y_start[by];
     const y_end = y_start[by + 1];
 
-    for (let bx = 0; bx < 8; bx++) {
-      const x_begin = x_start[bx];
-      const x_end = x_start[bx + 1];
-      const k_idx = (by << 3) + bx;
+    for (let y = y_start[by]; y < y_end; y++) {
+      for (let bx = 0; bx < 8; bx++) {
+        const x_end = x_start[bx + 1];
+        const k_idx = (by << 3) + bx;
 
-      let s0 = 0;
-      let s1 = 0;
-      let s2 = 0;
-      let count = 0;
+        let s0 = shape[0][k_idx];
+        let s1 = shape[1][k_idx];
+        let s2 = shape[2][k_idx];
 
-      for (let y = y_begin; y < y_end; y++) {
-        let ptr = (y * width + x_begin) * 3;
-        for (let x = x_begin; x < x_end; x++) {
-          const R = data[ptr];
-          const G = data[ptr + 1];
-          const B = data[ptr + 2];
-          ptr += 3;
+        for (let x = x_start[bx]; x < x_end; x++) {
+          const R = data[ptr++];
+          const G = data[ptr++];
+          const B = data[ptr++];
 
           const yy = (0.299 * R + 0.587 * G + 0.114 * B) / 256;
           s0 += (219 * yy + 16.5) | 0; // Y
           s1 += (224 * 0.564 * (B / 256 - yy) + 128.5) | 0; // Cb
           s2 += (224 * 0.713 * (R / 256 - yy) + 128.5) | 0; // Cr
-          count++;
         }
+        shape[0][k_idx] = s0;
+        shape[1][k_idx] = s1;
+        shape[2][k_idx] = s2;
       }
+    }
+  }
+
+  for (let by = 0; by < 8; by++) {
+    const h = y_start[by + 1] - y_start[by];
+    for (let bx = 0; bx < 8; bx++) {
+      const w = x_start[bx + 1] - x_start[bx];
+      const count = w * h;
+      const k_idx = (by << 3) + bx;
 
       if (count !== 0) {
-        shape[0][k_idx] = (s0 / count) | 0;
-        shape[1][k_idx] = (s1 / count) | 0;
-        shape[2][k_idx] = (s2 / count) | 0;
+        shape[0][k_idx] = (shape[0][k_idx] / count) | 0;
+        shape[1][k_idx] = (shape[1][k_idx] / count) | 0;
+        shape[2][k_idx] = (shape[2][k_idx] / count) | 0;
       } else {
         shape[0][k_idx] = 0;
         shape[1][k_idx] = 0;
