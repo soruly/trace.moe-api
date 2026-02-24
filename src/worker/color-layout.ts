@@ -2,8 +2,11 @@ import os from "node:os";
 import child_process from "node:child_process";
 import { workerData } from "node:worker_threads";
 import zlib from "node:zlib";
+import { promisify } from "node:util";
 import sql from "../../sql.ts";
 import colorLayout from "../lib/color-layout.ts";
+
+const zstdCompress = promisify(zlib.zstdCompress);
 
 const { id, filePath } = workerData;
 
@@ -79,7 +82,7 @@ ffmpeg.on("close", async (code) => {
     SET
       updated = now(),
       frame_count = ${code === 0 ? frameData.length : 0},
-      color_layout = ${zlib.zstdCompressSync(JSON.stringify(code === 0 ? frameData : []), {
+      color_layout = ${await zstdCompress(JSON.stringify(code === 0 ? frameData : []), {
         params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
       })}
     WHERE

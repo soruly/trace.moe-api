@@ -1,8 +1,11 @@
 import path from "node:path";
 import zlib from "node:zlib";
+import { promisify } from "node:util";
 import { workerData } from "node:worker_threads";
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import sql from "../../sql.ts";
+
+const zstdDecompress = promisify(zlib.zstdDecompress);
 
 const { MILVUS_ADDR, MILVUS_TOKEN, DISCORD_URL, TELEGRAM_ID, TELEGRAM_URL } = process.env;
 
@@ -18,7 +21,7 @@ const [row] = await sql`
     id = ${id}
 `;
 
-const hashList = JSON.parse(zlib.zstdDecompressSync(row.color_layout).toString()).sort(
+const hashList = JSON.parse((await zstdDecompress(row.color_layout)).toString()).sort(
   (a, b) => a.time - b.time,
 );
 
