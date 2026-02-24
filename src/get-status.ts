@@ -1,7 +1,4 @@
-import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import sql from "../sql.ts";
-
-const { MILVUS_ADDR, MILVUS_TOKEN } = process.env;
 
 export default async (req, res) => {
   const { id } = req.query;
@@ -36,19 +33,15 @@ export default async (req, res) => {
       1;
   `;
 
-  const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
-
-  const collectionStatistics = await milvus.getCollectionStatistics({
+  const collectionStatistics = await req.app.locals.milvus.getCollectionStatistics({
     collection_name: "frame_color_layout",
   });
 
-  const metric = await milvus.getMetric({
+  const metric = await req.app.locals.milvus.getMetric({
     request: {
       metric_type: "system_info",
     },
   });
-
-  await milvus.closeConnection();
 
   return res.json({
     updated: row.updated,

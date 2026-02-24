@@ -92,8 +92,7 @@ if (milvusCollection.data.find((e) => e.name === "frame_color_layout")) {
     }),
   );
 }
-await milvus.closeConnection();
-
+app.locals.milvus = milvus;
 app.locals.sqids = new Sqids({
   alphabet: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
     .split("")
