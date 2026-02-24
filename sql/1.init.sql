@@ -85,13 +85,32 @@ CREATE INDEX IF NOT EXISTS files_anilist_id_idx ON files (anilist_id);
 
 CREATE INDEX IF NOT EXISTS files_episode_idx ON files (episode);
 
-CREATE INDEX IF NOT EXISTS files_path_idx ON files (path);
+CREATE UNIQUE INDEX IF NOT EXISTS files_path_idx ON files (path);
 
 CREATE INDEX IF NOT EXISTS files_loaded_idx ON files (loaded);
 
 CREATE INDEX IF NOT EXISTS files_created_idx ON files (created);
 
 CREATE INDEX IF NOT EXISTS files_updated_idx ON files (updated);
+
+CREATE INDEX IF NOT EXISTS files_media_pending_idx ON files (id DESC)
+WHERE
+  media_info IS NULL;
+
+CREATE INDEX IF NOT EXISTS files_scene_pending_idx ON files (id DESC)
+WHERE
+  scene_changes IS NULL;
+
+CREATE INDEX IF NOT EXISTS files_color_pending_idx ON files (id DESC)
+WHERE
+  color_layout IS NULL;
+
+CREATE INDEX IF NOT EXISTS files_milvus_pending_idx ON files (id DESC)
+WHERE
+  loaded IS NULL
+  AND media_info IS NOT NULL
+  AND scene_changes IS NOT NULL
+  AND color_layout IS NOT NULL;
 
 CREATE OR REPLACE VIEW files_view AS
 SELECT
@@ -133,11 +152,21 @@ CREATE INDEX IF NOT EXISTS logs_network_idx ON logs (network);
 
 CREATE INDEX IF NOT EXISTS logs_user_id_idx ON logs (user_id);
 
-CREATE INDEX IF NOT EXISTS logs_code_idx ON logs (code);
+-- For traffic stats page
+CREATE INDEX IF NOT EXISTS logs_created_code_idx ON logs (created, code);
 
-CREATE INDEX IF NOT EXISTS logs_search_time_idx ON logs (search_time);
+CREATE INDEX IF NOT EXISTS logs_created_search_time_idx ON logs (created, search_time);
 
-CREATE INDEX IF NOT EXISTS logs_accuracy_idx ON logs (accuracy);
+CREATE INDEX IF NOT EXISTS logs_created_accuracy_idx ON logs (created, accuracy);
+
+-- For quota in users_view
+CREATE INDEX IF NOT EXISTS logs_user_quota_idx ON logs (user_id, created)
+WHERE
+  code = 200;
+
+CREATE INDEX IF NOT EXISTS logs_network_quota_idx ON logs (network, created)
+WHERE
+  code = 200;
 
 CREATE TABLE IF NOT EXISTS tiers (
   id serial PRIMARY KEY,
@@ -178,6 +207,10 @@ CREATE TABLE IF NOT EXISTS users (
   updated timestamp NOT NULL DEFAULT NOW(),
   notes text DEFAULT NULL
 );
+
+CREATE INDEX users_api_key_idx ON users (api_key);
+
+CREATE INDEX users_email_password_idx ON users (email, password);
 
 CREATE OR REPLACE VIEW users_view AS
 SELECT
