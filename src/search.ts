@@ -52,33 +52,47 @@ const logAndDequeue = async (
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
 
-const extractImageByFFmpeg = async (searchFile) => {
+const extractImageByFFmpeg = async (searchFile: Buffer): Promise<Buffer> => {
+  // must use file input because input file buffer may be unseekable
+  // ffmpeg cannot determine the video format for such stream
   const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
   await fs.writeFile(tempFilePath, searchFile);
-  const ffmpeg = child_process.spawnSync("ffmpeg", [
-    "-hide_banner",
-    "-loglevel",
-    "error",
-    "-nostats",
-    "-y",
-    "-i",
-    tempFilePath,
-    "-ss",
-    "00:00:00",
-    "-map_metadata",
-    "-1",
-    "-vf",
-    "scale=320:-2",
-    "-c:v",
-    "png",
-    "-vframes",
-    "1",
-    "-f",
-    "image2pipe",
-    "pipe:1",
-  ]);
-  await fs.rm(tempFilePath, { force: true });
-  return ffmpeg.stdout;
+  return new Promise((resolve) => {
+    const ffmpeg = child_process.spawn("ffmpeg", [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-nostats",
+      "-y",
+      "-i",
+      tempFilePath,
+      "-ss",
+      "00:00:00",
+      "-map_metadata",
+      "-1",
+      "-vf",
+      "scale=320:-2",
+      "-c:v",
+      "png",
+      "-vframes",
+      "1",
+      "-f",
+      "image2pipe",
+      "pipe:1",
+    ]);
+    ffmpeg.stderr.on("data", (data) => {
+      console.log(data.toString());
+    });
+    const chunks = [];
+    ffmpeg.stdout.on("data", (data) => {
+      chunks.push(data);
+    });
+    ffmpeg.on("close", (code) => {
+      if (code !== 0) chunks.push(Buffer.alloc(0));
+      resolve(Buffer.concat(chunks));
+      fs.rm(tempFilePath, { force: true });
+    });
+  });
 };
 
 const cutBorders = async (imageBuffer) => {
@@ -281,6 +295,13 @@ export default async (req, res) => {
     await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 405);
     return res.status(405).json({
       error: "Method Not Allowed",
+    });
+  }
+
+  if (!searchFile.length) {
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+    return res.status(400).json({
+      error: "Failed to process file",
     });
   }
 
