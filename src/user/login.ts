@@ -1,7 +1,5 @@
-import crypto from "node:crypto";
 import sql from "../../sql.ts";
-
-const { TRACE_API_SALT } = process.env;
+import hashPassword from "../lib/hash-password.ts";
 
 export default async (req, res) => {
   if (!req.body?.email || !req.body?.password) {
@@ -16,7 +14,7 @@ export default async (req, res) => {
       users
     WHERE
       email = ${req.body.email}
-      AND password = ${crypto.scryptSync(req.body.password, TRACE_API_SALT, 64).toString("base64")}
+      AND password = ${await hashPassword(req.body.password)}
     LIMIT
       1
   `;

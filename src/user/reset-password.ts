@@ -1,7 +1,5 @@
-import crypto from "node:crypto";
 import sql from "../../sql.ts";
-
-const { TRACE_API_SALT } = process.env;
+import hashPassword from "../lib/hash-password.ts";
 
 export default async (req, res) => {
   const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
@@ -33,7 +31,7 @@ export default async (req, res) => {
   await sql`
     UPDATE users
     SET
-      password = ${crypto.scryptSync(req.body.password, TRACE_API_SALT, 64).toString("base64")}
+      password = ${await hashPassword(req.body.password)}
     WHERE
       id = ${rows[0].id}
   `;

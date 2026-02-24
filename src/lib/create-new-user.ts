@@ -5,8 +5,9 @@ import { URL } from "node:url";
 import nodemailer from "nodemailer";
 import sql from "../../sql.ts";
 import generateAPIKey from "./generate-api-key.ts";
+import hashPassword from "./hash-password.ts";
 
-const { TRACE_API_SALT, EMAIL_SMTP, EMAIL_SMTP_PORT } = process.env;
+const { EMAIL_SMTP, EMAIL_SMTP_PORT } = process.env;
 let { EMAIL_USER, EMAIL_PASS, EMAIL_FROM } = process.env;
 
 const __filename = new URL("", import.meta.url).pathname;
@@ -65,7 +66,7 @@ export default async (email, tier, full_name = "") => {
       (
         ${tier},
         ${email},
-        ${crypto.scryptSync(plainPassword, TRACE_API_SALT, 64).toString("base64")},
+        ${await hashPassword(plainPassword)},
         ${generateAPIKey(0)}
       )
     RETURNING
