@@ -1,12 +1,14 @@
+import child_process from "node:child_process";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import child_process from "node:child_process";
-import fs from "node:fs/promises";
+import { performance } from "node:perf_hooks";
+
+import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import aniep from "aniep";
 import sharp from "sharp";
-import { performance } from "node:perf_hooks";
-import { MilvusClient } from "@zilliz/milvus2-sdk-node";
+
 import sql from "../sql.ts";
 import colorLayout from "./lib/color-layout.ts";
 import isSafeURL from "./lib/is-valid-url.ts";

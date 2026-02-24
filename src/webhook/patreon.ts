@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+
 import sql from "../../sql.ts";
 import createNewUser from "../lib/create-new-user.ts";
 

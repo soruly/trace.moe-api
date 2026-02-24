@@ -1,7 +1,8 @@
-import path from "node:path";
-import fs from "node:fs/promises";
-import crypto from "node:crypto";
 import child_process from "node:child_process";
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+
 import sql from "../sql.ts";
 
 const { VIDEO_PATH, TRACE_API_SALT, MEDIA_QUEUE = Infinity } = process.env;

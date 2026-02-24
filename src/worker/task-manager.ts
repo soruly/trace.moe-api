@@ -1,9 +1,11 @@
 import fs from "node:fs/promises";
-import { Worker } from "node:worker_threads";
-import path from "node:path";
-import sql from "../../sql.ts";
 import type { ServerResponse } from "node:http";
+import path from "node:path";
+import { Worker } from "node:worker_threads";
+
 import aniep from "aniep";
+
+import sql from "../../sql.ts";
 
 const VIDEO_PATH = path.normalize(process.env.VIDEO_PATH);
 const MAX_WORKER = Number(process.env.MAX_WORKER) || 1;

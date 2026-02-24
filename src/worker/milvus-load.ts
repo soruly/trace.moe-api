@@ -1,8 +1,10 @@
 import path from "node:path";
-import zlib from "node:zlib";
 import { promisify } from "node:util";
 import { workerData } from "node:worker_threads";
+import zlib from "node:zlib";
+
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
+
 import sql from "../../sql.ts";
 
 const zstdDecompress = promisify(zlib.zstdDecompress);

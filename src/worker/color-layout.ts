@@ -1,8 +1,9 @@
-import os from "node:os";
 import child_process from "node:child_process";
+import os from "node:os";
+import { promisify } from "node:util";
 import { workerData } from "node:worker_threads";
 import zlib from "node:zlib";
-import { promisify } from "node:util";
+
 import sql from "../../sql.ts";
 import colorLayout from "../lib/color-layout.ts";
 

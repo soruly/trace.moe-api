@@ -1,6 +1,7 @@
-import { workerData } from "node:worker_threads";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { workerData } from "node:worker_threads";
+
 import sql from "../../sql.ts";
 
 const { ids } = workerData;

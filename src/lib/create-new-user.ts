@@ -1,8 +1,10 @@
-import path from "node:path";
-import fs from "node:fs/promises";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { URL } from "node:url";
+
 import nodemailer from "nodemailer";
+
 import sql from "../../sql.ts";
 import generateAPIKey from "./generate-api-key.ts";
 import hashPassword from "./hash-password.ts";

@@ -1,12 +1,15 @@
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import fs from "node:fs/promises";
-import Sqids from "sqids";
+import v8 from "v8";
+
 import { MilvusClient, DataType, IndexType, MetricType } from "@zilliz/milvus2-sdk-node";
+
 import "./env.ts";
+import Sqids from "sqids";
+
 import sql from "./sql.ts";
 import app from "./src/app.ts";
-import v8 from "v8";
 import TaskManager from "./src/worker/task-manager.ts";
 
 console.log(

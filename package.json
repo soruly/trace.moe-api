@@ -2,8 +2,18 @@
   "name": "trace.moe-api",
   "version": "1.0.0",
   "description": "API server of trace.moe",
-  "main": "server.ts",
+  "homepage": "https://github.com/soruly/trace.moe-api#readme",
+  "bugs": {
+    "url": "https://github.com/soruly/trace.moe-api/issues"
+  },
+  "license": "MIT",
+  "author": "soruly",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soruly/trace.moe-api.git"
+  },
   "type": "module",
+  "main": "server.ts",
   "scripts": {
     "start": "pm2 start ecosystem.config.json",
     "watch": "pm2 start ecosystem.config.json --watch",
@@ -11,26 +21,11 @@
     "restart": "pm2 restart ecosystem.config.json",
     "reload": "pm2 reload ecosystem.config.json",
     "delete": "pm2 delete ecosystem.config.json",
+    "oxfmt": "oxfmt",
     "prettier": "prettier",
     "format": "prettier --write \"**/*.*\"",
     "lint": "prettier --check \"**/*.*\"",
     "test": "prettier --check \"**/*.*\""
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/soruly/trace.moe-api.git"
-  },
-  "author": "soruly",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/soruly/trace.moe-api/issues"
-  },
-  "homepage": "https://github.com/soruly/trace.moe-api#readme",
-  "devDependencies": {
-    "@types/node": "^25.3.0",
-    "prettier": "^3.8.1",
-    "prettier-plugin-embed": "^0.5.1",
-    "prettier-plugin-sql": "^0.19.2"
   },
   "dependencies": {
     "@zilliz/milvus2-sdk-node": "^2.6.10",
@@ -43,5 +38,12 @@
     "postgres": "^3.4.8",
     "sharp": "^0.34.5",
     "sqids": "^0.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "oxfmt": "^0.35.0",
+    "prettier": "^3.8.1",
+    "prettier-plugin-embed": "^0.5.1",
+    "prettier-plugin-sql": "^0.19.2"
   }
 }

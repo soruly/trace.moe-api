@@ -1,6 +1,8 @@
-import path from "node:path";
 import fs from "node:fs/promises";
+import path from "node:path";
+
 import { MilvusClient } from "@zilliz/milvus2-sdk-node";
+
 import "../env.ts";
 import sql from "../sql.ts";
 

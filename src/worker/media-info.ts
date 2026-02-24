@@ -1,6 +1,7 @@
-import os from "node:os";
 import child_process from "node:child_process";
+import os from "node:os";
 import { workerData } from "node:worker_threads";
+
 import sql from "../../sql.ts";
 
 const { id, filePath } = workerData;

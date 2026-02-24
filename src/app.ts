@@ -1,23 +1,24 @@
 import { performance } from "node:perf_hooks";
+
+import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
-import cors from "cors";
 import multer from "multer";
 
 import getMe from "./get-me.ts";
-import getStatus from "./get-status.ts";
 import getStats from "./get-stats.ts";
-import search from "./search.ts";
-import scan from "./scan.ts";
-import tasks from "./tasks.ts";
-import video from "./video.ts";
+import getStatus from "./get-status.ts";
 import image from "./image.ts";
-import github from "./webhook/github.ts";
-import patreon from "./webhook/patreon.ts";
+import scan from "./scan.ts";
+import search from "./search.ts";
+import tasks from "./tasks.ts";
 import create from "./user/create.ts";
 import login from "./user/login.ts";
 import resetKey from "./user/reset-key.ts";
 import resetPassword from "./user/reset-password.ts";
+import video from "./video.ts";
+import github from "./webhook/github.ts";
+import patreon from "./webhook/patreon.ts";
 
 const app = express();
 
