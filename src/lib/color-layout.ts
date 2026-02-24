@@ -1,3 +1,26 @@
+/**
+ * Extracts the MPEG-7 Color Layout Descriptor (CLD) from an image buffer.
+ *
+ * The Color Layout Descriptor is a compact spatial color representation.
+ * This implementation:
+ * 1. Partitions the image into an 8x8 grid of blocks.
+ * 2. Calculates the average YCbCr color for each block.
+ * 3. Applies a 2D Discrete Cosine Transform (DCT) to the 8x8 averages.
+ * 4. Extracts a subset of low-frequency DCT coefficients using zig-zag scanning.
+ * 5. Quantizes the coefficients to produce the final descriptor.
+ *
+ * Returns an array of 33 coefficients (features): 21 for Y (luminance), 6 for Cb, and 6 for Cr.
+ */
+
+// Pre-calculated transformation matrix for performing an 8x8 Type-II Discrete Cosine Transform (DCT)
+// const N = 8;
+// for (let i = 0; i < N; i++) {
+//   let row = [];
+//   for (let j = 0; j < N; j++) {
+//     const alpha = i === 0 ? 1 / Math.sqrt(N) : Math.sqrt(2 / N);
+//     row.push(alpha * Math.cos(((2 * j + 1) * i * Math.PI) / (2 * N)));
+//   }
+// }
 // prettier-ignore
 const COSINE_ARRAY = [
     [3.535534e-1, 3.535534e-1, 3.535534e-1, 3.535534e-1, 3.535534e-1, 3.535534e-1, 3.535534e-1, 3.535534e-1],
@@ -10,8 +33,9 @@ const COSINE_ARRAY = [
     [9.754516e-2, -2.777851e-1, 4.157348e-1, -4.903926e-1, 4.903926e-1, -4.157348e-1, 2.777851e-1, -9.754516e-2],
   ];
 
+const dct_buffer = new Float32Array(64);
+
 const Fdct = (shapes) => {
-  const dct = new Float32Array(64);
   let s = 0;
 
   //calculation of the cos-values of the second sum
@@ -19,13 +43,13 @@ const Fdct = (shapes) => {
     for (let j = 0; j < 8; j++) {
       s = 0;
       for (let k = 0; k < 8; k++) s += COSINE_ARRAY[j][k] * shapes[8 * i + k];
-      dct[8 * i + j] = s;
+      dct_buffer[8 * i + j] = s;
     }
   }
   for (let j = 0; j < 8; j++) {
     for (let i = 0; i < 8; i++) {
       s = 0;
-      for (let k = 0; k < 8; k++) s += COSINE_ARRAY[i][k] * dct[8 * k + j];
+      for (let k = 0; k < 8; k++) s += COSINE_ARRAY[i][k] * dct_buffer[8 * k + j];
       shapes[8 * i + j] = Math.floor(s + 0.499999);
     }
   }
@@ -68,54 +92,78 @@ const ZIG_ZAG_ARRAY = new Uint8Array([
   45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
 ]);
 
+const YCoeff = new Uint8Array(21);
+const CbCoeff = new Uint8Array(6);
+const CrCoeff = new Uint8Array(6);
+
+const shape = [new Int16Array(64), new Int16Array(64), new Int16Array(64)];
+
+// We use Float32Array because V8 engine Javascript Numbers perform operations natively in double-precision floats,
+// which makes Float32Array faster than Int32Array/Uint32Array by avoiding Integer casting overhead.
+const sumR = new Float32Array(64);
+const sumG = new Float32Array(64);
+const sumB = new Float32Array(64);
+
+const x_start = new Uint32Array(9);
+const y_start = new Uint32Array(9);
+
 export default (data: Buffer, width: number, height: number) => {
-  const YCoeff = new Uint8Array(21);
-  const CbCoeff = new Uint8Array(6);
-  const CrCoeff = new Uint8Array(6);
+  sumR.fill(0);
+  sumG.fill(0);
+  sumB.fill(0);
 
-  const shape = [new Int16Array(64), new Int16Array(64), new Int16Array(64)];
-
-  const x_start = new Int32Array(9);
-  const y_start = new Int32Array(9);
   for (let i = 0; i <= 8; i++) {
     x_start[i] = Math.ceil((i * width) / 8);
     y_start[i] = Math.ceil((i * height) / 8);
   }
 
+  let ptr = 0;
+
+  // Optimized loop: iterates over the image buffer sequentially for better cache locality.
+  // Instead of nested loops over blocks then pixels (which jumps around in memory),
+  // we iterate rows (y), then blocks in that row (bx), then pixels in that block (x).
   for (let by = 0; by < 8; by++) {
-    const y_begin = y_start[by];
     const y_end = y_start[by + 1];
 
+    for (let y = y_start[by]; y < y_end; y++) {
+      for (let bx = 0; bx < 8; bx++) {
+        const x_end = x_start[bx + 1];
+        const k_idx = (by << 3) + bx;
+
+        let sR = sumR[k_idx];
+        let sG = sumG[k_idx];
+        let sB = sumB[k_idx];
+
+        for (let x = x_start[bx]; x < x_end; x++) {
+          sR += data[ptr++];
+          sG += data[ptr++];
+          sB += data[ptr++];
+        }
+        sumR[k_idx] = sR;
+        sumG[k_idx] = sG;
+        sumB[k_idx] = sB;
+      }
+    }
+  }
+
+  for (let by = 0; by < 8; by++) {
+    const h = y_start[by + 1] - y_start[by];
     for (let bx = 0; bx < 8; bx++) {
-      const x_begin = x_start[bx];
-      const x_end = x_start[bx + 1];
+      const w = x_start[bx + 1] - x_start[bx];
+      const count = w * h;
       const k_idx = (by << 3) + bx;
 
-      let s0 = 0;
-      let s1 = 0;
-      let s2 = 0;
-      let count = 0;
-
-      for (let y = y_begin; y < y_end; y++) {
-        let ptr = (y * width + x_begin) * 3;
-        for (let x = x_begin; x < x_end; x++) {
-          const R = data[ptr];
-          const G = data[ptr + 1];
-          const B = data[ptr + 2];
-          ptr += 3;
-
-          const yy = (0.299 * R + 0.587 * G + 0.114 * B) / 256;
-          s0 += (219 * yy + 16.5) | 0; // Y
-          s1 += (224 * 0.564 * (B / 256 - yy) + 128.5) | 0; // Cb
-          s2 += (224 * 0.713 * (R / 256 - yy) + 128.5) | 0; // Cr
-          count++;
-        }
-      }
-
       if (count !== 0) {
-        shape[0][k_idx] = (s0 / count) | 0;
-        shape[1][k_idx] = (s1 / count) | 0;
-        shape[2][k_idx] = (s2 / count) | 0;
+        // Use fast multiplication instead of division
+        const invCount = 1 / (count * 256);
+        const R = sumR[k_idx] * invCount;
+        const G = sumG[k_idx] * invCount;
+        const B = sumB[k_idx] * invCount;
+
+        const yy = 0.299 * R + 0.587 * G + 0.114 * B;
+        shape[0][k_idx] = Math.floor(219 * yy + 16.5); // Y
+        shape[1][k_idx] = Math.floor(126.336 * (B - yy) + 128.5); // Cb
+        shape[2][k_idx] = Math.floor(159.712 * (R - yy) + 128.5); // Cr
       } else {
         shape[0][k_idx] = 0;
         shape[1][k_idx] = 0;
