@@ -167,8 +167,7 @@ export default async (req, res) => {
   let priority = defaultTier.priority;
   let userId = null;
   let concurrentId = req.ip;
-  const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
-  if (apiKey) {
+  if (req.header("x-trace-key")) {
     const [user] = await sql`
       SELECT
         id,
@@ -179,7 +178,7 @@ export default async (req, res) => {
       FROM
         users_view
       WHERE
-        api_key = ${apiKey}
+        api_key = ${req.header("x-trace-key")}
     `;
     if (!user) {
       return res.status(403).json({

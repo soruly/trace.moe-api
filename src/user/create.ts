@@ -2,8 +2,7 @@ import sql from "../../sql.ts";
 import createNewUser from "../lib/create-new-user.ts";
 
 export default async (req, res) => {
-  const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
-  if (!apiKey) {
+  if (!req.header("x-trace-key")) {
     return res.status(403).json({
       error: "Missing API key",
     });
@@ -15,7 +14,7 @@ export default async (req, res) => {
     FROM
       users
     WHERE
-      api_key = ${apiKey}
+      api_key = ${req.header("x-trace-key")}
     LIMIT
       1
   `;

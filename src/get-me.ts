@@ -7,8 +7,7 @@ export default async (req, res) => {
   let quotaUsed = 0;
   let id = req.ip;
 
-  const apiKey = req.query.key ?? req.header("x-trace-key") ?? "";
-  if (apiKey) {
+  if (req.header("x-trace-key")) {
     const [user] = await sql`
       SELECT
         id,
@@ -20,7 +19,7 @@ export default async (req, res) => {
       FROM
         users_view
       WHERE
-        api_key = ${apiKey}
+        api_key = ${req.header("x-trace-key")}
     `;
 
     if (!user) {

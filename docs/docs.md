@@ -511,35 +511,6 @@ requests.get("https://api.trace.moe/me", headers={
 
 <!-- tabs:end -->
 
-### Using API Keys in query string (Not recommended)
+### Using API Keys in query string (Deprecated)
 
-If you're lazy and don't mind your API Key being exposed to browser history or logs, just put your key in the query string.
-
-<!-- tabs:start -->
-
-#### **cURL**
-
-```bash
-curl "https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx"
-```
-
-#### **PowerShell**
-
-```powershell
-Invoke-RestMethod "https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx"
-```
-
-#### **javascript**
-
-```javascript
-await fetch("https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx").then((e) => e.json());
-```
-
-#### **python**
-
-```python
-import requests
-requests.get("https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx").json()
-```
-
-<!-- tabs:end -->
+For security reasons, putting API key in query string like `https://api.trace.moe/me?key=xxxxxxxxxxxxxxxxxxxxxxx` is no longer supported. Please use the `x-trace-key` header instead.

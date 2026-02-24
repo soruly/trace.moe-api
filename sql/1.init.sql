@@ -208,9 +208,9 @@ CREATE TABLE IF NOT EXISTS users (
   notes text DEFAULT NULL
 );
 
-CREATE INDEX users_api_key_idx ON users (api_key);
+CREATE INDEX IF NOT EXISTS users_api_key_idx ON users (api_key);
 
-CREATE INDEX users_email_password_idx ON users (email, password);
+CREATE INDEX IF NOT EXISTS users_email_password_idx ON users (email, password);
 
 CREATE OR REPLACE VIEW users_view AS
 SELECT
