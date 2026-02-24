@@ -110,6 +110,7 @@ FROM
   LEFT JOIN anilist ON files.anilist_id = anilist.id;
 
 CREATE TABLE IF NOT EXISTS logs (
+  id serial PRIMARY KEY,
   created timestamp NOT NULL DEFAULT NOW(),
   ip inet NOT NULL,
   network inet GENERATED ALWAYS AS (
