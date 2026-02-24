@@ -65,10 +65,10 @@ Invoke-RestMethod -Method Post -InFile .\demo.jpg https://api.trace.moe/search
 
 ```javascript
 // For nodejs only
-import fs from "fs";
+import fs from "node:fs/promises";
 await fetch("https://api.trace.moe/search", {
   method: "POST",
-  body: fs.readFileSync("demo.jpg"),
+  body: await fs.readFile("./demo.jpg"),
   headers: { "Content-type": "image/jpeg" },
 }).then((e) => e.json());
 ```
@@ -511,7 +511,7 @@ requests.get("https://api.trace.moe/me", headers={
 
 <!-- tabs:end -->
 
-### Using API Keys in query string
+### Using API Keys in query string (Not recommended)
 
 If you're lazy and don't mind your API Key being exposed to browser history or logs, just put your key in the query string.
 
