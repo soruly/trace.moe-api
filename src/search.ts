@@ -165,6 +165,9 @@ export default async (req, res) => {
     }
   }
 
+  locals.searchConcurrent.set(concurrentId, (locals.searchConcurrent.get(concurrentId) ?? 0) + 1);
+  locals.searchQueue[priority] = (locals.searchQueue[priority] ?? 0) + 1;
+
   if (quotaUsed >= quota) {
     logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
     return res.status(402).json({
@@ -172,7 +175,6 @@ export default async (req, res) => {
     });
   }
 
-  locals.searchConcurrent.set(concurrentId, (locals.searchConcurrent.get(concurrentId) ?? 0) + 1);
   if (locals.searchConcurrent.get(concurrentId) > concurrency) {
     logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
     return res.status(402).json({
@@ -180,7 +182,6 @@ export default async (req, res) => {
     });
   }
 
-  locals.searchQueue[priority] = (locals.searchQueue[priority] ?? 0) + 1;
   const queueSize = locals.searchQueue.reduce((acc, cur, i) => (i >= priority ? acc + cur : 0), 0);
 
   if (queueSize > maxQueueSize) {
