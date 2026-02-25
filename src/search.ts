@@ -24,14 +24,12 @@ const ipQuotaMap = new Map<string, number[]>();
 // check and delete search records older than 24 hours every 60 minutes
 setInterval(
   () => {
-    const now = Date.now();
+    const threshold = Date.now() - 24 * 60 * 60 * 1000;
     for (const [ip, timestamps] of ipQuotaMap) {
-      const valid = timestamps.filter((t) => t > now - 24 * 60 * 60 * 1000);
-      if (valid.length === 0) {
-        ipQuotaMap.delete(ip);
-      } else {
-        ipQuotaMap.set(ip, valid);
-      }
+      let expired = 0;
+      while (expired < timestamps.length && timestamps[expired] <= threshold) expired++;
+      if (expired === timestamps.length) ipQuotaMap.delete(ip);
+      else if (expired > 0) timestamps.splice(0, expired);
     }
   },
   60 * 60 * 1000,
@@ -156,12 +154,14 @@ export default async (req, res) => {
   } else {
     concurrentId = req.ip.includes(":") ? req.ip.split(":").slice(0, 4).join(":") : req.ip;
 
-    const now = Date.now();
-    let timestamps = ipQuotaMap.get(concurrentId);
+    const timestamps = ipQuotaMap.get(concurrentId);
     if (timestamps) {
-      timestamps = timestamps.filter((t) => t > now - 24 * 60 * 60 * 1000);
+      // exclude search records older than 24 hours
+      const threshold = Date.now() - 24 * 60 * 60 * 1000;
+      let expired = 0;
+      while (expired < timestamps.length && timestamps[expired] <= threshold) expired++;
+      if (expired > 0) timestamps.splice(0, expired);
       quotaUsed = timestamps.length;
-      ipQuotaMap.set(concurrentId, timestamps);
     }
   }
 
