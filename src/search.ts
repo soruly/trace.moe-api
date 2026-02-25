@@ -346,17 +346,19 @@ export default async (req, res) => {
   // merge results from same file where time is within 5 seconds
   const list = [];
   const fileMap = new Map();
-  for (const { score, file_id, time } of searchResult.results) {
+  const sortedResults = [...searchResult.results].sort((a, b) => a.time - b.time);
+
+  for (const { score, file_id, time } of sortedResults) {
     let entries = fileMap.get(file_id);
     if (!entries) {
       entries = [];
       fileMap.set(file_id, entries);
     }
     let match = null;
-    for (const entry of entries) {
-      if (Math.abs(entry.from - time) < 5 || Math.abs(entry.to - time) < 5) {
-        match = entry;
-        break;
+    if (entries.length > 0) {
+      const lastEntry = entries[entries.length - 1];
+      if (Math.abs(lastEntry.to - time) < 5 || Math.abs(lastEntry.from - time) < 5) {
+        match = lastEntry;
       }
     }
     if (!match) {
@@ -372,8 +374,10 @@ export default async (req, res) => {
     } else {
       match.from = match.from < time ? match.from : time;
       match.to = match.to > time ? match.to : time;
-      match.score = match.score < score ? match.score : score;
-      match.at = match.score < score ? match.at : time;
+      if (score < match.score) {
+        match.score = score;
+        match.at = time;
+      }
     }
   }
 
