@@ -327,6 +327,15 @@ export default async (req, res) => {
     .sort((a, b) => a.score - b.score) // sort in ascending order of difference
     .slice(0, 10); // return only top 10 results
 
+  if (result.length === 0) {
+    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 200, searchTime, 0);
+    return res.json({
+      frameCount: Number(searchResult.all_search_count),
+      error: "",
+      result: [],
+    });
+  }
+
   const files = await sql`
     SELECT
       id,
