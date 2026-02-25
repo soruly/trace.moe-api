@@ -20,6 +20,23 @@ const {
 
 const maxQueueSize = SEARCH_QUEUE ? Number(SEARCH_QUEUE) : os.availableParallelism();
 
+const ipQuotaMap = new Map<string, number[]>();
+// check and delete search records older than 24 hours every 60 minutes
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [ip, timestamps] of ipQuotaMap) {
+      const valid = timestamps.filter((t) => t > now - 24 * 60 * 60 * 1000);
+      if (valid.length === 0) {
+        ipQuotaMap.delete(ip);
+      } else {
+        ipQuotaMap.set(ip, valid);
+      }
+    }
+  },
+  60 * 60 * 1000,
+).unref();
+
 const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
 const logAndDequeue = async (
@@ -46,12 +63,32 @@ const logAndDequeue = async (
       )
   `;
 
+  if (code === 200 && !userId) {
+    let timestamps = ipQuotaMap.get(concurrentId);
+    if (!timestamps) {
+      timestamps = [];
+      ipQuotaMap.set(concurrentId, timestamps);
+    }
+    timestamps.push(Date.now());
+  }
+
   const concurrentCount = locals.searchConcurrent.get(concurrentId) ?? 0;
   if (concurrentCount <= 1) locals.searchConcurrent.delete(concurrentId);
   else locals.searchConcurrent.set(concurrentId, concurrentCount - 1);
 
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
+
+const [tier0] = await sql`
+  SELECT
+    quota,
+    concurrency,
+    priority
+  FROM
+    tiers
+  WHERE
+    id = 0
+`;
 
 export default async (req, res) => {
   const locals = req.app.locals;
@@ -87,34 +124,24 @@ export default async (req, res) => {
     userId = user.id;
     concurrentId = user.id;
   } else {
-    const [row] = await sql`
-      SELECT
-        network,
-        quota_used,
-        quota,
-        priority,
-        concurrency
-      FROM
-        logs_view
-      WHERE
-        network = CASE
-          WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
-          ELSE set_masklen(${req.ip}::cidr, 32)
-        END
-    `;
-    if (row) {
-      quotaUsed = row.quota_used;
-      quota = row.quota;
-      priority = row.priority;
-      concurrency = row.concurrency;
-      concurrentId = row.network;
+    concurrency = tier0.concurrency;
+    priority = tier0.priority;
+    quota = tier0.quota;
+    concurrentId = req.ip.includes(":") ? req.ip.split(":").slice(0, 4).join(":") : req.ip;
+
+    const now = Date.now();
+    let timestamps = ipQuotaMap.get(concurrentId);
+    if (timestamps) {
+      timestamps = timestamps.filter((t) => t > now - 24 * 60 * 60 * 1000);
+      quotaUsed = timestamps.length;
+      ipQuotaMap.set(concurrentId, timestamps);
     }
   }
 
   if (quotaUsed >= quota) {
     logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
     return res.status(402).json({
-      error: "Search quota depleted",
+      error: `Search quota depleted (quota per 24 hours: ${quota}, used: ${quotaUsed})`,
     });
   }
 
