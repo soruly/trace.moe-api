@@ -230,7 +230,7 @@ requests
 
 trace.moe supports any media format that can be decoded by [ffmpeg](https://www.ffmpeg.org/), including video and gif. When using video / gif, only the 1st frame would be extracted for searching.
 
-Your image / video must be smaller than 10MB. Otherwise it would fail with HTTP 413 (Request Entity Too Large).
+Your image / video must be smaller than 25MB. Otherwise it would fail with HTTP 413 (Request Entity Too Large).
 
 The recommended resolution is 640 x 360px. Higher resolution doesn't yield better search results. The algorithm is also resistant to jpeg artifacts, so you don't have to use uncompressed formats like png.
 

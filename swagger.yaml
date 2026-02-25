@@ -14,11 +14,6 @@ components:
       name: x-trace-key
       description: API Key (if any)
       in: header
-    ApiKeyInQuery:
-      type: apiKey
-      description: API Key (if any)
-      name: key
-      in: query
   parameters:
     url:
       name: url
@@ -277,7 +272,6 @@ components:
 
 security:
   - ApiKeyInHeader: []
-  - ApiKeyInQuery: []
 
 paths:
   /search:
