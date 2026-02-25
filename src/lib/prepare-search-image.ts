@@ -15,6 +15,7 @@ const resizeAndCropImage = async (imageBuffer: Buffer, cutBorders: boolean): Pro
       .normalize()
       .dilate(2)
       .trim({ background: "black", threshold: 30 })
+      .raw()
       .toBuffer({ resolveWithObject: true });
 
     const trimmedTop = Math.abs(info.trimOffsetTop);
