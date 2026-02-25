@@ -250,15 +250,6 @@ export default async (req, res) => {
     });
   }
 
-  const searchImage = await prepareSearchImage(searchFile, "cutBorders" in req.query);
-
-  if (!searchImage) {
-    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
-    return res.status(400).json({
-      error: "Failed to process image",
-    });
-  }
-
   let expr = null;
   let exprValues = null;
   if (req.query.anilistID?.match(/^\d+$/)) {
@@ -270,8 +261,27 @@ export default async (req, res) => {
       WHERE
         anilist_id = ${Number(req.query.anilistID)}
     `;
+
+    if (files.length === 0) {
+      logAndDequeue(locals, req.ip, userId, concurrentId, priority, 200, 0, 0);
+      return res.json({
+        frameCount: 0,
+        error: "",
+        result: [],
+      });
+    }
+
     expr = "file_id IN {list}";
     exprValues = { list: files.map((e) => e.id) };
+  }
+
+  const searchImage = await prepareSearchImage(searchFile, "cutBorders" in req.query);
+
+  if (!searchImage) {
+    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+    return res.status(400).json({
+      error: "Failed to process image",
+    });
   }
 
   const startTime = performance.now();
