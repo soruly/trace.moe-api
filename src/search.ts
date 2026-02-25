@@ -97,52 +97,52 @@ const extractImageByFFmpeg = async (searchFile: Buffer): Promise<Buffer> => {
   });
 };
 
-const cutBorders = async (imageBuffer) => {
-  // normalize brightness -> blur away UI controls -> trim with certain dark threshold
-  const { info } = await sharp(await sharp(imageBuffer).normalize().dilate(2).toBuffer())
-    .trim({ background: "black", threshold: 30 })
-    .toBuffer({ resolveWithObject: true });
+const prepareSearchImage = async (imageBuffer: Buffer, cutBorders: boolean): Promise<any> => {
+  let resizedImage = sharp(imageBuffer).resize({ width: 320, height: 320, fit: "inside" });
+  let croppedImage = resizedImage;
+  if (cutBorders) {
+    // normalize brightness -> blur away UI controls -> trim with certain dark threshold
+    const { info } = await resizedImage
+      .normalize()
+      .dilate(2)
+      .trim({ background: "black", threshold: 30 })
+      .toBuffer({ resolveWithObject: true });
 
-  const trimmedTop = Math.abs(info.trimOffsetTop);
-  const trimmedLeft = Math.abs(info.trimOffsetLeft);
-  const newWidth = info.width;
-  const newHeight = info.height;
-  if (
-    Math.abs(newWidth / newHeight - 16 / 9) < 0.05 ||
-    Math.abs(newWidth / newHeight - 4 / 3) < 0.05
-  ) {
-    // if detected area is near 16:9 or 4:3, crop as detected
-    return await sharp(imageBuffer)
-      .extract({
+    const trimmedTop = Math.abs(info.trimOffsetTop);
+    const trimmedLeft = Math.abs(info.trimOffsetLeft);
+    const newWidth = info.width;
+    const newHeight = info.height;
+    if (
+      Math.abs(newWidth / newHeight - 16 / 9) < 0.05 ||
+      Math.abs(newWidth / newHeight - 4 / 3) < 0.05
+    ) {
+      // if detected area is near 16:9 or 4:3, crop as detected
+      croppedImage = resizedImage.extract({
         left: trimmedLeft,
         top: trimmedTop,
         width: newWidth,
         height: newHeight,
-      })
-      .flatten({ background: "#000000" })
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-  } else if (Math.abs(newWidth / newHeight - 21 / 9) < 0.1) {
-    // if detected area is near 21:9
-    const { width, height } = await sharp(imageBuffer).metadata();
-    if ((width - newWidth) / width > 0.05 || (height - newHeight) / height > 0.05) {
-      // and detected area is smaller than original, crop and fill it back to 16:9
-      return await sharp(imageBuffer)
-        .extract({
-          left: trimmedLeft,
-          top: trimmedTop,
-          width: newWidth,
-          height: newHeight,
-        })
-        .resize({ width: 320, height: 180, fit: "contain" })
-        .flatten({ background: "#000000" })
-        .raw()
-        .toBuffer({ resolveWithObject: true });
+      });
+    } else if (Math.abs(newWidth / newHeight - 21 / 9) < 0.1) {
+      // if detected area is near 21:9
+      const { width, height } = await sharp(imageBuffer).metadata();
+      if ((width - newWidth) / width > 0.05 || (height - newHeight) / height > 0.05) {
+        // and detected area is smaller than original, crop and fill it back to 16:9
+        croppedImage = resizedImage
+          .extract({
+            left: trimmedLeft,
+            top: trimmedTop,
+            width: newWidth,
+            height: newHeight,
+          })
+          .resize({ width: 320, height: 180, fit: "contain" });
+      }
     }
+    // if detected area is not standard aspect ratio, do no crop
+    // if detected area is 21:9 and original is also 21:9, do no crop
   }
-  // if detected area is not standard aspect ratio, do no crop
-  // if detected area is 21:9 and original is also 21:9, do no crop
-  return sharp(imageBuffer)
+
+  return croppedImage
     .flatten({ background: "#000000" })
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -300,25 +300,21 @@ export default async (req, res) => {
     });
   }
 
-  const searchImageResized = await sharp(searchFile)
-    .resize({ width: 320, height: 320, fit: "inside" })
-    .toBuffer()
-    .catch(async () => await extractImageByFFmpeg(searchFile));
+  const searchImage = await prepareSearchImage(searchFile, "cutBorders" in req.query).catch(
+    async () => {
+      const extractedImage = await extractImageByFFmpeg(searchFile);
+      return extractedImage.length
+        ? prepareSearchImage(extractedImage, "cutBorders" in req.query)
+        : null;
+    },
+  );
 
-  if (!searchImageResized.length) {
+  if (!searchImage) {
     await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
     return res.status(400).json({
       error: "Failed to process image",
     });
   }
-
-  const searchImage =
-    "cutBorders" in req.query
-      ? await cutBorders(searchImageResized)
-      : await sharp(searchImageResized)
-          .flatten({ background: "#000000" })
-          .raw()
-          .toBuffer({ resolveWithObject: true });
 
   let expr = null;
   let exprValues = null;
