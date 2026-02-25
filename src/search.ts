@@ -346,7 +346,7 @@ export default async (req, res) => {
     FROM
       files
     WHERE
-      id IN ${sql(result.map((e) => e.file_id))}
+      id IN ${sql(Array.from(new Set(result.map((e) => e.file_id))))}
   `;
 
   const filesMap = new Map();
@@ -389,7 +389,7 @@ export default async (req, res) => {
       FROM
         anilist
       WHERE
-        id IN ${sql(result.map((e) => e.anilist))}
+        id IN ${sql(Array.from(new Set(result.map((e) => e.anilist))))}
     `;
     const anilistMap = new Map();
     for (const a of anilist) anilistMap.set(a.id, a);
