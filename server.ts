@@ -114,5 +114,5 @@ setInterval(() => app.locals.searchConcurrent.clear(), 15 * 60 * 1000);
 
 const server = app.listen(SERVER_PORT, SERVER_ADDR, () => {
   console.log(`API server listening on port ${server.address().port}`);
-  app.locals.taskManager.runScanTask(60); // check for new files every minute
+  app.locals.taskManager.runScanTask(60).catch(console.error); // check for new files every minute
 });

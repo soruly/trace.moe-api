@@ -18,55 +18,59 @@ export default class TaskManager {
   async runScanTask(interval: number) {
     if (this.isScanTaskRunning) return;
     this.isScanTaskRunning = true;
-    clearTimeout(this.scanTimer);
-    console.info(`[scan][doing] ${VIDEO_PATH}`);
+    try {
+      clearTimeout(this.scanTimer);
+      console.info(`[scan][doing] ${VIDEO_PATH}`);
 
-    const [dbSet, fileList] = await Promise.all([
-      sql`
-        SELECT
-          path
-        FROM
-          files
-      `.then((e) => new Set(e.map((e) => e.path))),
-      fs
-        .readdir(VIDEO_PATH, { recursive: true, withFileTypes: true })
-        .then((e) =>
-          e
-            .filter(
-              (e) =>
-                e.isFile() &&
-                path.relative(VIDEO_PATH, e.parentPath).match(/^\d+$/) &&
-                [".webm", ".mkv", ".mp4"].includes(path.extname(e.name)),
-            )
-            .map((e) => path.join(path.relative(VIDEO_PATH, e.parentPath), e.name)),
-        ),
-    ]);
+      const [dbSet, fileList] = await Promise.all([
+        sql`
+          SELECT
+            path
+          FROM
+            files
+        `.then((e) => new Set(e.map((e) => e.path))),
+        fs
+          .readdir(VIDEO_PATH, { recursive: true, withFileTypes: true })
+          .then((e) =>
+            e
+              .filter(
+                (e) =>
+                  e.isFile() &&
+                  path.relative(VIDEO_PATH, e.parentPath).match(/^\d+$/) &&
+                  [".webm", ".mkv", ".mp4"].includes(path.extname(e.name)),
+              )
+              .map((e) => path.join(path.relative(VIDEO_PATH, e.parentPath), e.name)),
+          ),
+      ]);
 
-    const newFileList = fileList.filter((e) => !dbSet.has(e));
+      const newFileList = fileList.filter((e) => !dbSet.has(e));
 
-    for (let i = 0; i < newFileList.length; i += 10000) {
-      await sql`
-        INSERT INTO
-          files ${sql(
-            newFileList.slice(i, i + 10000).map((e) => ({
-              anilist_id: Number(path.parse(e).dir),
-              episode: Number(`${aniep(path.basename(e))}`.match(/^(\d+)$/)?.[1]) || null,
-              path: e,
-            })),
-          )}
-      `;
+      for (let i = 0; i < newFileList.length; i += 10000) {
+        await sql`
+          INSERT INTO
+            files ${sql(
+              newFileList.slice(i, i + 10000).map((e) => ({
+                anilist_id: Number(path.parse(e).dir),
+                episode: Number(`${aniep(path.basename(e))}`.match(/^(\d+)$/)?.[1]) || null,
+                path: e,
+              })),
+            )}
+        `;
+      }
+
+      console.info(`[scan][done]  ${VIDEO_PATH}`);
+
+      this.runAnilistTask();
+      this.runMediaInfoTask();
+      this.runSceneChangesTask();
+      this.runColorLayoutTask();
+      this.runMilvusLoadTask();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      this.isScanTaskRunning = false;
+      if (interval) this.scanTimer = setTimeout(() => this.runScanTask(interval), interval * 1000);
     }
-
-    console.info(`[scan][done]  ${VIDEO_PATH}`);
-
-    this.runAnilistTask();
-    this.runMediaInfoTask();
-    this.runSceneChangesTask();
-    this.runColorLayoutTask();
-    this.runMilvusLoadTask();
-
-    this.isScanTaskRunning = false;
-    if (interval) this.scanTimer = setTimeout(() => this.runScanTask(interval), interval * 1000);
   }
 
   stopScanTask() {
@@ -76,30 +80,34 @@ export default class TaskManager {
   isAnilistTaskRunning = false;
 
   async runAnilistTask() {
-    const rows = await sql`
-      SELECT DISTINCT
-        anilist_id
-      FROM
-        files
-      WHERE
-        anilist_id NOT IN (
-          SELECT
-            id
-          FROM
-            anilist
-        )
-    `;
-    if (rows.length === 0 || this.isAnilistTaskRunning) return;
-    this.isAnilistTaskRunning = true;
-    const worker = new Worker("./src/worker/anilist.ts", {
-      workerData: { ids: rows.map((e) => e.anilist_id) },
-    });
-    worker.on("error", (error) => console.error(error));
-    worker.on("exit", () => {
-      this.isAnilistTaskRunning = false;
-      this.runAnilistTask();
-      this.runMilvusLoadTask();
-    });
+    try {
+      const rows = await sql`
+        SELECT DISTINCT
+          anilist_id
+        FROM
+          files
+        WHERE
+          anilist_id NOT IN (
+            SELECT
+              id
+            FROM
+              anilist
+          )
+      `;
+      if (rows.length === 0 || this.isAnilistTaskRunning) return;
+      this.isAnilistTaskRunning = true;
+      const worker = new Worker("./src/worker/anilist.ts", {
+        workerData: { ids: rows.map((e) => e.anilist_id) },
+      });
+      worker.on("error", (error) => console.error(error));
+      worker.on("exit", () => {
+        this.isAnilistTaskRunning = false;
+        this.runAnilistTask();
+        this.runMilvusLoadTask();
+      });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   mediaInfoTaskList = new Map<number, any>();
@@ -107,33 +115,37 @@ export default class TaskManager {
 
   async runMediaInfoTask() {
     if (this.mediaInfoTaskList.size >= this.mediaInfoTaskListMax) return;
-    for (const { id, path: relativePath } of await sql`
-      SELECT
-        id,
-        path
-      FROM
-        files
-      WHERE
-        media_info IS NULL
-      ORDER BY
-        id DESC
-      LIMIT
-        ${this.mediaInfoTaskListMax}
-    `) {
-      const filePath = path.join(VIDEO_PATH, relativePath);
-      if (this.mediaInfoTaskList.has(id)) continue;
-      const worker = new Worker("./src/worker/media-info.ts", {
-        workerData: { id, filePath },
-      });
-      worker.on("error", (error) => console.error(error));
-      worker.on("exit", () => {
-        this.mediaInfoTaskList.delete(id);
+    try {
+      for (const { id, path: relativePath } of await sql`
+        SELECT
+          id,
+          path
+        FROM
+          files
+        WHERE
+          media_info IS NULL
+        ORDER BY
+          id DESC
+        LIMIT
+          ${this.mediaInfoTaskListMax}
+      `) {
+        const filePath = path.join(VIDEO_PATH, relativePath);
+        if (this.mediaInfoTaskList.has(id)) continue;
+        const worker = new Worker("./src/worker/media-info.ts", {
+          workerData: { id, filePath },
+        });
+        worker.on("error", (error) => console.error(error));
+        worker.on("exit", () => {
+          this.mediaInfoTaskList.delete(id);
+          this.publish();
+          this.runMediaInfoTask();
+          this.runMilvusLoadTask();
+        });
+        this.mediaInfoTaskList.set(id, { id, filePath, worker });
         this.publish();
-        this.runMediaInfoTask();
-        this.runMilvusLoadTask();
-      });
-      this.mediaInfoTaskList.set(id, { id, filePath, worker });
-      this.publish();
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
 
@@ -142,33 +154,37 @@ export default class TaskManager {
 
   async runSceneChangesTask() {
     if (this.sceneChangesTaskList.size >= this.sceneChangesTaskListMax) return;
-    for (const { id, path: relativePath } of await sql`
-      SELECT
-        id,
-        path
-      FROM
-        files
-      WHERE
-        scene_changes IS NULL
-      ORDER BY
-        id DESC
-      LIMIT
-        ${this.sceneChangesTaskListMax}
-    `) {
-      const filePath = path.join(VIDEO_PATH, relativePath);
-      if (this.sceneChangesTaskList.has(id)) continue;
-      const worker = new Worker("./src/worker/scene-changes.ts", {
-        workerData: { id, filePath },
-      });
-      worker.on("error", (error) => console.error(error));
-      worker.on("exit", () => {
-        this.sceneChangesTaskList.delete(id);
+    try {
+      for (const { id, path: relativePath } of await sql`
+        SELECT
+          id,
+          path
+        FROM
+          files
+        WHERE
+          scene_changes IS NULL
+        ORDER BY
+          id DESC
+        LIMIT
+          ${this.sceneChangesTaskListMax}
+      `) {
+        const filePath = path.join(VIDEO_PATH, relativePath);
+        if (this.sceneChangesTaskList.has(id)) continue;
+        const worker = new Worker("./src/worker/scene-changes.ts", {
+          workerData: { id, filePath },
+        });
+        worker.on("error", (error) => console.error(error));
+        worker.on("exit", () => {
+          this.sceneChangesTaskList.delete(id);
+          this.publish();
+          this.runSceneChangesTask();
+          this.runMilvusLoadTask();
+        });
+        this.sceneChangesTaskList.set(id, { id, filePath, worker });
         this.publish();
-        this.runSceneChangesTask();
-        this.runMilvusLoadTask();
-      });
-      this.sceneChangesTaskList.set(id, { id, filePath, worker });
-      this.publish();
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
 
@@ -177,33 +193,37 @@ export default class TaskManager {
 
   async runColorLayoutTask() {
     if (this.colorLayoutTaskList.size >= this.colorLayoutTaskListMax) return;
-    for (const { id, path: relativePath } of await sql`
-      SELECT
-        id,
-        path
-      FROM
-        files
-      WHERE
-        color_layout IS NULL
-      ORDER BY
-        id DESC
-      LIMIT
-        ${this.colorLayoutTaskListMax}
-    `) {
-      const filePath = path.join(VIDEO_PATH, relativePath);
-      if (this.colorLayoutTaskList.has(id)) continue;
-      const worker = new Worker("./src/worker/color-layout.ts", {
-        workerData: { id, filePath },
-      });
-      worker.on("error", (error) => console.error(error));
-      worker.on("exit", () => {
-        this.colorLayoutTaskList.delete(id);
+    try {
+      for (const { id, path: relativePath } of await sql`
+        SELECT
+          id,
+          path
+        FROM
+          files
+        WHERE
+          color_layout IS NULL
+        ORDER BY
+          id DESC
+        LIMIT
+          ${this.colorLayoutTaskListMax}
+      `) {
+        const filePath = path.join(VIDEO_PATH, relativePath);
+        if (this.colorLayoutTaskList.has(id)) continue;
+        const worker = new Worker("./src/worker/color-layout.ts", {
+          workerData: { id, filePath },
+        });
+        worker.on("error", (error) => console.error(error));
+        worker.on("exit", () => {
+          this.colorLayoutTaskList.delete(id);
+          this.publish();
+          this.runColorLayoutTask();
+          this.runMilvusLoadTask();
+        });
+        this.colorLayoutTaskList.set(id, { id, filePath, worker });
         this.publish();
-        this.runColorLayoutTask();
-        this.runMilvusLoadTask();
-      });
-      this.colorLayoutTaskList.set(id, { id, filePath, worker });
-      this.publish();
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
 
@@ -212,41 +232,45 @@ export default class TaskManager {
 
   async runMilvusLoadTask() {
     if (this.milvusLoadTaskList.size >= this.milvusLoadTaskListMax) return;
-    for (const { id, path: relativePath } of await sql`
-      SELECT
-        id,
-        path
-      FROM
-        files
-      WHERE
-        loaded IS NULL
-        AND media_info IS NOT NULL
-        AND scene_changes IS NOT NULL
-        AND color_layout IS NOT NULL
-        AND anilist_id IN (
-          SELECT
-            id
-          FROM
-            anilist
-        )
-      ORDER BY
-        id DESC
-      LIMIT
-        ${this.milvusLoadTaskListMax}
-    `) {
-      const filePath = path.join(VIDEO_PATH, relativePath);
-      if (this.milvusLoadTaskList.has(id)) continue;
-      const worker = new Worker("./src/worker/milvus-load.ts", {
-        workerData: { id, filePath },
-      });
-      worker.on("error", (error) => console.error(error));
-      worker.on("exit", () => {
-        this.milvusLoadTaskList.delete(id);
+    try {
+      for (const { id, path: relativePath } of await sql`
+        SELECT
+          id,
+          path
+        FROM
+          files
+        WHERE
+          loaded IS NULL
+          AND media_info IS NOT NULL
+          AND scene_changes IS NOT NULL
+          AND color_layout IS NOT NULL
+          AND anilist_id IN (
+            SELECT
+              id
+            FROM
+              anilist
+          )
+        ORDER BY
+          id DESC
+        LIMIT
+          ${this.milvusLoadTaskListMax}
+      `) {
+        const filePath = path.join(VIDEO_PATH, relativePath);
+        if (this.milvusLoadTaskList.has(id)) continue;
+        const worker = new Worker("./src/worker/milvus-load.ts", {
+          workerData: { id, filePath },
+        });
+        worker.on("error", (error) => console.error(error));
+        worker.on("exit", () => {
+          this.milvusLoadTaskList.delete(id);
+          this.publish();
+          this.runMilvusLoadTask();
+        });
+        this.milvusLoadTaskList.set(id, { id, filePath, worker });
         this.publish();
-        this.runMilvusLoadTask();
-      });
-      this.milvusLoadTaskList.set(id, { id, filePath, worker });
-      this.publish();
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
 
