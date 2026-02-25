@@ -90,43 +90,70 @@ const [tier0] = await sql`
     id = 0
 `;
 
+const [tier9User] = await sql`
+  SELECT
+    id,
+    api_key,
+    quota,
+    concurrency,
+    priority
+  FROM
+    users_view
+  WHERE
+    tier = 9
+  LIMIT
+    1
+`;
+const superUserKeyBuffer = tier9User ? Buffer.from(tier9User.api_key) : null;
+
 export default async (req, res) => {
   const locals = req.app.locals;
+  const apiKey = req.header("x-trace-key");
 
-  let priority = 0;
-  let concurrency = 0;
-  let quota = 0;
+  let concurrency = tier0.concurrency;
+  let priority = tier0.priority;
+  let quota = tier0.quota;
   let quotaUsed = 0;
   let userId = null;
   let concurrentId = req.ip;
-  if (req.header("x-trace-key")) {
-    const [user] = await sql`
-      SELECT
-        id,
-        quota,
-        quota_used,
-        concurrency,
-        priority
-      FROM
-        users_view
-      WHERE
-        api_key = ${req.header("x-trace-key")}
-    `;
-    if (!user) {
-      return res.status(403).json({
-        error: "Invalid API key",
-      });
+  if (apiKey) {
+    const apiKeyBuffer = Buffer.from(apiKey);
+    if (
+      superUserKeyBuffer &&
+      apiKeyBuffer.length === superUserKeyBuffer.length &&
+      crypto.timingSafeEqual(apiKeyBuffer, superUserKeyBuffer)
+    ) {
+      quota = tier9User.quota;
+      concurrency = tier9User.concurrency;
+      priority = tier9User.priority;
+      userId = tier9User.id;
+      concurrentId = tier9User.id;
+    } else {
+      const [user] = await sql`
+        SELECT
+          id,
+          quota,
+          quota_used,
+          concurrency,
+          priority
+        FROM
+          users_view
+        WHERE
+          api_key = ${apiKey}
+      `;
+      if (!user) {
+        return res.status(403).json({
+          error: "Invalid API key",
+        });
+      }
+      quota = user.quota;
+      quotaUsed = user.quota_used;
+      concurrency = user.concurrency;
+      priority = user.priority;
+      userId = user.id;
+      concurrentId = user.id;
     }
-    quota = user.quota;
-    quotaUsed = user.quota_used;
-    concurrency = user.concurrency;
-    priority = user.priority;
-    userId = user.id;
-    concurrentId = user.id;
   } else {
-    concurrency = tier0.concurrency;
-    priority = tier0.priority;
-    quota = tier0.quota;
     concurrentId = req.ip.includes(":") ? req.ip.split(":").slice(0, 4).join(":") : req.ip;
 
     const now = Date.now();
