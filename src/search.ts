@@ -89,36 +89,44 @@ const logAndDequeue = async (
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 };
 
-const [tier0] = await sql`
-  SELECT
-    quota,
-    concurrency,
-    priority
-  FROM
-    tiers
-  WHERE
-    id = 0
-`;
-
-const [tier9User] = await sql`
-  SELECT
-    id,
-    api_key,
-    quota,
-    concurrency,
-    priority
-  FROM
-    users_view
-  WHERE
-    tier = 9
-  LIMIT
-    1
-`;
-const superUserKeyBuffer = tier9User ? Buffer.from(tier9User.api_key) : null;
+let tier0;
+let tier9User;
+let tier9UserKeyBuffer;
 
 export default async (req, res) => {
   const locals = req.app.locals;
   const apiKey = req.header("x-trace-key");
+
+  if (!tier0) {
+    [tier0] = await sql`
+      SELECT
+        quota,
+        concurrency,
+        priority
+      FROM
+        tiers
+      WHERE
+        id = 0
+    `;
+  }
+
+  if (!tier9User) {
+    [tier9User] = await sql`
+      SELECT
+        id,
+        api_key,
+        quota,
+        concurrency,
+        priority
+      FROM
+        users_view
+      WHERE
+        tier = 9
+      LIMIT
+        1
+    `;
+    if (tier9User) tier9UserKeyBuffer = Buffer.from(tier9User.api_key);
+  }
 
   let concurrency = tier0.concurrency;
   let priority = tier0.priority;
@@ -129,9 +137,9 @@ export default async (req, res) => {
   if (apiKey) {
     const apiKeyBuffer = Buffer.from(apiKey);
     if (
-      superUserKeyBuffer &&
-      apiKeyBuffer.length === superUserKeyBuffer.length &&
-      crypto.timingSafeEqual(apiKeyBuffer, superUserKeyBuffer)
+      tier9UserKeyBuffer &&
+      apiKeyBuffer.length === tier9UserKeyBuffer.length &&
+      crypto.timingSafeEqual(apiKeyBuffer, tier9UserKeyBuffer)
     ) {
       quota = tier9User.quota;
       concurrency = tier9User.concurrency;
