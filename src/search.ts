@@ -349,16 +349,22 @@ export default async (req, res) => {
       id IN ${sql(result.map((e) => e.file_id))}
   `;
 
+  const filesMap = new Map();
+  for (const f of files) filesMap.set(f.id, f);
+
   const window = 60 * 60; // snap to nearest hour for better cache
   const expire = ((Date.now() / 1000 / window) | 0) * window + window;
+  const saltBuffer = Buffer.from(TRACE_API_SALT);
+
   result = result
-    .filter((e) => files.find((f) => f.id === e.file_id))
+    .filter((e) => filesMap.has(e.file_id))
     .map(({ file_id, at, from, to, score }) => {
-      const { anilist_id, path, duration } = files.find((f) => f.id === file_id);
+      const { anilist_id, path, duration } = filesMap.get(file_id);
 
       const time = (at * 10000) | 0; // convert 4dp time code to integer
-      const buf = Buffer.from(TRACE_API_SALT);
-      buf.writeUInt32LE(Math.abs(time ^ expire ^ file_id));
+      const buf = Buffer.allocUnsafe(saltBuffer.length);
+      saltBuffer.copy(buf);
+      buf.writeUInt32LE(Math.abs(time ^ expire ^ file_id), 0);
       const hash = crypto.createHash("sha1").update(buf).digest().readUInt32LE(0);
       const previewId = locals.sqids.encode([file_id, time, expire, hash]);
 
@@ -385,8 +391,11 @@ export default async (req, res) => {
       WHERE
         id IN ${sql(result.map((e) => e.anilist))}
     `;
+    const anilistMap = new Map();
+    for (const a of anilist) anilistMap.set(a.id, a);
+
     result = result.map((entry) => {
-      entry.anilist = anilist.find((e) => e.id === entry.anilist)?.json ?? entry.anilist;
+      entry.anilist = anilistMap.get(entry.anilist)?.json ?? entry.anilist;
       return entry;
     });
   }
