@@ -39,7 +39,7 @@ app.use(
     limit: 100,
     standardHeaders: true,
     legacyHeaders: true,
-    ipv6Subnet: 56,
+    ipv6Subnet: 64,
   }),
 );
 
@@ -98,7 +98,7 @@ const userRateLimiter = rateLimit({
   limit: 60,
   standardHeaders: true,
   legacyHeaders: true,
-  ipv6Subnet: 56,
+  ipv6Subnet: 64,
 });
 
 app.all("/user/login", userRateLimiter, login);

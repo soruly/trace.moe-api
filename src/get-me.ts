@@ -45,7 +45,7 @@ export default async (req, res) => {
         logs_view
       WHERE
         network = CASE
-          WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 56)
+          WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 64)
           ELSE set_masklen(${req.ip}::cidr, 32)
         END
     `;

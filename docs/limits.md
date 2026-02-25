@@ -2,7 +2,7 @@
 
 ## HTTP Rate Limits
 
-The API server has a global request rate limit of 100 requests/min per IP address (or IPv6 /56 block) with or without an API Key.
+The API server has a global request rate limit of 100 requests/min per IP address (or IPv6 /64 block) with or without an API Key.
 
 The rate limit info is included in the HTTP response header. If you hit this HTTP rate limit, the request will fail with HTTP 429 (Too Many Requests).
 

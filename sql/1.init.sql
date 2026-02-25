@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS logs (
   ip inet NOT NULL,
   network inet GENERATED ALWAYS AS (
     CASE
-      WHEN family(ip) = 6 THEN set_masklen(ip::cidr, 56)
+      WHEN family(ip) = 6 THEN set_masklen(ip::cidr, 64)
       ELSE set_masklen(ip::cidr, 32)
     END
   ) STORED,
