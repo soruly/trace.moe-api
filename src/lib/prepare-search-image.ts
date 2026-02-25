@@ -94,7 +94,7 @@ const extractImageByFFmpeg = async (searchFile: Buffer): Promise<Buffer> => {
     ffmpeg.on("close", (code) => {
       if (code !== 0) chunks.push(Buffer.alloc(0));
       resolve(Buffer.concat(chunks));
-      fs.rm(tempFilePath, { force: true });
+      fs.rm(tempFilePath, { force: true }).catch(() => {});
     });
   });
 };
