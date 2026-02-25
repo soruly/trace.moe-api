@@ -18,6 +18,18 @@ const {
   MILVUS_TOKEN,
 } = process.env;
 
+const TRUSTED_PROXY_HOSTS = new Set([
+  // list of trusted hostnames to always fetch directly without proxy
+  "api.telegram.org",
+  "telegra.ph",
+  "t.me",
+  "discord.com",
+  "cdn.discordapp.com",
+  "media.discordapp.net",
+  "images-ext-1.discordapp.net",
+  "images-ext-2.discordapp.net",
+]);
+
 const maxQueueSize = SEARCH_QUEUE ? Number(SEARCH_QUEUE) : os.availableParallelism();
 
 const ipQuotaMap = new Map<string, number[]>();
@@ -203,19 +215,7 @@ export default async (req, res) => {
       });
     }
 
-    const useProxy =
-      IMAGE_PROXY_URL &&
-      ![
-        // list of trusted hostnames to always fetch directly without proxy
-        "api.telegram.org",
-        "telegra.ph",
-        "t.me",
-        "discord.com",
-        "cdn.discordapp.com",
-        "media.discordapp.net",
-        "images-ext-1.discordapp.net",
-        "images-ext-2.discordapp.net",
-      ].includes(new URL(imageURL).hostname);
+    const useProxy = IMAGE_PROXY_URL && !TRUSTED_PROXY_HOSTS.has(new URL(imageURL).hostname);
 
     console.log(`Fetching image ${useProxy ? "with proxy" : "directly"} ${imageURL}`);
 
