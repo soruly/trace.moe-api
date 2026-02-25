@@ -12,7 +12,13 @@ const { VIDEO_PATH, TRACE_API_SALT, MEDIA_QUEUE } = process.env;
 
 const maxQueueSize = Number(MEDIA_QUEUE) || os.availableParallelism();
 
-const generateVideoPreview = async (filePath, start, end, size = "m", mute = false) =>
+const generateVideoPreview = async (
+  filePath: string,
+  start: number,
+  end: number,
+  size = "m",
+  mute = false,
+) =>
   new Promise((resolve) => {
     const ffmpeg = child_process.spawn(
       "ffmpeg",
@@ -23,13 +29,13 @@ const generateVideoPreview = async (filePath, start, end, size = "m", mute = fal
         "-nostats",
         "-y",
         "-ss",
-        start - 10,
+        `${start - 10}`,
         "-i",
         filePath,
         "-ss",
         "10",
         "-t",
-        end - start,
+        `${end - start}`,
         mute ? "-an" : "-y",
         "-map",
         "0:v:0",

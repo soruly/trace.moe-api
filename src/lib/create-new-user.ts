@@ -24,7 +24,7 @@ const escapeHtml = (unsafe: string) => {
     .replace(/'/g, "&#039;");
 };
 
-export default async (email, tier, full_name = "") => {
+export default async (email: string, tier: number, full_name = "") => {
   if (!email) {
     return "Error: email cannot be empty";
   }

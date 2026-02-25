@@ -2,7 +2,7 @@ import sql from "../../sql.ts";
 
 const { VIDEO_PATH } = process.env;
 
-export default async (filePath, t, minDuration, maxDuration) => {
+export default async (filePath: string, t: number, minDuration: number, maxDuration: number) => {
   if (t < 0) {
     return null;
   }
