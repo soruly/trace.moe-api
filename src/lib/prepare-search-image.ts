@@ -11,6 +11,7 @@ const resizeAndCropImage = async (imageBuffer: Buffer, cutBorders: boolean): Pro
   if (cutBorders) {
     // normalize brightness -> blur away UI controls -> trim with certain dark threshold
     const { info } = await resizedImage
+      .clone()
       .normalize()
       .dilate(2)
       .trim({ background: "black", threshold: 30 })
