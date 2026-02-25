@@ -2,12 +2,15 @@ import { Buffer } from "node:buffer";
 import child_process from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 import sql from "../sql.ts";
 import detectScene from "./lib/detect-scene.ts";
 
-const { VIDEO_PATH, TRACE_API_SALT, MEDIA_QUEUE = Infinity } = process.env;
+const { VIDEO_PATH, TRACE_API_SALT, MEDIA_QUEUE } = process.env;
+
+const maxQueueSize = Number(MEDIA_QUEUE) || os.availableParallelism();
 
 const generateVideoPreview = async (filePath, start, end, size = "m", mute = false) =>
   new Promise((resolve) => {
@@ -123,7 +126,7 @@ export default async (req, res) => {
     return res.status(304).end(); // Not Modified
   }
 
-  if (req.app.locals.mediaQueue > MEDIA_QUEUE) return res.status(503).send("Service Unavailable");
+  if (req.app.locals.mediaQueue > maxQueueSize) return res.status(503).send("Service Unavailable");
   req.app.locals.mediaQueue++;
 
   try {

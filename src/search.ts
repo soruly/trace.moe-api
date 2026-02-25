@@ -15,11 +15,13 @@ import safeFetch from "./lib/safe-fetch.ts";
 
 const {
   TRACE_API_SALT,
-  SEARCH_QUEUE = Infinity,
+  SEARCH_QUEUE,
   IMAGE_PROXY_URL = "",
   MILVUS_ADDR,
   MILVUS_TOKEN,
 } = process.env;
+
+const maxQueueSize = SEARCH_QUEUE ? Number(SEARCH_QUEUE) : os.availableParallelism();
 
 const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
@@ -224,7 +226,7 @@ export default async (req, res) => {
   locals.searchQueue[priority] = (locals.searchQueue[priority] ?? 0) + 1;
   const queueSize = locals.searchQueue.reduce((acc, cur, i) => (i >= priority ? acc + cur : 0), 0);
 
-  if (queueSize > SEARCH_QUEUE) {
+  if (queueSize > maxQueueSize) {
     logAndDequeue(locals, req.ip, userId, concurrentId, priority, 503);
     return res.status(503).json({
       error: `Error: Search queue is full`,
