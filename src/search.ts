@@ -151,20 +151,10 @@ const prepareSearchImage = async (imageBuffer: Buffer, cutBorders: boolean): Pro
 export default async (req, res) => {
   const locals = req.app.locals;
 
-  const [defaultTier] = await sql`
-    SELECT
-      concurrency,
-      quota,
-      priority
-    FROM
-      tiers
-    WHERE
-      id = 0
-  `;
-  let quota = defaultTier.quota;
+  let priority = 0;
+  let concurrency = 0;
+  let quota = 0;
   let quotaUsed = 0;
-  let concurrency = defaultTier.concurrency;
-  let priority = defaultTier.priority;
   let userId = null;
   let concurrentId = req.ip;
   if (req.header("x-trace-key")) {
