@@ -9,7 +9,6 @@ import getMe from "./get-me.ts";
 import getStats from "./get-stats.ts";
 import getStatus from "./get-status.ts";
 import image from "./image.ts";
-import scan from "./scan.ts";
 import search from "./search.ts";
 import tasks from "./tasks.ts";
 import create from "./user/create.ts";
@@ -81,7 +80,6 @@ app.use(
 app.get("/me", getMe);
 app.get("/status", getStatus);
 app.get("/stats", getStats);
-app.get("/scan", scan);
 app.all("/tasks", tasks);
 app.all("/webhook/github", github);
 app.all("/webhook/patreon", patreon);

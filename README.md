@@ -37,13 +37,18 @@ cd trace.moe-api
 npm install
 ```
 
-### Configuration
+### Getting Started
 
 - Copy `.env.example` to `.env`
 - Edit `.env` as appropriate for your setup, i.e. `VIDEO_PATH`.
 - Change `TRACE_API_SALT` to a unique value of at least 32 characters.
+- `docker compose up -d`
+- `node server.ts`
 
-### Start server
+On the first start, it will create all database tables in postgresql and create the collection in milvus.
+On every start, it will scan the `VIDEO_PATH` for new video files (.mp4, .mkv, or .webm) and re-scan the `VIDEO_PATH` every minute for new video files.
+
+### Running in background
 
 You can use [pm2](https://pm2.keymetrics.io/) to run this in background in cluster mode.
 
@@ -56,22 +61,3 @@ npm run reload
 npm run restart
 npm run delete
 ```
-
-### How to begin hashing
-
-By default, it will scan the `VIDEO_PATH` every minute for new video files (.mp4 or .mkv or webm). You can manually trigger a scan by calling this url
-
-```
-curl http://localhost:3001/scan
-```
-
-## Local Development
-
-Follow the installation instructions until the `Start server` step. Then proceed from here.  
-A `compose.yml` file is included for local development containing all the required dependencies.  
-On the first start, all database tables will be created in the database.
-
-### Running Locally
-
-1. `docker compose up -d`
-2. `node server.ts`
