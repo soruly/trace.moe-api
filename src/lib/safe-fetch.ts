@@ -35,7 +35,7 @@ function isPrivateIPv6(ip: string): boolean {
   return false;
 }
 
-export default async function isSafeURL(urlString: string): Promise<boolean> {
+async function isSafeURL(urlString: string): Promise<boolean> {
   try {
     const url = new URL(urlString);
     if (url.protocol !== "http:" && url.protocol !== "https:") return false;
@@ -52,4 +52,38 @@ export default async function isSafeURL(urlString: string): Promise<boolean> {
   } catch (e) {
     return false;
   }
+}
+
+export default async function safeFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  let currentURL = url;
+  let redirects = 0;
+
+  if (!(await isSafeURL(currentURL))) {
+    throw new Error(`Unsafe URL: ${currentURL}`);
+  }
+
+  while (redirects < 5) {
+    const response = await fetch(currentURL, { ...options, redirect: "manual" });
+
+    if (response.status >= 300 && response.status < 400 && response.headers.get("location")) {
+      redirects++;
+      const location = response.headers.get("location");
+      if (!location) break;
+
+      try {
+        currentURL = new URL(location, currentURL).toString();
+      } catch (e) {
+        throw new Error(`Invalid redirect URL: ${location}`);
+      }
+
+      if (!(await isSafeURL(currentURL))) {
+        throw new Error(`Unsafe redirect URL: ${currentURL}`);
+      }
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error("Too many redirects");
 }

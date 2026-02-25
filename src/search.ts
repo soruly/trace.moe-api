@@ -11,7 +11,7 @@ import sharp from "sharp";
 
 import sql from "../sql.ts";
 import colorLayout from "./lib/color-layout.ts";
-import isSafeURL from "./lib/is-valid-url.ts";
+import safeFetch from "./lib/safe-fetch.ts";
 
 const {
   TRACE_API_SALT,
@@ -267,18 +267,12 @@ export default async (req, res) => {
         "images-ext-2.discordapp.net",
       ].includes(new URL(imageURL).hostname);
 
-    if (!useProxy && !(await isSafeURL(imageURL))) {
-      await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
-      return res.status(400).json({
-        error: `URL not allowed ${imageURL}`,
-      });
-    }
-
     console.log(`Fetching image ${useProxy ? "with proxy" : "directly"} ${imageURL}`);
 
-    const response = await fetch(
+    const response = await safeFetch(
       useProxy ? `${IMAGE_PROXY_URL}?url=${encodeURIComponent(imageURL)}` : imageURL,
-    ).catch((_) => {
+    ).catch((e: Error) => {
+      console.error(e);
       return null;
     });
     if (!response || response.status >= 400) {
