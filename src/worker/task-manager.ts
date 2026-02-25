@@ -280,6 +280,9 @@ export default class TaskManager {
     res.on("close", () => {
       this.sseClients.delete(res);
     });
+    res.on("error", () => {
+      this.sseClients.delete(res);
+    });
     this.sseClients.add(res);
     this.publish();
   }
