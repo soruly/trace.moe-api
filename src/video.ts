@@ -93,8 +93,9 @@ export default async (req, res) => {
   const [fileId, time, expire, hash] = req.app.locals.sqids.decode(req.params.id);
   const buf = Buffer.from(TRACE_API_SALT);
   buf.writeUInt32LE(Math.abs(time ^ expire ^ fileId));
-  const token = crypto.createHash("sha1").update(buf).digest("binary");
-  if (Buffer.from(token).readUInt32LE() !== hash) return res.status(403).send("Forbidden");
+  if (crypto.createHash("sha1").update(buf).digest().readUInt32LE(0) !== hash) {
+    return res.status(403).send("Forbidden");
+  }
 
   if (((Date.now() / 1000) | 0) - expire > 300) return res.status(410).send("Gone");
 
