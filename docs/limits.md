@@ -13,12 +13,12 @@ The rate limit info is included in the HTTP response header. If you hit this HTT
 | Sponsor tiers | daily quota | concurrency | priority    |
 | ------------- | ----------- | ----------- | ----------- |
 | free          | 100         | 1           | 0 (lowest)  |
-| $1            | 100         | 1           | 2           |
-| $5            | 500         | 1           | 2           |
-| $10           | 1000        | 1           | 5           |
-| $20           | 2000        | 2           | 5           |
-| $50           | 5000        | 3           | 5           |
-| $100          | 10000       | 4           | 6 (highest) |
+| $1            | 1000        | 1           | 2           |
+| $5            | 5000        | 1           | 2           |
+| $10           | 10000       | 1           | 5           |
+| $20           | 20000       | 2           | 5           |
+| $50           | 50000       | 3           | 5           |
+| $100          | 100000      | 4           | 6 (highest) |
 
 The free tier (non-sponsors) has no account and no API Key. However, you can still use the API without an API Key. You will be identified by your IP address. Any unique IP address will be considered as one unique user.
 
