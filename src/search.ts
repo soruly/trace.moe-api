@@ -217,7 +217,7 @@ export default async (req, res) => {
   }
 
   if (quotaUsed >= quota) {
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
+    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
     return res.status(402).json({
       error: "Search quota depleted",
     });
@@ -225,7 +225,7 @@ export default async (req, res) => {
 
   locals.searchConcurrent.set(concurrentId, (locals.searchConcurrent.get(concurrentId) ?? 0) + 1);
   if (locals.searchConcurrent.get(concurrentId) > concurrency) {
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
+    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
     return res.status(402).json({
       error: "Concurrency limit exceeded",
     });
@@ -235,7 +235,7 @@ export default async (req, res) => {
   const queueSize = locals.searchQueue.reduce((acc, cur, i) => (i >= priority ? acc + cur : 0), 0);
 
   if (queueSize > SEARCH_QUEUE) {
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 503);
+    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 503);
     return res.status(503).json({
       error: `Error: Search queue is full`,
     });
@@ -247,7 +247,7 @@ export default async (req, res) => {
     try {
       new URL(imageURL);
     } catch (e) {
-      await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+      logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
       return res.status(400).json({
         error: `Invalid image url ${imageURL}`,
       });
@@ -276,7 +276,7 @@ export default async (req, res) => {
       return null;
     });
     if (!response || response.status >= 400) {
-      await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+      logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
       return res.status(response?.status ?? 400).json({
         error: `Failed to fetch image ${imageURL}`,
       });
@@ -287,14 +287,14 @@ export default async (req, res) => {
   } else if (req.rawBody?.length) {
     searchFile = req.rawBody;
   } else {
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 405);
+    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 405);
     return res.status(405).json({
       error: "Method Not Allowed",
     });
   }
 
   if (!searchFile.length) {
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
     return res.status(400).json({
       error: "Failed to process file",
     });
@@ -310,7 +310,7 @@ export default async (req, res) => {
   );
 
   if (!searchImage) {
-    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
     return res.status(400).json({
       error: "Failed to process image",
     });
@@ -437,7 +437,7 @@ export default async (req, res) => {
     });
   }
 
-  await logAndDequeue(
+  logAndDequeue(
     locals,
     req.ip,
     userId,
