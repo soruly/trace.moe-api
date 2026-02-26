@@ -59,20 +59,6 @@ const logAndDequeue = async (
   searchTime = null,
   accuracy = null,
 ) => {
-  await sql`
-    INSERT INTO
-      logs (created, ip, user_id, code, search_time, accuracy)
-    VALUES
-      (
-        now(),
-        ${ip},
-        ${userId},
-        ${code},
-        ${searchTime < 0 ? null : searchTime},
-        ${accuracy < 0 ? null : accuracy}
-      )
-  `;
-
   if (code === 200 && !userId) {
     let timestamps = ipQuotaMap.get(concurrentId);
     if (!timestamps) {
@@ -87,6 +73,20 @@ const logAndDequeue = async (
   else locals.searchConcurrent.set(concurrentId, concurrentCount - 1);
 
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
+
+  await sql`
+    INSERT INTO
+      logs (created, ip, user_id, code, search_time, accuracy)
+    VALUES
+      (
+        now(),
+        ${ip},
+        ${userId},
+        ${code},
+        ${searchTime < 0 ? null : searchTime},
+        ${accuracy < 0 ? null : accuracy}
+      )
+  `;
 };
 
 let tier0;
