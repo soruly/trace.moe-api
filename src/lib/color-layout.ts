@@ -193,5 +193,9 @@ export default (data: Buffer, width: number, height: number) => {
   // console.log(featureVector.length, featureVector);
   // console.log(new Uint8Array(Buffer.alloc(35, cl_hi, "base64")).slice(2));
 
-  return [...YCoeff, ...CbCoeff, ...CrCoeff];
+  const result = new Array(33);
+  for (let i = 0; i < 21; i++) result[i] = YCoeff[i];
+  for (let i = 0; i < 6; i++) result[21 + i] = CbCoeff[i];
+  for (let i = 0; i < 6; i++) result[27 + i] = CrCoeff[i];
+  return result;
 };
