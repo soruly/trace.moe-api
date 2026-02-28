@@ -40,10 +40,12 @@ async function isSafeURL(urlString: string): Promise<boolean> {
     const url = new URL(urlString);
     if (url.protocol !== "http:" && url.protocol !== "https:") return false;
 
-    if (isIP(url.hostname) === 4) return !isPrivateIPv4(url.hostname);
-    if (isIP(url.hostname) === 6) return !isPrivateIPv6(url.hostname);
+    const hostname = url.hostname.replace(/^\[(.*)\]$/, "$1");
 
-    for (const { address, family } of await dns.lookup(url.hostname, { all: true })) {
+    if (isIP(hostname) === 4) return !isPrivateIPv4(hostname);
+    if (isIP(hostname) === 6) return !isPrivateIPv6(hostname);
+
+    for (const { address, family } of await dns.lookup(hostname, { all: true })) {
       if (family === 4 && isPrivateIPv4(address)) return false;
       if (family === 6 && isPrivateIPv6(address)) return false;
     }
