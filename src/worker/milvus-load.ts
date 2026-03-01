@@ -28,15 +28,31 @@ const hashList = JSON.parse((await zstdDecompress(row.color_layout)).toString())
 );
 
 const dedupedHashList = [];
-for (const currentFrame of hashList) {
-  if (
-    !dedupedHashList
-      .slice(-50) // search in last 50 frames
-      .filter((frame) => currentFrame.time - frame.time < 2) // which is within 2 sec
-      .some((frame) => frame.vector.every((value, i) => value === currentFrame.vector[i])) // skip frames with exact hash
-  ) {
-    dedupedHashList.push(currentFrame);
+for (let i = 0; i < hashList.length; i++) {
+  const currentFrame = hashList[i];
+  let isDuplicate = false;
+
+  // search last 50 deduplicated frames
+  const startIndex = Math.max(0, dedupedHashList.length - 50);
+  for (let j = dedupedHashList.length - 1; j >= startIndex; j--) {
+    const frame = dedupedHashList[j];
+    // which is within 2 sec in time
+    if (currentFrame.time - frame.time < 2) {
+      // skip frames with exact hash by comparing each value in vector
+      let exactMatch = true;
+      for (let k = 0; k < frame.vector.length; k++) {
+        if (frame.vector[k] !== currentFrame.vector[k]) {
+          exactMatch = false;
+          break;
+        }
+      }
+      if (exactMatch) {
+        isDuplicate = true;
+        break;
+      }
+    }
   }
+  if (!isDuplicate) dedupedHashList.push(currentFrame);
 }
 
 const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
