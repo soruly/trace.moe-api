@@ -85,7 +85,10 @@ app.all("/webhook/github", github);
 app.all("/webhook/patreon", patreon);
 app.all(
   "/search",
-  multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }).any(),
+  multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 25 * 1024 * 1024, files: 1 },
+  }).any(),
   search,
 );
 app.get("/video/:id", video);
