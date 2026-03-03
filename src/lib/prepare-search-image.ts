@@ -6,12 +6,13 @@ import path from "node:path";
 import sharp from "sharp";
 
 const resizeAndCropImage = async (imageBuffer: Buffer, cutBorders: boolean): Promise<any> => {
-  let resizedImage = sharp(imageBuffer).resize({ width: 320, height: 320, fit: "inside" });
-  let croppedImage = resizedImage;
+  const resizedImage = await sharp(imageBuffer)
+    .resize({ width: 320, height: 320, fit: "inside" })
+    .toBuffer();
+  let croppedImage = sharp(resizedImage);
   if (cutBorders) {
     // normalize brightness -> blur away UI controls -> trim with certain dark threshold
-    const { info } = await resizedImage
-      .clone()
+    const { info } = await sharp(resizedImage)
       .normalize()
       .dilate(2)
       .trim({ background: "black", threshold: 30 })
@@ -27,7 +28,7 @@ const resizeAndCropImage = async (imageBuffer: Buffer, cutBorders: boolean): Pro
       Math.abs(newWidth / newHeight - 4 / 3) < 0.05
     ) {
       // if detected area is near 16:9 or 4:3, crop as detected
-      croppedImage = resizedImage.extract({
+      croppedImage = sharp(resizedImage).extract({
         left: trimmedLeft,
         top: trimmedTop,
         width: newWidth,
@@ -35,10 +36,10 @@ const resizeAndCropImage = async (imageBuffer: Buffer, cutBorders: boolean): Pro
       });
     } else if (Math.abs(newWidth / newHeight - 21 / 9) < 0.1) {
       // if detected area is near 21:9
-      const { width, height } = await sharp(imageBuffer).metadata();
+      const { width, height } = await sharp(resizedImage).metadata();
       if ((width - newWidth) / width > 0.05 || (height - newHeight) / height > 0.05) {
         // and detected area is smaller than original, crop and fill it back to 16:9
-        croppedImage = resizedImage
+        croppedImage = sharp(resizedImage)
           .extract({
             left: trimmedLeft,
             top: trimmedTop,
@@ -105,6 +106,7 @@ export default async (searchFile: Buffer, cutBorders: boolean): Promise<any> => 
   try {
     return await resizeAndCropImage(searchFile, cutBorders);
   } catch (e) {
+    console.log(e);
     const extractedImage = await extractImageByFFmpeg(searchFile);
     if (!extractedImage.length) return null;
     try {
