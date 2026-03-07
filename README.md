@@ -48,16 +48,24 @@ npm install
 On the first start, it will create all database tables in postgresql and create the collection in milvus.
 On every start, it will scan the `VIDEO_PATH` for new video files (.mp4, .mkv, or .webm) and re-scan the `VIDEO_PATH` every minute for new video files.
 
-### Running in background
+### Run as systemd
 
-You can use [pm2](https://pm2.keymetrics.io/) to run this in background in cluster mode.
-
-Use below commands to start / restart / stop server.
+Put this file to `/etc/systemd/system/trace.moe-api.service`
 
 ```
-npm run start
-npm run stop
-npm run reload
-npm run restart
-npm run delete
+[Unit]
+Description=trace.moe-api
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=____
+Group=____
+WorkingDirectory=/home/____/project/trace.moe-api
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node --dns-result-order=ipv6first /home/____/project/trace.moe-api/server.ts
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
 ```
