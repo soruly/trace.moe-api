@@ -35,7 +35,7 @@
     "sqids": "^0.3.0"
   },
   "devDependencies": {
-    "@types/node": "^25.3.4",
+    "@types/node": "^25.3.5",
     "oxfmt": "^0.36.0",
     "prettier": "^3.8.1",
     "prettier-plugin-embed": "^0.5.1",
