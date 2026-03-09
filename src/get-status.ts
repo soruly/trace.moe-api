@@ -11,13 +11,13 @@ export default async (req, res) => {
     return res.json(
       await sql`
         SELECT
-          path,
-          status,
-          created
+          path
         FROM
           files
         WHERE
           path LIKE ${id + "/%"}
+        ORDER BY
+          path;
       `,
     );
   }
