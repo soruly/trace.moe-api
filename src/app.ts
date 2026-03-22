@@ -23,7 +23,7 @@ const app = express();
 
 app.disable("x-powered-by");
 
-app.set("trust proxy", 2);
+app.set("trust proxy", ["loopback", "linklocal", "uniquelocal"]);
 
 app.use((req, res, next) => {
   res.set("Access-Control-Allow-Origin", "*");
