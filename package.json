@@ -37,7 +37,7 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "oxfmt": "^0.45.0",
-    "prettier": "^3.8.2",
+    "prettier": "^3.8.3",
     "prettier-plugin-embed": "^0.5.1",
     "prettier-plugin-sql": "^0.20.0"
   }
