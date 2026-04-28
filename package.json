@@ -23,7 +23,7 @@
     "test": "prettier --check \"**/*.*\""
   },
   "dependencies": {
-    "@zilliz/milvus2-sdk-node": "^2.6.13",
+    "@zilliz/milvus2-sdk-node": "^2.6.14",
     "aniep": "^0.6.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
