@@ -23,7 +23,7 @@
     "test": "prettier --check \"**/*.*\""
   },
   "dependencies": {
-    "@zilliz/milvus2-sdk-node": "^3.0.0",
+    "@zilliz/milvus2-sdk-node": "^2.6.11",
     "aniep": "^0.6.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
@@ -35,8 +35,8 @@
     "sqids": "^0.3.0"
   },
   "devDependencies": {
-    "@types/node": "^25.6.2",
-    "oxfmt": "^0.48.0",
+    "@types/node": "^25.7.0",
+    "oxfmt": "^0.49.0",
     "prettier": "^3.8.3",
     "prettier-plugin-embed": "^0.5.1",
     "prettier-plugin-sql": "^0.20.0"
