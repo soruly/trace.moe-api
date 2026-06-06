@@ -1,38 +1,15 @@
 import dns from "node:dns/promises";
-import { isIP } from "node:net";
+import ipaddr from "ipaddr.js";
 
-const PRIVATE_RANGES_V4 = [
-  { start: 0x0a000000, end: 0x0affffff }, // 10.0.0.0/8
-  { start: 0xac100000, end: 0xac1fffff }, // 172.16.0.0/12
-  { start: 0xc0a80000, end: 0xc0a8ffff }, // 192.168.0.0/16
-  { start: 0x7f000000, end: 0x7fffffff }, // 127.0.0.0/8
-  { start: 0xa9fe0000, end: 0xa9feffff }, // 169.254.0.0/16
-  { start: 0x00000000, end: 0x00ffffff }, // 0.0.0.0/8 (Current network)
-];
-
-function isPrivateIPv4(ip: string): boolean {
-  const decimal = ip.split(".").reduce((acc, octet) => ((acc << 8) | parseInt(octet, 10)) >>> 0, 0);
-  return PRIVATE_RANGES_V4.some((range) => decimal >= range.start && decimal <= range.end);
-}
-
-function isPrivateIPv6(ip: string): boolean {
-  const lowerIP = ip.toLowerCase();
-  if (lowerIP === "::1" || lowerIP === "::") return true;
-  if (lowerIP.startsWith("fc") || lowerIP.startsWith("fd")) return true;
-  if (
-    lowerIP.startsWith("fe8") ||
-    lowerIP.startsWith("fe9") ||
-    lowerIP.startsWith("fea") ||
-    lowerIP.startsWith("feb")
-  )
-    return true;
-
-  if (lowerIP.startsWith("::ffff:")) {
-    const ipv4Part = lowerIP.substring(7);
-    if (isIP(ipv4Part) === 4) return isPrivateIPv4(ipv4Part);
+function isPrivateIP(str: string) {
+  try {
+    const addr = ipaddr.parse(str);
+    return (
+      addr.range() === "loopback" || addr.range() === "private" || addr.range() === "linkLocal"
+    );
+  } catch (error) {
+    return false;
   }
-
-  return false;
 }
 
 async function isSafeURL(urlString: string): Promise<boolean> {
@@ -42,12 +19,10 @@ async function isSafeURL(urlString: string): Promise<boolean> {
 
     const hostname = url.hostname.replace(/^\[(.*)\]$/, "$1");
 
-    if (isIP(hostname) === 4) return !isPrivateIPv4(hostname);
-    if (isIP(hostname) === 6) return !isPrivateIPv6(hostname);
+    if (ipaddr.isValid(hostname)) return !isPrivateIP(hostname);
 
-    for (const { address, family } of await dns.lookup(hostname, { all: true })) {
-      if (family === 4 && isPrivateIPv4(address)) return false;
-      if (family === 6 && isPrivateIPv6(address)) return false;
+    for (const { address } of await dns.lookup(hostname, { all: true })) {
+      if (isPrivateIP(address)) return false;
     }
 
     return true;
