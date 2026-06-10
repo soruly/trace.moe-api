@@ -211,51 +211,77 @@ export default async (req, res) => {
     });
   }
 
-  let searchFile;
-  if (req.query.url) {
-    const imageURL = String(req.query.url);
-    try {
-      new URL(imageURL);
-    } catch (e) {
+  let vector = [];
+  if (req.body?.vector) {
+    if (
+      !Array.isArray(req.body.vector) ||
+      req.body.vector.length !== 33 ||
+      req.body.vector.some((n: any) => typeof n !== "number")
+    ) {
       logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
       return res.status(400).json({
-        error: `Invalid image url ${imageURL}`,
+        error: "Invalid vector format",
       });
     }
-
-    const useProxy = IMAGE_PROXY_URL && !TRUSTED_PROXY_HOSTS.has(new URL(imageURL).hostname);
-
-    console.log(`Fetching image ${useProxy ? "with proxy" : "directly"} ${imageURL}`);
-
-    const response = await safeFetch(
-      useProxy ? `${IMAGE_PROXY_URL}?url=${encodeURIComponent(imageURL)}` : imageURL,
-    ).catch((e: Error) => {
-      console.error(e);
-      return null;
-    });
-    if (!response || response.status >= 400) {
-      logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
-      return res.status(response?.status ?? 400).json({
-        error: `Failed to fetch image ${imageURL}`,
-      });
-    }
-    searchFile = Buffer.from(await response.arrayBuffer());
-  } else if (req.files?.length) {
-    searchFile = req.files[0].buffer;
-  } else if (req.rawBody?.length) {
-    searchFile = req.rawBody;
+    vector = req.body.vector;
   } else {
-    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 405);
-    return res.status(405).json({
-      error: "Method Not Allowed",
-    });
-  }
+    let searchFile;
+    if (req.query.url) {
+      const imageURL = String(req.query.url);
+      try {
+        new URL(imageURL);
+      } catch (e) {
+        logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+        return res.status(400).json({
+          error: `Invalid image url ${imageURL}`,
+        });
+      }
 
-  if (!searchFile.length) {
-    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
-    return res.status(400).json({
-      error: "Failed to process file",
-    });
+      const useProxy = IMAGE_PROXY_URL && !TRUSTED_PROXY_HOSTS.has(new URL(imageURL).hostname);
+
+      console.log(`Fetching image ${useProxy ? "with proxy" : "directly"} ${imageURL}`);
+
+      const response = await safeFetch(
+        useProxy ? `${IMAGE_PROXY_URL}?url=${encodeURIComponent(imageURL)}` : imageURL,
+      ).catch((e: Error) => {
+        console.error(e);
+        return null;
+      });
+      if (!response || response.status >= 400) {
+        logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+        return res.status(response?.status ?? 400).json({
+          error: `Failed to fetch image ${imageURL}`,
+        });
+      }
+      searchFile = Buffer.from(await response.arrayBuffer());
+    } else if (req.files?.length) {
+      searchFile = req.files[0].buffer;
+    } else if (req.rawBody?.length) {
+      searchFile = req.rawBody;
+    } else {
+      logAndDequeue(locals, req.ip, userId, concurrentId, priority, 405);
+      return res.status(405).json({
+        error: "Method Not Allowed",
+      });
+    }
+
+    if (!searchFile.length) {
+      logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+      return res.status(400).json({
+        error: "Failed to process file",
+      });
+    }
+
+    const searchImage = await prepareSearchImage(searchFile, "cutBorders" in req.query);
+
+    if (!searchImage) {
+      logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+      return res.status(400).json({
+        error: "Failed to process image",
+      });
+    }
+
+    vector = colorLayout(searchImage.data, searchImage.info.width, searchImage.info.height);
   }
 
   let expr = null;
@@ -283,20 +309,11 @@ export default async (req, res) => {
     exprValues = { list: files.map((e) => e.id) };
   }
 
-  const searchImage = await prepareSearchImage(searchFile, "cutBorders" in req.query);
-
-  if (!searchImage) {
-    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
-    return res.status(400).json({
-      error: "Failed to process image",
-    });
-  }
-
   const startTime = performance.now();
 
   const searchResult = await milvus.search({
     collection_name: "frame_color_layout",
-    data: colorLayout(searchImage.data, searchImage.info.width, searchImage.info.height),
+    data: vector,
     limit: 1000,
     expr,
     exprValues,
