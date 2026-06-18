@@ -144,6 +144,7 @@ export default async (req, res) => {
       Math.min(Math.max(Number(req.query.maxDuration) || 5, 0.5), 5), // default: 5.0s before and after t, range: 0.5s ~ 5.0s
     );
     if (scene === null) {
+      console.error(`No scene could be detected for ${videoFilePath} @ ${time / 10000}`);
       return res.status(500).send("Internal Server Error");
     }
 
