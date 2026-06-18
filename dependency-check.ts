@@ -15,19 +15,19 @@ async function checkBinary(command: string): Promise<boolean> {
 async function checkFfmpegTools(): Promise<boolean> {
   const ffmpegInstalled = await checkBinary("ffmpeg");
   const ffprobeInstalled = await checkBinary("ffprobe");
-
-  console.log("Checking FFmpeg tools...");
-  console.log("FFmpeg:", ffmpegInstalled ? "found" : "not found");
-  console.log("FFprobe:", ffprobeInstalled ? "found" : "not found");
-
   return ffmpegInstalled && ffprobeInstalled;
 }
 
 {
-  const hasRequiredTools = await checkFfmpegTools();
-  if (!hasRequiredTools) {
-    console.warn();
-    console.warn("Missing required dependencies.");
+  const isFFmpegInstalled = await checkFfmpegTools();
+  if (!isFFmpegInstalled) {
+    console.error();
+    console.error("FFmpeg is not installed or is not available in your PATH.");
+    console.error("This application requires FFmpeg and FFprobe to process media files.");
+    console.error();
+    console.error(
+      "Install FFmpeg and ensure both 'ffmpeg' and 'ffprobe' are accessible from your terminal.",
+    );
     process.exit(1);
   }
 }
