@@ -6,6 +6,7 @@ import v8 from "v8";
 import { MilvusClient, DataType, IndexType, MetricType } from "@zilliz/milvus2-sdk-node";
 
 import "./env.ts";
+import "./dependency-check.ts";
 import Sqids from "sqids";
 
 import sql from "./sql.ts";
