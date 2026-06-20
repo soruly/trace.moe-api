@@ -29,15 +29,15 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
     "ipaddr.js": "^2.4.0",
-    "multer": "^2.1.1",
-    "nodemailer": "^8.0.11",
+    "multer": "^2.2.0",
+    "nodemailer": "^9.0.1",
     "postgres": "^3.4.9",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.2",
     "sqids": "^0.3.0"
   },
   "devDependencies": {
-    "@types/node": "^25.9.2",
-    "oxfmt": "^0.54.0",
+    "@types/node": "^26.0.0",
+    "oxfmt": "^0.55.0",
     "prettier": "^3.8.4",
     "prettier-plugin-embed": "^0.5.1",
     "prettier-plugin-sql": "^0.20.0"
