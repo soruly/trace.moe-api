@@ -1,11 +1,8 @@
 # syntax=docker/dockerfile:1
 
 FROM node:lts-trixie-slim
-ENV TINI_VERSION=v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
-ENTRYPOINT ["/tini", "--"]
-RUN apt-get update && apt-get install -y ffmpeg
+RUN apt-get update && apt-get install -y ffmpeg tini && rm -rf /var/lib/apt/lists/*
+ENTRYPOINT ["/usr/bin/tini", "--"]
 ENV NODE_ENV=production
 WORKDIR /app
 RUN touch /app/.env
