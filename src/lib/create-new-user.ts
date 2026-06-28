@@ -92,7 +92,7 @@ export default async (email: string, tier: number, full_name = "") => {
   const transporter = nodemailer.createTransport({
     host: EMAIL_SMTP,
     port: Number(EMAIL_SMTP_PORT),
-    secure: false,
+    secure: true,
     auth: {
       user: EMAIL_USER,
       pass: EMAIL_PASS,
