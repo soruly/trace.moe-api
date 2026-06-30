@@ -1,46 +1,7 @@
 import sql from "../sql.ts";
 
-let lastUpdate = new Date();
-let mediaCount = 0;
-let mediaFramesTotal = 0;
-let mediaDurationTotal = 0;
-
 export default async (req, res) => {
   const { type, period } = req.query;
-  if (type === "media") {
-    const [row] = await sql`
-      SELECT
-        updated
-      FROM
-        files
-      ORDER BY
-        updated DESC
-      LIMIT
-        1
-    `;
-
-    if (row && row.updated != lastUpdate) {
-      const [{ count, sum_frames, sum_duration }] = await sql`
-        SELECT
-          COUNT(*) AS count,
-          SUM(frame_count) AS sum_frames,
-          SUM(duration) AS sum_duration
-        FROM
-          files
-      `;
-      mediaCount = Number(count);
-      mediaDurationTotal = Number(sum_duration);
-      mediaFramesTotal = Number(sum_frames);
-      lastUpdate = row.updated;
-    }
-
-    return res.json({
-      mediaCount,
-      mediaFramesTotal,
-      mediaDurationTotal,
-      lastUpdate,
-    });
-  }
 
   if (!["minute", "hour", "day"].includes(period)) {
     return res.status(400).json({ error: "Invalid period" });

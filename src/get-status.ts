@@ -1,4 +1,10 @@
+import fs from "node:fs/promises";
 import sql from "../sql.ts";
+
+let lastUpdate = new Date();
+let mediaCount = 0;
+let mediaFramesTotal = 0;
+let mediaDurationTotal = 0;
 
 export default async (req, res) => {
   const { id } = req.query;
@@ -33,6 +39,21 @@ export default async (req, res) => {
       1;
   `;
 
+  if (row && row.updated != lastUpdate) {
+    const [{ count, sum_frames, sum_duration }] = await sql`
+      SELECT
+        COUNT(*) AS count,
+        SUM(frame_count) AS sum_frames,
+        SUM(duration) AS sum_duration
+      FROM
+        files
+    `;
+    mediaCount = Number(count);
+    mediaDurationTotal = Number(sum_duration);
+    mediaFramesTotal = Number(sum_frames);
+    lastUpdate = row.updated;
+  }
+
   const collectionStatistics = await req.app.locals.milvus.getCollectionStatistics({
     collection_name: "frame_color_layout",
   });
@@ -43,10 +64,18 @@ export default async (req, res) => {
     },
   });
 
+  const stats = await fs.statfs(process.env.VIDEO_PATH);
+
   return res.json({
     updated: row.updated,
-    row_count: Number(collectionStatistics.data.row_count),
+    rowCount: Number(collectionStatistics.data.row_count),
     memory: metric.response.nodes_info[0].infos.hardware_infos.memory,
-    memory_usage: metric.response.nodes_info[0].infos.hardware_infos.memory_usage,
+    memoryUsage: metric.response.nodes_info[0].infos.hardware_infos.memory_usage,
+    storage: Number(stats.blocks * stats.bsize),
+    storageFree: Number(stats.bfree * stats.bsize),
+    storageAvailable: Number(stats.bavail * stats.bsize),
+    mediaCount,
+    mediaFramesTotal,
+    mediaDurationTotal,
   });
 };
