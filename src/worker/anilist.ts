@@ -102,5 +102,6 @@ for (let i = 0; i < ids.length; i += 50) {
       json = EXCLUDED.json
   `;
   await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_view`;
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_title`;
 }
 console.info(`[anilist][done]  ${ids}`);

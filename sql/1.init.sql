@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE TABLE IF NOT EXISTS anilist (
   id integer PRIMARY KEY,
   updated timestamp NOT NULL DEFAULT NOW(),
@@ -51,6 +53,43 @@ CREATE INDEX IF NOT EXISTS anilist_view_title_native_idx ON anilist_view (title_
 CREATE INDEX IF NOT EXISTS anilist_view_title_chinese_idx ON anilist_view (title_chinese);
 
 CREATE INDEX IF NOT EXISTS anilist_view_title_romaji_idx ON anilist_view (title_romaji);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS anilist_title AS
+SELECT DISTINCT
+  nullif((anilist.json -> 'id'), 'null')::int AS id,
+  title
+FROM
+  anilist,
+  LATERAL (
+    SELECT
+      nullif(anilist.json -> 'title' ->> 'native', '') AS title
+    UNION
+    SELECT
+      nullif(anilist.json -> 'title' ->> 'romaji', '') AS title
+    UNION
+    SELECT
+      nullif(anilist.json -> 'title' ->> 'english', '') AS title
+    UNION
+    SELECT
+      nullif(anilist.json -> 'title' ->> 'chinese', '') AS title
+    UNION
+    SELECT
+      jsonb_array_elements_text(anilist.json -> 'synonyms') AS title
+    WHERE
+      jsonb_typeof(anilist.json -> 'synonyms') = 'array'
+    UNION
+    SELECT
+      jsonb_array_elements_text(anilist.json -> 'synonyms_chinese') AS title
+    WHERE
+      jsonb_typeof(anilist.json -> 'synonyms_chinese') = 'array'
+  ) sub
+WHERE
+  title IS NOT NULL
+  AND title <> '';
+
+CREATE UNIQUE INDEX IF NOT EXISTS anilist_title_id_title_idx ON anilist_title (id, title);
+
+CREATE INDEX IF NOT EXISTS anilist_title_title_trgm_idx ON anilist_title USING gin (title gin_trgm_ops);
 
 CREATE TABLE IF NOT EXISTS files (
   id serial PRIMARY KEY,

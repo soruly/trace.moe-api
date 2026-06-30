@@ -5,6 +5,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
 
+import anilist from "./anilist.ts";
 import getMe from "./get-me.ts";
 import getStats from "./get-stats.ts";
 import getStatus from "./get-status.ts";
@@ -78,6 +79,7 @@ app.use(
 );
 
 app.get("/me", getMe);
+app.get("/anilist", anilist);
 app.get("/status", getStatus);
 app.get("/stats", getStats);
 app.all("/tasks", tasks);

@@ -74,6 +74,7 @@ if (arg === "--anime" && value) {
   const anime = (await submitQuery(q, { ids: [value] })).Page.media[0];
   await save(anime);
   await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_view`;
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_title`;
 } else if (arg === "--page" && value) {
   const format = /^(\d+)(-)?(\d+)?$/;
   const startPage = Number(value.match(format)[1]);
@@ -92,6 +93,7 @@ if (arg === "--anime" && value) {
     page++;
   }
   await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_view`;
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_title`;
   console.log("Crawling complete");
 } else {
   console.log("Usage: node anilist.ts --anime 1");
