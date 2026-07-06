@@ -71,35 +71,81 @@ if (process.argv.slice(2).includes("--clean")) {
 
 if (arg === "--anime" && value) {
   console.log(`Crawling anime ${value}`);
-  const anime = (await submitQuery(q, { ids: [value] })).Page.media[0];
-  await save(anime);
+  const ids = value
+    .split(",")
+    .map((id) => Number(id.trim()))
+    .filter((id) => !isNaN(id));
+  if (ids.length > 0) {
+    const data = await submitQuery(q, { ids });
+    if (data?.Page?.media) {
+      for (const anime of data.Page.media) {
+        await save(anime);
+      }
+    }
+  }
   await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_view`;
   await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_title`;
-} else if (arg === "--page" && value) {
-  const format = /^(\d+)(-)?(\d+)?$/;
-  const startPage = Number(value.match(format)[1]);
-  const lastPage = value.match(format)[2] ? Number(value.match(format)[3]) : startPage;
+} else if (arg === "--anime") {
+  console.log("Crawling all new anime");
 
-  console.log(`Crawling page ${startPage} to ${lastPage || "end"}`);
-
-  let page = startPage;
-  while (!lastPage || page <= lastPage) {
-    console.log(`Crawling page ${page}`);
-    const data = await submitQuery(q, { page });
-    for (const anime of data.Page.media) {
-      await save(anime);
+  const [{ max }] = await sql`
+    SELECT
+      MAX(id) AS max
+    FROM
+      anilist
+  `;
+  let currentId = max ?? 1;
+  let lastFoundId = max ?? 0;
+  while (true) {
+    const ids = Array.from({ length: 50 }, (_, i) => currentId + i);
+    console.log(`Crawling anime ID ${ids[0]} - ${ids[ids.length - 1]}`);
+    const data = await submitQuery(q, { ids });
+    if (!data || !data.Page || !data.Page.media) {
+      break;
     }
-    if (!data.Page.pageInfo.hasNextPage) break;
-    page++;
+    if (data.Page.media.length > 0) {
+      for (const anime of data.Page.media) {
+        await save(anime);
+      }
+      const idsFound = data.Page.media.map((anime: any) => Number(anime.id));
+      lastFoundId = Math.max(lastFoundId, ...idsFound);
+    }
+    if (ids[ids.length - 1] - lastFoundId >= 200) {
+      break;
+    }
+    currentId += 50;
   }
+  console.log("No more new IDs found");
+
+  console.log("Update all existing anime");
+  const existingIds = (
+    await sql`
+      SELECT
+        id
+      FROM
+        anilist
+      WHERE
+        id < ${max}
+      ORDER BY
+        id DESC
+    `
+  ).map((r) => r.id);
+  for (let i = 0; i < existingIds.length; i += 50) {
+    const ids = existingIds.slice(i, i + 50);
+    console.log(`Updating anime ID ${ids[0]} - ${ids[ids.length - 1]}`);
+    const data = await submitQuery(q, { ids });
+    if (data?.Page?.media) {
+      for (const anime of data.Page.media) {
+        await save(anime);
+      }
+    }
+  }
+
   await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_view`;
   await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY anilist_title`;
   console.log("Crawling complete");
 } else {
-  console.log("Usage: node anilist.ts --anime 1");
-  console.log("       node anilist.ts --page 1");
-  console.log("       node anilist.ts --page 1-");
-  console.log("       node anilist.ts --page 1-2");
+  console.log("Usage: node anilist.ts --anime [id,id,...]");
 }
 
 await sql.end();
