@@ -213,6 +213,8 @@ export default async (req, res) => {
   if (quotaUsed >= quota) {
     logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
     return res.status(402).json({
+      quota,
+      quotaUsed,
       error: `Search quota depleted (quota per 24 hours: ${quota}, used: ${quotaUsed})`,
     });
   }
@@ -526,6 +528,8 @@ export default async (req, res) => {
   );
 
   res.json({
+    quota,
+    quotaUsed,
     frameCount: Number(searchResult.all_search_count),
     error: "",
     result: isMultiple ? formattedResultsList : formattedResultsList[0],
