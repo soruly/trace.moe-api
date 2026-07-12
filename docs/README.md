@@ -8,8 +8,6 @@ Using the API, you can develop programs such as: chat bots, browser plugins, vid
 
 trace.moe is an Anime Scene Search Engine that can trace back the scene where an anime screenshot is taken from. It tells you which anime, which episode, and the exact moment this scene appears.
 
-![](https://raw.githubusercontent.com/soruly/trace.moe/master/demo-result.jpg)
-
 ## Showcase
 
 - [trace.moe](https://github.com/soruly/trace.moe)
@@ -22,7 +20,7 @@ The easiest way to integrate with trace.moe without using API is by URL.
 By opening the following link it would start searching your given image URL.
 
 ```
-https://trace.moe/?url=https://raw.githubusercontent.com/soruly/trace.moe/master/demo.jpg
+https://trace.moe/?url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg
 ```
 
 Read the rest of the API docs if you need an API.

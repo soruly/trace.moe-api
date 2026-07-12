@@ -185,6 +185,23 @@ await fetch("https://api.trace.moe/search", {
     ],
   }),
 }).then((e) => e.json());
+
+await fetch("https://api.trace.moe/search", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    vector: [
+      [
+        32, 24, 7, 19, 13, 13, 19, 22, 24, 15, 14, 16, 15, 15, 13, 18, 16, 17, 14, 13, 19, 34, 12,
+        26, 17, 19, 17, 26, 19, 8, 12, 11, 9,
+      ],
+      [
+        32, 24, 7, 19, 13, 13, 19, 22, 24, 15, 14, 16, 15, 15, 13, 17, 16, 17, 14, 13, 19, 35, 12,
+        26, 17, 19, 17, 26, 19, 8, 12, 11, 9,
+      ],
+    ],
+  }),
+}).then((e) => e.json());
 ```
 
 #### **python**
@@ -206,6 +223,8 @@ When a batch of multiple vectors is requested, the `result` field in the JSON re
 {
   "frameCount": 745506,
   "error": "",
+  "quota": 1000,
+  "quotaUsed": 45,
   "result": [
     [
       {
@@ -327,6 +346,8 @@ The recommended resolution is 640 x 360px. Higher resolution doesn't yield bette
 {
   "frameCount": 745506,
   "error": "",
+  "quota": 100,
+  "quotaUsed": 1,
   "result": [
     {
       "anilist": 99939,
@@ -459,6 +480,16 @@ Example Error response
 }
 ```
 
+Example Quota Depleted response
+
+```json
+{
+  "quota": 100,
+  "quotaUsed": 100,
+  "error": "Search quota depleted (quota per 24 hours: 100, used: 100)"
+}
+```
+
 | HTTP Status | Possible Causes                                                         |
 | ----------- | ----------------------------------------------------------------------- |
 | 400         | Invalid image url / Failed to process image / Too many vectors (max 10) |
@@ -561,7 +592,7 @@ Example Response
 
 ## Using the API with API Keys
 
-If you have an API Key that grants you more search quota and limits, put your API key in either HTTP header `x-trace-key` or query string `key`.
+If you have an API Key that grants you more search quota and limits, put your API key in the HTTP header `x-trace-key`.
 
 When searching with API Keys, it would count towards your account quota and limits. When searching without an API Key, you search as guests using your IP address.
 
