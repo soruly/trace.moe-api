@@ -270,7 +270,7 @@ FROM
   LEFT JOIN (
     SELECT
       user_id,
-      COUNT(*) AS quota_used
+      COUNT(*)::integer AS quota_used
     FROM
       logs
     WHERE
@@ -301,7 +301,7 @@ FROM
   (
     SELECT
       network,
-      COUNT(*) AS quota_used
+      COUNT(*)::integer AS quota_used
     FROM
       logs
     WHERE
