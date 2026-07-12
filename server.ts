@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -17,7 +18,8 @@ console.log(
   `${(v8.getHeapStatistics().total_available_size / 1024 / 1024).toFixed(0)} MB Available Memory`,
 );
 
-const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN, VIDEO_PATH } = process.env;
+const { SERVER_PORT, SERVER_ADDR, MILVUS_ADDR, MILVUS_TOKEN, VIDEO_PATH, TRACE_API_SALT } =
+  process.env;
 
 console.log("Cleaning up previous temp folders");
 // rm -rf /tmp/trace.moe-*
@@ -100,7 +102,17 @@ app.locals.milvus = milvus;
 app.locals.sqids = new Sqids({
   alphabet: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
     .split("")
-    .sort(() => (Math.random() > 0.5 ? 1 : -1))
+    .sort((a, b) => {
+      const hashA = crypto
+        .createHash("sha256")
+        .update(a + TRACE_API_SALT)
+        .digest("hex");
+      const hashB = crypto
+        .createHash("sha256")
+        .update(b + TRACE_API_SALT)
+        .digest("hex");
+      return hashA.localeCompare(hashB);
+    })
     .join(""),
   minLength: 0,
   blocklist: new Set(),
