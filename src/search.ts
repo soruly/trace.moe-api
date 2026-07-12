@@ -32,21 +32,6 @@ const TRUSTED_PROXY_HOSTS = new Set([
 
 const maxQueueSize = SEARCH_QUEUE ? Number(SEARCH_QUEUE) : os.availableParallelism();
 
-const ipQuotaMap = new Map<string, number[]>();
-// check and delete search records older than 24 hours every 60 minutes
-setInterval(
-  () => {
-    const threshold = Date.now() - 24 * 60 * 60 * 1000;
-    for (const [ip, timestamps] of ipQuotaMap) {
-      let expired = 0;
-      while (expired < timestamps.length && timestamps[expired] <= threshold) expired++;
-      if (expired === timestamps.length) ipQuotaMap.delete(ip);
-      else if (expired > 0) timestamps.splice(0, expired);
-    }
-  },
-  60 * 60 * 1000,
-).unref();
-
 const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
 const logAndDequeue = async (
@@ -60,17 +45,6 @@ const logAndDequeue = async (
   accuracy = null,
 ) => {
   const accuracies = Array.isArray(accuracy) ? accuracy : [accuracy];
-
-  if (code === 200 && !userId) {
-    let timestamps = ipQuotaMap.get(concurrentId);
-    if (!timestamps) {
-      timestamps = [];
-      ipQuotaMap.set(concurrentId, timestamps);
-    }
-    for (let i = 0; i < accuracies.length; i++) {
-      timestamps.push(Date.now());
-    }
-  }
 
   const concurrentCount = locals.searchConcurrent.get(concurrentId) ?? 0;
   if (concurrentCount <= 1) locals.searchConcurrent.delete(concurrentId);
@@ -196,15 +170,20 @@ export default async (req, res) => {
   } else {
     concurrentId = req.ip.includes(":") ? req.ip.split(":").slice(0, 4).join(":") : req.ip;
 
-    const timestamps = ipQuotaMap.get(concurrentId);
-    if (timestamps) {
-      // exclude search records older than 24 hours
-      const threshold = Date.now() - 24 * 60 * 60 * 1000;
-      let expired = 0;
-      while (expired < timestamps.length && timestamps[expired] <= threshold) expired++;
-      if (expired > 0) timestamps.splice(0, expired);
-      quotaUsed = timestamps.length;
-    }
+    const [row] = await sql`
+      SELECT
+        COUNT(*)::integer AS quota_used
+      FROM
+        logs
+      WHERE
+        code = 200
+        AND network = CASE
+          WHEN family(${req.ip}) = 6 THEN set_masklen(${req.ip}::cidr, 64)
+          ELSE set_masklen(${req.ip}::cidr, 32)
+        END
+        AND created > now() - '1 day'::interval
+    `;
+    quotaUsed = row ? row.quota_used : 0;
   }
 
   locals.searchConcurrent.set(concurrentId, (locals.searchConcurrent.get(concurrentId) ?? 0) + 1);
