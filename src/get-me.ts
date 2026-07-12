@@ -55,6 +55,21 @@ export default async (req, res) => {
       concurrency = row.concurrency;
       quota = row.quota;
       quotaUsed = row.quota_used;
+    } else {
+      const [row] = await sql`
+        SELECT
+          priority,
+          concurrency,
+          quota
+        FROM
+          tiers
+        WHERE
+          id = 0
+      `;
+      priority = row.priority;
+      concurrency = row.concurrency;
+      quota = row.quota;
+      quotaUsed = 0;
     }
   }
 
@@ -62,7 +77,7 @@ export default async (req, res) => {
     id,
     priority,
     concurrency,
-    quota: Number(quota),
-    quotaUsed: Number(quotaUsed),
+    quota,
+    quotaUsed,
   });
 };
