@@ -62,7 +62,7 @@ export default async (req, res) => {
     id,
     priority,
     concurrency,
-    quota,
-    quotaUsed,
+    quota: Number(quota),
+    quotaUsed: Number(quotaUsed),
   });
 };
