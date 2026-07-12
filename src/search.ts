@@ -213,17 +213,28 @@ export default async (req, res) => {
 
   let vector = [];
   if (req.body?.vector) {
+    let parsedVector = req.body.vector;
+    if (typeof parsedVector === "string") {
+      try {
+        parsedVector = [...Uint8Array.from(Buffer.from(parsedVector, "base64"))];
+      } catch (e) {
+        logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+        return res.status(400).json({
+          error: "Invalid vector format",
+        });
+      }
+    }
     if (
-      !Array.isArray(req.body.vector) ||
-      req.body.vector.length !== 33 ||
-      req.body.vector.some((n: any) => typeof n !== "number")
+      !Array.isArray(parsedVector) ||
+      parsedVector.length !== 33 ||
+      parsedVector.some((n: any) => typeof n !== "number")
     ) {
       logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
       return res.status(400).json({
         error: "Invalid vector format",
       });
     }
-    vector = req.body.vector;
+    vector = parsedVector;
   } else {
     let searchFile;
     if (req.query.url) {
