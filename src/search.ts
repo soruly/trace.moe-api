@@ -59,13 +59,17 @@ const logAndDequeue = async (
   searchTime = null,
   accuracy = null,
 ) => {
+  const accuracies = Array.isArray(accuracy) ? accuracy : [accuracy];
+
   if (code === 200 && !userId) {
     let timestamps = ipQuotaMap.get(concurrentId);
     if (!timestamps) {
       timestamps = [];
       ipQuotaMap.set(concurrentId, timestamps);
     }
-    timestamps.push(Date.now());
+    for (let i = 0; i < accuracies.length; i++) {
+      timestamps.push(Date.now());
+    }
   }
 
   const concurrentCount = locals.searchConcurrent.get(concurrentId) ?? 0;
@@ -74,24 +78,42 @@ const logAndDequeue = async (
 
   locals.searchQueue[priority] = (locals.searchQueue[priority] || 1) - 1;
 
+  const rows = accuracies.map((acc) => ({
+    ip,
+    user_id: userId,
+    code,
+    search_time: searchTime < 0 ? null : searchTime,
+    accuracy: acc < 0 ? null : acc,
+  }));
+
   await sql`
     INSERT INTO
-      logs (created, ip, user_id, code, search_time, accuracy)
-    VALUES
-      (
-        now(),
-        ${ip},
-        ${userId},
-        ${code},
-        ${searchTime < 0 ? null : searchTime},
-        ${accuracy < 0 ? null : accuracy}
-      )
+      logs ${sql(rows, "ip", "user_id", "code", "search_time", "accuracy")}
   `;
 };
 
 let tier0;
 let tier9User;
 let tier9UserKeyBuffer;
+
+const parseSingleVector = (item: any): number[] | null => {
+  if (typeof item === "string") {
+    try {
+      const parsed = [...Uint8Array.from(Buffer.from(item, "base64"))];
+      if (parsed.length === 33 && parsed.every((n: any) => typeof n === "number")) {
+        return parsed;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+  if (Array.isArray(item)) {
+    if (item.length === 33 && item.every((n: any) => typeof n === "number")) {
+      return item;
+    }
+  }
+  return null;
+};
 
 export default async (req, res) => {
   const locals = req.app.locals;
@@ -211,30 +233,66 @@ export default async (req, res) => {
     });
   }
 
-  let vector = [];
+  let vectors: number[][] = [];
+  let isMultiple = false;
+
   if (req.body?.vector) {
-    let parsedVector = req.body.vector;
-    if (typeof parsedVector === "string") {
-      try {
-        parsedVector = [...Uint8Array.from(Buffer.from(parsedVector, "base64"))];
-      } catch (e) {
+    const input = req.body.vector;
+    if (typeof input === "string") {
+      const parsed = parseSingleVector(input);
+      if (!parsed) {
         logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
         return res.status(400).json({
           error: "Invalid vector format",
         });
       }
-    }
-    if (
-      !Array.isArray(parsedVector) ||
-      parsedVector.length !== 33 ||
-      parsedVector.some((n: any) => typeof n !== "number")
-    ) {
+      vectors = [parsed];
+      isMultiple = false;
+    } else if (Array.isArray(input)) {
+      if (input.length === 0) {
+        logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+        return res.status(400).json({
+          error: "Invalid vector format",
+        });
+      }
+      const isSingleVector = input.every((n: any) => typeof n === "number");
+      if (isSingleVector) {
+        const parsed = parseSingleVector(input);
+        if (!parsed) {
+          logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+          return res.status(400).json({
+            error: "Invalid vector format",
+          });
+        }
+        vectors = [parsed];
+        isMultiple = false;
+      } else {
+        if (input.length > 10) {
+          logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+          return res.status(400).json({
+            error: "Too many vectors (max 10)",
+          });
+        }
+        const parsedList: number[][] = [];
+        for (const item of input) {
+          const parsed = parseSingleVector(item);
+          if (!parsed) {
+            logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+            return res.status(400).json({
+              error: "Invalid vector format",
+            });
+          }
+          parsedList.push(parsed);
+        }
+        vectors = parsedList;
+        isMultiple = true;
+      }
+    } else {
       logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
       return res.status(400).json({
         error: "Invalid vector format",
       });
     }
-    vector = parsedVector;
   } else {
     let searchFile;
     if (req.query.url) {
@@ -292,7 +350,9 @@ export default async (req, res) => {
       });
     }
 
-    vector = colorLayout(searchImage.data, searchImage.info.width, searchImage.info.height);
+    const parsed = colorLayout(searchImage.data, searchImage.info.width, searchImage.info.height);
+    vectors = [parsed];
+    isMultiple = false;
   }
 
   let expr = null;
@@ -324,7 +384,7 @@ export default async (req, res) => {
 
   const searchResult = await milvus.search({
     collection_name: "frame_color_layout",
-    data: vector,
+    data: isMultiple ? vectors : vectors[0],
     limit: 1000,
     expr,
     exprValues,
@@ -332,118 +392,124 @@ export default async (req, res) => {
   });
   const searchTime = (performance.now() - startTime) | 0;
 
-  // merge results from same file where time is within 5 seconds
-  const list = [];
-  const fileMap = new Map();
-  const sortedResults = [...searchResult.results].sort((a, b) => a.time - b.time);
+  const processRawResults = (results: any[]) => {
+    const list = [];
+    const fileMap = new Map();
+    const sortedResults = [...results].sort((a, b) => a.time - b.time);
 
-  for (const { score, file_id, time } of sortedResults) {
-    let entries = fileMap.get(file_id);
-    if (!entries) {
-      entries = [];
-      fileMap.set(file_id, entries);
-    }
-    let match = null;
-    if (entries.length > 0) {
-      const lastEntry = entries[entries.length - 1];
-      if (Math.abs(lastEntry.to - time) < 5 || Math.abs(lastEntry.from - time) < 5) {
-        match = lastEntry;
+    for (const { score, file_id, time } of sortedResults) {
+      let entries = fileMap.get(file_id);
+      if (!entries) {
+        entries = [];
+        fileMap.set(file_id, entries);
+      }
+      let match = null;
+      if (entries.length > 0) {
+        const lastEntry = entries[entries.length - 1];
+        if (Math.abs(lastEntry.to - time) < 5 || Math.abs(lastEntry.from - time) < 5) {
+          match = lastEntry;
+        }
+      }
+      if (!match) {
+        const newEntry = {
+          file_id,
+          at: time,
+          from: time,
+          to: time,
+          score,
+        };
+        entries.push(newEntry);
+        list.push(newEntry);
+      } else {
+        match.from = match.from < time ? match.from : time;
+        match.to = match.to > time ? match.to : time;
+        if (score < match.score) {
+          match.score = score;
+          match.at = time;
+        }
       }
     }
-    if (!match) {
-      const newEntry = {
-        file_id,
-        at: time,
-        from: time,
-        to: time,
-        score,
-      };
-      entries.push(newEntry);
-      list.push(newEntry);
-    } else {
-      match.from = match.from < time ? match.from : time;
-      match.to = match.to > time ? match.to : time;
-      if (score < match.score) {
-        match.score = score;
-        match.at = time;
-      }
-    }
-  }
 
-  let result = list
-    .sort((a, b) => a.score - b.score) // sort in ascending order of difference
-    .slice(0, 10); // return only top 10 results
+    return list
+      .sort((a, b) => a.score - b.score) // sort in ascending order of difference
+      .slice(0, 10); // return only top 10 results
+  };
 
-  if (result.length === 0) {
-    logAndDequeue(locals, req.ip, userId, concurrentId, priority, 200, searchTime, 0);
-    return res.json({
-      frameCount: Number(searchResult.all_search_count),
-      error: "",
-      result: [],
-    });
-  }
+  const rawResultsList: any[][] = isMultiple
+    ? searchResult.results.map((r: any) => processRawResults(r))
+    : [processRawResults(searchResult.results)];
 
-  const files = await sql`
-    SELECT
-      id,
-      anilist_id,
-      path,
-      duration
-    FROM
-      files
-    WHERE
-      id IN ${sql(Array.from(new Set(result.map((e) => e.file_id))))}
-  `;
+  const allFileIds = Array.from(new Set(rawResultsList.flat().map((e) => e.file_id)));
 
   const filesMap = new Map();
-  for (const f of files) filesMap.set(f.id, f);
+  if (allFileIds.length > 0) {
+    const files = await sql`
+      SELECT
+        id,
+        anilist_id,
+        path,
+        duration
+      FROM
+        files
+      WHERE
+        id IN ${sql(allFileIds)}
+    `;
+    for (const f of files) filesMap.set(f.id, f);
+  }
 
   const window = 60 * 60; // snap to nearest hour for better cache
   const expire = ((Date.now() / 1000 / window) | 0) * window + window;
   const saltBuffer = Buffer.from(TRACE_API_SALT);
 
-  result = result
-    .filter((e) => filesMap.has(e.file_id))
-    .map(({ file_id, at, from, to, score }) => {
-      const { anilist_id, path, duration } = filesMap.get(file_id);
+  let formattedResultsList = rawResultsList.map((rawResults) => {
+    return rawResults
+      .filter((e) => filesMap.has(e.file_id))
+      .map(({ file_id, at, from, to, score }) => {
+        const { anilist_id, path, duration } = filesMap.get(file_id);
 
-      const time = (at * 10000) | 0; // convert 4dp time code to integer
-      const buf = Buffer.allocUnsafe(saltBuffer.length);
-      saltBuffer.copy(buf);
-      buf.writeUInt32LE(Math.abs(time ^ expire ^ file_id), 0);
-      const hash = crypto.createHash("sha1").update(buf).digest().readUInt32LE(0);
-      const previewId = locals.sqids.encode([file_id, time, expire, hash]);
+        const time = (at * 10000) | 0; // convert 4dp time code to integer
+        const buf = Buffer.allocUnsafe(saltBuffer.length);
+        saltBuffer.copy(buf);
+        buf.writeUInt32LE(Math.abs(time ^ expire ^ file_id), 0);
+        const hash = crypto.createHash("sha1").update(buf).digest().readUInt32LE(0);
+        const previewId = locals.sqids.encode([file_id, time, expire, hash]);
 
-      return {
-        anilist: anilist_id,
-        filename: path.split("/").pop(),
-        episode: aniep(path.split("/").pop()),
-        from: Number(from.toFixed(4)),
-        at: Number(at.toFixed(4)),
-        to: Number(to.toFixed(4)),
-        duration,
-        similarity: Math.min(Math.max(0, (255 - score) / 255), 1),
-        video: `${req.protocol}://${req.get("host")}/video/${previewId}`,
-        image: `${req.protocol}://${req.get("host")}/image/${previewId}`,
-      };
-    });
+        return {
+          anilist: anilist_id,
+          filename: path.split("/").pop(),
+          episode: aniep(path.split("/").pop()),
+          from: Number(from.toFixed(4)),
+          at: Number(at.toFixed(4)),
+          to: Number(to.toFixed(4)),
+          duration,
+          similarity: Math.min(Math.max(0, (255 - score) / 255), 1),
+          video: `${req.protocol}://${req.get("host")}/video/${previewId}`,
+          image: `${req.protocol}://${req.get("host")}/image/${previewId}`,
+        };
+      });
+  });
 
   if ("anilistInfo" in req.query) {
-    const anilist = await sql`
-      SELECT
-        *
-      FROM
-        anilist
-      WHERE
-        id IN ${sql(Array.from(new Set(result.map((e) => e.anilist))))}
-    `;
-    const anilistMap = new Map();
-    for (const a of anilist) anilistMap.set(a.id, a);
+    const allAnilistIds = Array.from(new Set(formattedResultsList.flat().map((e) => e.anilist)));
+    if (allAnilistIds.length > 0) {
+      const anilist = await sql`
+        SELECT
+          *
+        FROM
+          anilist
+        WHERE
+          id IN ${sql(allAnilistIds)}
+      `;
+      const anilistMap = new Map();
+      for (const a of anilist) anilistMap.set(a.id, a);
 
-    result = result.map((entry) => {
-      entry.anilist = anilistMap.get(entry.anilist)?.json ?? entry.anilist;
-      return entry;
-    });
+      formattedResultsList = formattedResultsList.map((entryList) => {
+        return entryList.map((entry) => {
+          entry.anilist = anilistMap.get(entry.anilist)?.json ?? entry.anilist;
+          return entry;
+        });
+      });
+    }
   }
 
   logAndDequeue(
@@ -454,12 +520,14 @@ export default async (req, res) => {
     priority,
     200,
     searchTime,
-    result[0]?.similarity ?? 0,
+    isMultiple
+      ? formattedResultsList.map((list) => list[0]?.similarity ?? 0)
+      : (formattedResultsList[0]?.[0]?.similarity ?? 0),
   );
 
   res.json({
     frameCount: Number(searchResult.all_search_count),
     error: "",
-    result,
+    result: isMultiple ? formattedResultsList : formattedResultsList[0],
   });
 };
