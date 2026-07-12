@@ -140,6 +140,93 @@ requests.post("https://api.trace.moe/search",
 
 <!-- tabs:end -->
 
+### Search by color layout vector
+
+If you already have extracted the 33-dimensional color layout vector of the image, you can search by vector directly. This is much faster and saves bandwidth compared to sending images.
+
+You can perform search for a single vector, or a batch search for multiple vectors (up to 10 vectors).
+
+Your search quota will be reduced by 1 for each vector.
+
+The payload is a JSON object with a `vector` field:
+
+- **Single Vector**:
+  - A base64-encoded string: `"IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ"`
+  - An array of 33 numbers: `[32, 24, 7, 19, 13, 13, 19, 22, 24, 15, 14, 16, 15, 15, 13, 18, 16, 17, 14, 13, 19, 34, 12, 26, 17, 19, 17, 26, 19, 8, 12, 11, 9]`
+- **Multiple Vectors (Batch search, max 10)**:
+  - An array of base64-encoded strings: `["IBgHEw0N...", "IBgHEw0N..."]`
+  - A 2D array of numbers: `[[32, 24, ...], [32, 24, ...]]`
+
+<!-- tabs:start -->
+
+#### **cURL**
+
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"vector": "IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ"}' https://api.trace.moe/search
+```
+
+#### **PowerShell**
+
+```powershell
+$body = @{ vector = "IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -ContentType "application/json" -Body $body https://api.trace.moe/search
+```
+
+#### **javascript**
+
+```javascript
+await fetch("https://api.trace.moe/search", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    vector: [
+      "IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ",
+      "IBgHEw0NExYYDw4QDw8NERARDg0TIwwaERMRGhMIDAsJ",
+    ],
+  }),
+}).then((e) => e.json());
+```
+
+#### **python**
+
+```python
+import requests
+requests.post("https://api.trace.moe/search",
+  json={"vector": "IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ"}
+).json()
+```
+
+<!-- tabs:end -->
+
+#### Batch Search Response Format
+
+When a batch of multiple vectors is requested, the `result` field in the JSON response will be a 2-dimensional array of search results, corresponding to the input vectors in the same order.
+
+```json
+{
+  "frameCount": 745506,
+  "error": "",
+  "result": [
+    [
+      {
+        "anilist": 99939,
+        "filename": "Nekopara - OVA.mp4",
+        "similarity": 0.94,
+        ...
+      }
+    ],
+    [
+      {
+        "anilist": 99939,
+        "filename": "Nekopara - OVA.mp4",
+        "similarity": 0.97,
+        ...
+      }
+    ]
+  ]
+}
+```
+
 ### Cut Black Borders
 
 trace.moe can detect black borders automatically and cut away unnecessary parts of the images that would affect search result accuracy. This is useful if your image is a screencap from a smartphone or iPad that contains black bars.
@@ -257,11 +344,13 @@ The recommended resolution is 640 x 360px. Higher resolution doesn't yield bette
 }
 ```
 
-| Fields     | Meaning                          | Value            |
-| ---------- | -------------------------------- | ---------------- |
-| frameCount | Total number of frames searched  | number           |
-| error      | Error message                    | string           |
-| result     | Search results (see table below) | Array of Objects |
+| Fields     | Meaning                              | Value            |
+| ---------- | ------------------------------------ | ---------------- |
+| frameCount | Total number of frames searched      | number           |
+| quota      | Max quota you can use every 24 hours | number           |
+| quotaUsed  | Quota you have used in last 24 hours | number           |
+| error      | Error message                        | string           |
+| result     | Search results (see table below)     | Array of Objects |
 
 | Fields     | Meaning                                        | Value                                             |
 | ---------- | ---------------------------------------------- | ------------------------------------------------- |
@@ -331,6 +420,8 @@ Example response
 {
   "frameCount": 745506,
   "error": "",
+  "quota": 100,
+  "quotaUsed": 1,
   "result": [
     {
       "anilist": {
@@ -368,15 +459,15 @@ Example Error response
 }
 ```
 
-| HTTP Status | Possible Causes                                    |
-| ----------- | -------------------------------------------------- |
-| 400         | Invalid image url / Failed to process image        |
-| 402         | Search quota depleted / Concurrency limit exceeded |
-| 403         | Invalid API key                                    |
-| 405         | Method Not Allowed                                 |
-| 500         | Internal Server Error                              |
-| 503         | Search queue is full / Database is not responding  |
-| 504         | Server is overloaded                               |
+| HTTP Status | Possible Causes                                                         |
+| ----------- | ----------------------------------------------------------------------- |
+| 400         | Invalid image url / Failed to process image / Too many vectors (max 10) |
+| 402         | Search quota depleted / Concurrency limit exceeded                      |
+| 403         | Invalid API key                                                         |
+| 405         | Method Not Allowed                                                      |
+| 500         | Internal Server Error                                                   |
+| 503         | Search queue is full / Database is not responding                       |
+| 504         | Server is overloaded                                                    |
 
 > the "error" value is empty string when there's no error
 
@@ -465,8 +556,8 @@ Example Response
 | id          | IP address (guest) or email address (user)      | string             |
 | priority    | Your priority in search queue                   | number (0: lowest) |
 | concurrency | Number of parallel search requests you can make | number             |
-| quota       | Daily search quota you have                     | number             |
-| quotaUsed   | Daily search quota you have used last 24 hours  | number             |
+| quota       | Max quota you can use every 24 hours            | number             |
+| quotaUsed   | Quota you have used in last 24 hours            | number             |
 
 ## Using the API with API Keys
 
