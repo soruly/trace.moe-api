@@ -18,6 +18,8 @@ const generateImagePreview = async (filePath: string, t: number, format = "jpeg"
       "error",
       "-nostats",
       "-y",
+      "-threads",
+      "1",
       "-ss",
       `${t}`,
       "-i",
