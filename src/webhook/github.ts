@@ -26,11 +26,16 @@ export default async (req, res) => {
     return;
   }
   try {
+    const rawBody = req.rawBody.toString();
+    const json = JSON.parse(rawBody.replace(/\\u0000|\0/gi, ""), (key, value) =>
+      typeof value === "string" ? value.replace(/\0/g, "") : value,
+    );
+
     await sql`
       INSERT INTO
         webhook (source, json)
       VALUES
-        ('GITHUB', ${JSON.parse(req.rawBody)})
+        ('GITHUB', ${json})
     `;
     res.json({});
   } catch (err) {
