@@ -27,7 +27,7 @@
     "aniep": "^0.6.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.6.0",
+    "express-rate-limit": "^8.6.1",
     "ipaddr.js": "^2.4.0",
     "multer": "^2.2.0",
     "nodemailer": "^9.0.3",
