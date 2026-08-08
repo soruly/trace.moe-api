@@ -61,6 +61,7 @@ export default class TaskManager {
       console.info(`[scan][done]  ${VIDEO_PATH}`);
 
       this.runAnilistTask();
+      this.runCrc32Task();
       this.runMediaInfoTask();
       this.runSceneChangesTask();
       this.runColorLayoutTask();
@@ -274,6 +275,44 @@ export default class TaskManager {
     }
   }
 
+  crc32TaskList = new Map<number, any>();
+  crc32TaskListMax = MAX_WORKER;
+
+  async runCrc32Task() {
+    if (this.crc32TaskList.size >= this.crc32TaskListMax) return;
+    try {
+      for (const { id, path: relativePath } of await sql`
+        SELECT
+          id,
+          path
+        FROM
+          files
+        WHERE
+          crc32 IS NULL
+        ORDER BY
+          id DESC
+        LIMIT
+          ${this.crc32TaskListMax}
+      `) {
+        const filePath = path.join(VIDEO_PATH, relativePath);
+        if (this.crc32TaskList.has(id)) continue;
+        const worker = new Worker("./src/worker/crc32.ts", {
+          workerData: { id, filePath },
+        });
+        worker.on("error", (error) => console.error(error));
+        worker.on("exit", () => {
+          this.crc32TaskList.delete(id);
+          this.publish();
+          this.runCrc32Task();
+        });
+        this.crc32TaskList.set(id, { id, filePath, worker });
+        this.publish();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   sseClients = new Set<ServerResponse>();
 
   subscribe(res) {
@@ -292,6 +331,7 @@ export default class TaskManager {
   publish() {
     clearTimeout(this.publishTimer);
     const tasks = {
+      crc32TaskList: Array.from(this.crc32TaskList.values()).map((e) => e.filePath),
       mediaInfoTaskList: Array.from(this.mediaInfoTaskList.values()).map((e) => e.filePath),
       sceneChangesTaskList: Array.from(this.sceneChangesTaskList.values()).map((e) => e.filePath),
       colorLayoutTaskList: Array.from(this.colorLayoutTaskList.values()).map((e) => e.filePath),

@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS files (
   anilist_id integer,
   episode smallint,
   path text NOT NULL,
+  crc32 bigint,
   loaded boolean,
   created timestamp NOT NULL DEFAULT NOW(),
   updated timestamp NOT NULL DEFAULT NOW(),
@@ -126,6 +127,8 @@ CREATE INDEX IF NOT EXISTS files_episode_idx ON files (episode);
 
 CREATE UNIQUE INDEX IF NOT EXISTS files_path_idx ON files (path);
 
+CREATE INDEX IF NOT EXISTS files_crc32_idx ON files (crc32);
+
 CREATE INDEX IF NOT EXISTS files_loaded_idx ON files (loaded);
 
 CREATE INDEX IF NOT EXISTS files_created_idx ON files (created);
@@ -143,6 +146,10 @@ WHERE
 CREATE INDEX IF NOT EXISTS files_color_pending_idx ON files (id DESC)
 WHERE
   color_layout IS NULL;
+
+CREATE INDEX IF NOT EXISTS files_crc32_pending_idx ON files (id DESC)
+WHERE
+  crc32 IS NULL;
 
 CREATE INDEX IF NOT EXISTS files_milvus_pending_idx ON files (id DESC)
 WHERE
