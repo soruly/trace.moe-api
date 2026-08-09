@@ -16,6 +16,7 @@ export default class TaskManager {
   isScanTaskRunning = false;
 
   async runScanTask(interval: number) {
+    if (!interval || !Number.isFinite(interval) || interval <= 0) return;
     if (this.isScanTaskRunning) return;
     this.isScanTaskRunning = true;
     try {

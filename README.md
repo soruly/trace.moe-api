@@ -46,7 +46,7 @@ npm install
 - `node server.ts`
 
 On the first start, it will create all database tables in postgresql and create the collection in milvus.
-On every start, it will scan the `VIDEO_PATH` for new video files (.mp4, .mkv, or .webm) and re-scan the `VIDEO_PATH` every minute for new video files.
+On every start, it will scan the `VIDEO_PATH` for new video files (.mp4, .mkv, or .webm) and re-scan the `VIDEO_PATH` periodically (default: every 60 seconds, configurable via `SCAN_INTERVAL`, set to `0` or `Infinity` to disable).
 
 ### Run as systemd
 
