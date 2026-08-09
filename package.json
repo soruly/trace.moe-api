@@ -27,17 +27,17 @@
     "aniep": "^0.6.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.6.1",
-    "ipaddr.js": "^2.4.0",
+    "express-rate-limit": "^8.6.2",
+    "ipaddr.js": "^2.5.0",
     "multer": "^2.2.0",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^9.0.5",
     "postgres": "^3.4.9",
     "sharp": "^0.35.3",
     "sqids": "^0.3.0"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
-    "oxfmt": "^0.61.0",
+    "@types/node": "^26.2.0",
+    "oxfmt": "^0.62.0",
     "prettier": "^3.9.6",
     "prettier-plugin-embed": "^0.5.1",
     "prettier-plugin-sql": "^0.20.0"
