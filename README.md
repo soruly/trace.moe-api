@@ -23,7 +23,7 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 
 - Node.js >= 22.15
 - PostgreSQL 17+
-- Milvus 2.6.0+
+- Milvus 3.0.0+
 - FFmpeg
 - Docker
 
