@@ -94,7 +94,6 @@ CREATE INDEX IF NOT EXISTS anilist_title_title_trgm_idx ON anilist_title USING g
 CREATE TABLE IF NOT EXISTS files (
   id serial PRIMARY KEY,
   anilist_id integer,
-  episode smallint,
   episode_start smallint,
   episode_end smallint,
   path text NOT NULL,
@@ -124,8 +123,6 @@ CREATE TABLE IF NOT EXISTS files (
 );
 
 CREATE INDEX IF NOT EXISTS files_anilist_id_idx ON files (anilist_id);
-
-CREATE INDEX IF NOT EXISTS files_episode_idx ON files (episode);
 
 CREATE INDEX IF NOT EXISTS files_episode_start_idx ON files (episode_start);
 
@@ -174,7 +171,6 @@ SELECT
   nullif((anilist.json -> 'seasonYear'), 'null')::int AS year,
   anilist.json ->> 'season' AS season,
   anilist.json ->> 'format' AS format,
-  files.episode,
   files.episode_start,
   files.episode_end,
   nullif((anilist.json -> 'episodes'), 'null')::int AS episodes,

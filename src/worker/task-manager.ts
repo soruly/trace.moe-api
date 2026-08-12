@@ -55,7 +55,6 @@ export default class TaskManager {
                 const { episode_start, episode_end } = parseEpisodeRange(aniep(path.basename(e)));
                 return {
                   anilist_id: Number(path.parse(e).dir),
-                  episode: episode_start,
                   episode_start,
                   episode_end,
                   path: e,
