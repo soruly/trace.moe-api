@@ -197,6 +197,14 @@ components:
                 oneOf:
                   - type: number
                   - type: string
+        episode_start:
+          type: number
+          nullable: true
+          description: The starting episode number covered by the file
+        episode_end:
+          type: number
+          nullable: true
+          description: The ending episode number covered by the file
         from:
           type: number
           description: Starting time of the matching scene (seconds)

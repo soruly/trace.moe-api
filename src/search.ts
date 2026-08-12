@@ -428,6 +428,8 @@ export default async (req, res) => {
       SELECT
         id,
         anilist_id,
+        episode_start,
+        episode_end,
         path,
         duration
       FROM
@@ -446,7 +448,8 @@ export default async (req, res) => {
     return rawResults
       .filter((e) => filesMap.has(e.file_id))
       .map(({ file_id, at, from, to, score }) => {
-        const { anilist_id, path, duration } = filesMap.get(file_id);
+        const fileRecord = filesMap.get(file_id);
+        const { anilist_id, path, duration, episode_start, episode_end } = fileRecord;
 
         const time = (at * 10000) | 0; // convert 4dp time code to integer
         const buf = Buffer.allocUnsafe(saltBuffer.length);
@@ -459,6 +462,8 @@ export default async (req, res) => {
           anilist: anilist_id,
           filename: path.split("/").pop(),
           episode: aniep(path.split("/").pop()),
+          episode_start: episode_start ?? null,
+          episode_end: episode_end ?? null,
           from: Number(from.toFixed(4)),
           at: Number(at.toFixed(4)),
           to: Number(to.toFixed(4)),

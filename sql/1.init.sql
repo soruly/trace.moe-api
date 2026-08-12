@@ -95,6 +95,8 @@ CREATE TABLE IF NOT EXISTS files (
   id serial PRIMARY KEY,
   anilist_id integer,
   episode smallint,
+  episode_start smallint,
+  episode_end smallint,
   path text NOT NULL,
   crc32 bigint,
   loaded boolean,
@@ -124,6 +126,12 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE INDEX IF NOT EXISTS files_anilist_id_idx ON files (anilist_id);
 
 CREATE INDEX IF NOT EXISTS files_episode_idx ON files (episode);
+
+CREATE INDEX IF NOT EXISTS files_episode_start_idx ON files (episode_start);
+
+CREATE INDEX IF NOT EXISTS files_episode_end_idx ON files (episode_end);
+
+CREATE INDEX IF NOT EXISTS files_anilist_ep_range_idx ON files (anilist_id, episode_start, episode_end);
 
 CREATE UNIQUE INDEX IF NOT EXISTS files_path_idx ON files (path);
 
@@ -167,6 +175,8 @@ SELECT
   anilist.json ->> 'season' AS season,
   anilist.json ->> 'format' AS format,
   files.episode,
+  files.episode_start,
+  files.episode_end,
   nullif((anilist.json -> 'episodes'), 'null')::int AS episodes,
   files.duration,
   files.path
@@ -329,4 +339,12 @@ CREATE TABLE IF NOT EXISTS webhook (
   created timestamp NOT NULL DEFAULT NOW(),
   source type_source NOT NULL,
   json jsonb NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS subtitles (
+  path text NOT NULL,
+  subtitles boolean NOT NULL,
+  created timestamp DEFAULT now() NOT NULL,
+  updated timestamp DEFAULT now() NOT NULL,
+  PRIMARY KEY (path)
 );

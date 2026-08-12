@@ -353,6 +353,8 @@ The recommended resolution is 640 x 360px. Higher resolution doesn't yield bette
       "anilist": 99939,
       "filename": "Nekopara - OVA (BD 1280x720 x264 AAC).mp4",
       "episode": null,
+      "episode_start": null,
+      "episode_end": null,
       "duration": 3486.4817,
       "from": 97.7226,
       "to": 98.8905,
@@ -373,18 +375,20 @@ The recommended resolution is 640 x 360px. Higher resolution doesn't yield bette
 | error      | Error message                        | string           |
 | result     | Search results (see table below)     | Array of Objects |
 
-| Fields     | Meaning                                        | Value                                             |
-| ---------- | ---------------------------------------------- | ------------------------------------------------- |
-| anilist    | The matching Anilist ID or Anilist info        | number or object                                  |
-| filename   | The filename of file where the match is found  | string                                            |
-| episode    | The extracted episode number from filename     | Refer to [aniep](https://github.com/soruly/aniep) |
-| duration   | Duration of the matching video (seconds)       | number                                            |
-| from       | Starting time of the matching scene (seconds)  | number (up to 4 decimal places)                   |
-| at         | Time of the matching frame (seconds)           | number (up to 4 decimal places)                   |
-| to         | Ending time of the matching scene (seconds)    | number (up to 4 decimal places)                   |
-| similarity | Similarity compared to the search image        | number (0 to 1)                                   |
-| video      | URL to the preview video of the matching scene | string                                            |
-| image      | URL to the preview image of the matching scene | string                                            |
+| Fields        | Meaning                                        | Value                                             |
+| ------------- | ---------------------------------------------- | ------------------------------------------------- |
+| anilist       | The matching Anilist ID or Anilist info        | number or object                                  |
+| filename      | The filename of file where the match is found  | string                                            |
+| episode       | The extracted episode number from filename     | Refer to [aniep](https://github.com/soruly/aniep) |
+| episode_start | The starting episode number covered by file    | number or null                                    |
+| episode_end   | The ending episode number covered by file      | number or null                                    |
+| duration      | Duration of the matching video (seconds)       | number                                            |
+| from          | Starting time of the matching scene (seconds)  | number (up to 4 decimal places)                   |
+| at            | Time of the matching frame (seconds)           | number (up to 4 decimal places)                   |
+| to            | Ending time of the matching scene (seconds)    | number (up to 4 decimal places)                   |
+| similarity    | Similarity compared to the search image        | number (0 to 1)                                   |
+| video         | URL to the preview video of the matching scene | string                                            |
+| image         | URL to the preview image of the matching scene | string                                            |
 
 - Results are sorted from most similar to least similar
 - Similarity lower than 90% are most likely incorrect results. It's up to you to judge what is a match and what is just visually similar.

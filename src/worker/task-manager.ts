@@ -6,6 +6,7 @@ import { Worker } from "node:worker_threads";
 import aniep from "aniep";
 
 import sql from "../../sql.ts";
+import { parseEpisodeRange } from "../lib/parse-episode.ts";
 
 const VIDEO_PATH = path.normalize(process.env.VIDEO_PATH);
 const MAX_WORKER = Number(process.env.MAX_WORKER) || 1;
@@ -50,11 +51,16 @@ export default class TaskManager {
         await sql`
           INSERT INTO
             files ${sql(
-              newFileList.slice(i, i + 10000).map((e) => ({
-                anilist_id: Number(path.parse(e).dir),
-                episode: Number(`${aniep(path.basename(e))}`.match(/^(\d+)$/)?.[1]) || null,
-                path: e,
-              })),
+              newFileList.slice(i, i + 10000).map((e) => {
+                const { episode_start, episode_end } = parseEpisodeRange(aniep(path.basename(e)));
+                return {
+                  anilist_id: Number(path.parse(e).dir),
+                  episode: episode_start,
+                  episode_start,
+                  episode_end,
+                  path: e,
+                };
+              }),
             )}
         `;
       }

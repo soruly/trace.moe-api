@@ -27,6 +27,8 @@ try {
       id,
       anilist_id,
       episode,
+      episode_start,
+      episode_end,
       path,
       crc32,
       created::text AS created,
@@ -87,6 +89,8 @@ try {
         const id = formatSqlValue(row.id);
         const anilistId = formatSqlValue(row.anilist_id);
         const episode = formatSqlValue(row.episode);
+        const episodeStart = formatSqlValue(row.episode_start);
+        const episodeEnd = formatSqlValue(row.episode_end);
         const path = formatSqlValue(row.path);
         const crc32 = formatSqlValue(row.crc32);
         const loaded = "NULL"; // Force loaded to NULL for local env
@@ -97,12 +101,12 @@ try {
         const sceneChanges = formatSqlValue(row.scene_changes, true);
         const colorLayout = formatSqlValue(row.color_layout, false, true);
 
-        return `(${id}, ${anilistId}, ${episode}, ${path}, ${crc32}, ${loaded}, ${created}, ${updated}, ${frameCount}, ${mediaInfo}, ${sceneChanges}, ${colorLayout})`;
+        return `(${id}, ${anilistId}, ${episode}, ${episodeStart}, ${episodeEnd}, ${path}, ${crc32}, ${loaded}, ${created}, ${updated}, ${frameCount}, ${mediaInfo}, ${sceneChanges}, ${colorLayout})`;
       })
       .join(",\n");
 
     lines.push(
-      `INSERT INTO files (id, anilist_id, episode, path, crc32, loaded, created, updated, frame_count, media_info, scene_changes, color_layout) VALUES\n${valuesSql}\nON CONFLICT (id) DO NOTHING;`,
+      `INSERT INTO files (id, anilist_id, episode, episode_start, episode_end, path, crc32, loaded, created, updated, frame_count, media_info, scene_changes, color_layout) VALUES\n${valuesSql}\nON CONFLICT (id) DO NOTHING;`,
     );
   }
 
