@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 import os from "node:os";
 import { performance } from "node:perf_hooks";
 
-import { MilvusClient } from "@zilliz/milvus2-sdk-node";
 import aniep from "aniep";
 
 import sql from "../sql.ts";
@@ -10,13 +9,7 @@ import colorLayout from "./lib/color-layout.ts";
 import prepareSearchImage from "./lib/prepare-search-image.ts";
 import safeFetch from "./lib/safe-fetch.ts";
 
-const {
-  TRACE_API_SALT,
-  SEARCH_QUEUE,
-  IMAGE_PROXY_URL = "",
-  MILVUS_ADDR,
-  MILVUS_TOKEN,
-} = process.env;
+const { TRACE_API_SALT, SEARCH_QUEUE, IMAGE_PROXY_URL = "" } = process.env;
 
 const TRUSTED_PROXY_HOSTS = new Set([
   // list of trusted hostnames to always fetch directly without proxy
@@ -31,8 +24,6 @@ const TRUSTED_PROXY_HOSTS = new Set([
 ]);
 
 const maxQueueSize = SEARCH_QUEUE ? Number(SEARCH_QUEUE) : os.availableParallelism();
-
-const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
 const logAndDequeue = async (
   locals,
@@ -363,7 +354,7 @@ export default async (req, res) => {
 
   const startTime = performance.now();
 
-  const searchResult = await milvus.search({
+  const searchResult = await locals.milvus.search({
     collection_name: "frame_color_layout",
     data: isMultiple ? vectors : vectors[0],
     limit: 1000,

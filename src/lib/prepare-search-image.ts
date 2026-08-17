@@ -5,6 +5,9 @@ import path from "node:path";
 
 import sharp from "sharp";
 
+sharp.cache(false); // disable libvips in-memory cache
+sharp.concurrency(1); // reduce threadpool arena allocation
+
 const resizeAndCropImage = async (imageBuffer: Buffer, cutBorders: boolean): Promise<any> => {
   const resizedImage = await sharp(imageBuffer)
     .resize({ width: 320, height: 320, fit: "inside" })

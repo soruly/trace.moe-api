@@ -15,7 +15,7 @@
   "type": "module",
   "main": "server.ts",
   "scripts": {
-    "start": "node server.ts",
+    "start": "node --max-old-space-size=512 server.ts",
     "oxfmt": "oxfmt",
     "prettier": "prettier",
     "format": "prettier --write \"**/*.*\"",

@@ -63,7 +63,8 @@ User=____
 Group=____
 WorkingDirectory=/home/____/project/trace.moe-api
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/node --dns-result-order=ipv6first /home/____/project/trace.moe-api/server.ts
+Environment=MALLOC_ARENA_MAX=2
+ExecStart=/usr/bin/node --dns-result-order=ipv6first --max-old-space-size=512 /home/____/project/trace.moe-api/server.ts
 Restart=always
 
 [Install]
