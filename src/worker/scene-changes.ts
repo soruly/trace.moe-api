@@ -15,12 +15,16 @@ const ffmpeg = child_process.spawn("ffmpeg", [
   "-nostats",
   "-y",
   "-i",
-  `${filePath}`,
-  "-filter_complex",
-  "select='gt(scene,0.2)',metadata=print",
+  filePath,
+  "-map",
+  "0:v:0",
   "-an",
-  "-vsync",
-  "vfr",
+  "-sn",
+  "-dn",
+  "-vf",
+  "select='gt(scene,0.2)',metadata=print",
+  "-fps_mode",
+  "passthrough",
   "-f",
   "null",
   "-",
@@ -29,11 +33,27 @@ const ffmpeg = child_process.spawn("ffmpeg", [
 os.setPriority(ffmpeg.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
 
 const list: [number, number][] = [];
+let stderrBuffer = "";
+let currentPtsTime: number | null = null;
+
 ffmpeg.stderr.on("data", (data) => {
-  const match = data.toString().match(/pts_time:(\d+\.\d+).*scene_score=(\d+\.\d+)/s);
-  if (!match) return;
-  const [_, pts_time, scene_score] = match;
-  list.push([Number(pts_time), Number(scene_score)]);
+  const str = data.toString();
+  if (str.includes("Error") || str.includes("error")) console.error(`[scene-changes][error] ${str}`);
+  stderrBuffer += str;
+  const lines = stderrBuffer.split("\n");
+  stderrBuffer = lines.pop() ?? "";
+
+  for (const line of lines) {
+    const ptsMatch = line.match(/pts_time:\s*(\d+\.?\d*)/);
+    if (ptsMatch) {
+      currentPtsTime = parseFloat(ptsMatch[1]);
+    }
+    const scoreMatch = line.match(/scene_score\s*=\s*(\d+\.?\d*)/);
+    if (scoreMatch && currentPtsTime !== null) {
+      list.push([currentPtsTime, parseFloat(scoreMatch[1])]);
+      currentPtsTime = null;
+    }
+  }
 });
 
 ffmpeg.on("close", async (code) => {
