@@ -49,13 +49,26 @@ components:
       allowEmptyValue: false
       schema:
         type: integer
+    period:
+      name: period
+      in: query
+      description: Group stats by minute (past 60 min), hour (past 72 hours), or day (past 60 days)
+      required: false
+      schema:
+        type: string
+        enum:
+          - minute
+          - hour
+          - day
   responses:
     User:
-      description: A user response
+      description: A user response or time-series usage logs
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/User"
+            oneOf:
+              - $ref: "#/components/schemas/User"
+              - $ref: "#/components/schemas/UserLogs"
     ErrorBadRequest:
       description: Image is malformed, or some params are incorrect
       content:
@@ -81,7 +94,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     ErrorNotFound:
-      description: The requested resourse is not found
+      description: The requested resource is not found
       content:
         application/json:
           schema:
@@ -156,9 +169,37 @@ components:
         - concurrency
         - quota
         - quotaUsed
+    UserLogs:
+      type: array
+      items:
+        type: object
+        properties:
+          time:
+            type: string
+            format: date-time
+          "200":
+            type: integer
+          "400":
+            type: integer
+          "402":
+            type: integer
+          "405":
+            type: integer
+          "500":
+            type: integer
+          "503":
+            type: integer
+          total:
+            type: integer
     SearchResult:
       type: object
       properties:
+        quota:
+          type: integer
+          description: Daily search quota you have
+        quotaUsed:
+          type: integer
+          description: Daily search quota you have used last 24 hours
         frameCount:
           type: integer
           description: frames compared for image search
@@ -167,9 +208,13 @@ components:
           description: Error message
         result:
           type: array
-          description: Search results
+          description: Search results (array of results, or array of arrays for batch vector searches)
           items:
-            $ref: "#/components/schemas/Result"
+            oneOf:
+              - $ref: "#/components/schemas/Result"
+              - type: array
+                items:
+                  $ref: "#/components/schemas/Result"
       required:
         - frameCount
         - error
@@ -277,6 +322,39 @@ components:
         - isAdult
         - synonyms
         - title
+    SystemStatus:
+      type: object
+      properties:
+        updated:
+          type: string
+          format: date-time
+        rowCount:
+          type: integer
+          description: Total vector rows in Milvus collection
+        memory:
+          type: integer
+          description: Total system memory (bytes)
+        memoryUsage:
+          type: integer
+          description: Used system memory (bytes)
+        storage:
+          type: integer
+          description: Total disk space (bytes)
+        storageFree:
+          type: integer
+          description: Free disk space (bytes)
+        storageAvailable:
+          type: integer
+          description: Available disk space (bytes)
+        mediaCount:
+          type: integer
+          description: Total media files
+        mediaFramesTotal:
+          type: integer
+          description: Total indexed video frames
+        mediaDurationTotal:
+          type: number
+          description: Total indexed video duration in seconds
 
 security:
   - ApiKeyInHeader: []
@@ -320,7 +398,7 @@ paths:
 
   /search:
     get:
-      summary: Get search result of an anime screeshot
+      summary: Get search result of an anime screenshot
       parameters:
         - $ref: "#/components/parameters/anilistInfo"
         - $ref: "#/components/parameters/cutBorders"
@@ -348,7 +426,7 @@ paths:
         "504":
           $ref: "#/components/responses/ErrorGatewayTimeout"
     post:
-      summary: Get search result of an anime screeshot
+      summary: Get search result of an anime screenshot
       parameters:
         - $ref: "#/components/parameters/anilistInfo"
         - $ref: "#/components/parameters/cutBorders"
@@ -362,6 +440,42 @@ paths:
                 image:
                   type: string
                   format: binary
+          application/json:
+            schema:
+              type: object
+              properties:
+                vector:
+                  description: A 33-element color layout vector array, base64 encoded string, or an array of up to 10 vectors
+                  oneOf:
+                    - type: array
+                      items:
+                        type: integer
+                    - type: string
+                    - type: array
+                      items:
+                        oneOf:
+                          - type: array
+                            items:
+                              type: integer
+                          - type: string
+              required:
+                - vector
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/*:
+            schema:
+              type: string
+              format: binary
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
       responses:
         "200":
           $ref: "#/components/responses/Success"
@@ -386,7 +500,9 @@ paths:
 
   /me:
     get:
-      summary: Get info about your account
+      summary: Get info about your account or usage history
+      parameters:
+        - $ref: "#/components/parameters/period"
       responses:
         "200":
           $ref: "#/components/responses/User"
@@ -398,5 +514,332 @@ paths:
           $ref: "#/components/responses/ErrorNotFound"
         "405":
           $ref: "#/components/responses/ErrorMethodNotAllowed"
+        "429":
+          $ref: "#/components/responses/ErrorTooManyRequests"
+
+  /status:
+    get:
+      summary: Get system status metrics or list of indexed file paths for an anilist ID
+      parameters:
+        - name: id
+          in: query
+          required: false
+          description: Anilist ID to list indexed files for
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: System status metrics or file path list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/SystemStatus"
+                  - type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+        "400":
+          $ref: "#/components/responses/ErrorBadRequest"
+        "500":
+          $ref: "#/components/responses/ErrorInternalServerError"
+
+  /stats:
+    get:
+      summary: Get aggregated system metrics (traffic, speed/latency percentiles, accuracy)
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: Type of metric
+          schema:
+            type: string
+            enum:
+              - traffic
+              - speed
+              - accuracy
+        - name: period
+          in: query
+          required: true
+          description: Aggregation period
+          schema:
+            type: string
+            enum:
+              - minute
+              - hour
+              - day
+      responses:
+        "200":
+          description: System statistics time-series data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "400":
+          $ref: "#/components/responses/ErrorBadRequest"
+        "500":
+          $ref: "#/components/responses/ErrorInternalServerError"
+
+  /image/{id}:
+    get:
+      summary: Get scene preview image by hash ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Encoded preview ID from search result
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          description: "Image size: s (160px), m (320px), l (640px)"
+          schema:
+            type: string
+            enum:
+              - s
+              - m
+              - l
+            default: m
+      responses:
+        "200":
+          description: Preview image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            image/jxl:
+              schema:
+                type: string
+                format: binary
+        "304":
+          description: Not Modified
+        "400":
+          $ref: "#/components/responses/ErrorBadRequest"
+        "403":
+          $ref: "#/components/responses/ErrorForbidden"
+        "404":
+          $ref: "#/components/responses/ErrorNotFound"
+        "410":
+          description: Preview link has expired
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          $ref: "#/components/responses/ErrorInternalServerError"
+        "503":
+          $ref: "#/components/responses/ErrorServiceUnavailable"
+
+  /video/{id}:
+    get:
+      summary: Get scene preview video clip by hash ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Encoded preview ID from search result
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          description: "Video size: s (160px), m (320px), l (640px)"
+          schema:
+            type: string
+            enum:
+              - s
+              - m
+              - l
+            default: m
+        - name: minDuration
+          in: query
+          required: false
+          description: Minimum scene duration in seconds (0.5 to 2.0)
+          schema:
+            type: number
+            default: 0.5
+        - name: maxDuration
+          in: query
+          required: false
+          description: Maximum scene duration in seconds (0.5 to 5.0)
+          schema:
+            type: number
+            default: 5.0
+        - name: mute
+          in: query
+          required: false
+          allowEmptyValue: true
+          description: Mute audio track
+          schema:
+            type: string
+            pattern: ^$
+      responses:
+        "200":
+          description: Preview video MP4
+          headers:
+            x-video-start:
+              description: Start time of scene
+              schema:
+                type: number
+            x-video-end:
+              description: End time of scene
+              schema:
+                type: number
+            x-video-duration:
+              description: Duration of scene
+              schema:
+                type: number
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        "304":
+          description: Not Modified
+        "400":
+          $ref: "#/components/responses/ErrorBadRequest"
+        "403":
+          $ref: "#/components/responses/ErrorForbidden"
+        "404":
+          $ref: "#/components/responses/ErrorNotFound"
+        "410":
+          description: Preview link has expired
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          $ref: "#/components/responses/ErrorInternalServerError"
+        "503":
+          $ref: "#/components/responses/ErrorServiceUnavailable"
+
+  /user/login:
+    post:
+      summary: User login to retrieve API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    description: User API key
+        "403":
+          $ref: "#/components/responses/ErrorForbidden"
+        "429":
+          $ref: "#/components/responses/ErrorTooManyRequests"
+
+  /user/create:
+    post:
+      summary: Admin endpoint to create a new user
+      security:
+        - ApiKeyInHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - tier
+              properties:
+                email:
+                  type: string
+                  format: email
+                tier:
+                  type: integer
+                  description: User tier ID
+      responses:
+        "200":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/ErrorBadRequest"
+        "403":
+          $ref: "#/components/responses/ErrorForbidden"
+        "429":
+          $ref: "#/components/responses/ErrorTooManyRequests"
+
+  /user/reset-key:
+    post:
+      summary: Regenerate API key for the authenticated user
+      security:
+        - ApiKeyInHeader: []
+      responses:
+        "200":
+          description: New API key generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    description: Newly generated API key
+        "403":
+          $ref: "#/components/responses/ErrorForbidden"
+        "429":
+          $ref: "#/components/responses/ErrorTooManyRequests"
+
+  /user/reset-password:
+    post:
+      summary: Change password for the authenticated user
+      security:
+        - ApiKeyInHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Password updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/ErrorBadRequest"
+        "403":
+          $ref: "#/components/responses/ErrorForbidden"
         "429":
           $ref: "#/components/responses/ErrorTooManyRequests"

@@ -510,23 +510,30 @@ Example Quota Depleted response
 
 The url you obtained from `image` and `video` from search result would expire in 300 seconds (5 minutes)
 
-It can generate image or video preview of 3 sizes by appending `size=l` (large), `size=m` (medium, default) or `size=s` (small) at the end of the url. e.g.
+#### Image Preview (`/image/{id}`)
+
+It can generate image preview of 3 sizes by appending `size=l` (large, 640px), `size=m` (medium, 320px, default) or `size=s` (small, 160px) at the end of the url. e.g.
 
 ```
 https://api.trace.moe/image/s5ev1nvsjMo9dIteUKim6Gj?size=l
-https://api.trace.moe/video/s5ev1nvsjMo9dIteUKim6Gj?size=l
 ```
 
-Supported image formats are jxl, webp, and jpeg, which are decided by web browsers through the HTTP Accept header, with a fallback to jpeg as the default.
+Supported image formats are `jxl`, `webp`, and `jpeg`, which are decided by web browsers through the HTTP `Accept` header, with a fallback to `jpeg` as default.
 
-For video preview, it can generate a video with sound (default), or a muted video by appending `mute` to the end of url. e.g.
+#### Video Preview (`/video/{id}`)
+
+For video preview, it can generate a video with sound (default), or a muted video by appending `mute` to the query string. You can also adjust the scene duration range using `minDuration` (0.5s to 2.0s, default 0.5) and `maxDuration` (0.5s to 5.0s, default 5.0). e.g.
 
 ```
 https://api.trace.moe/video/s5ev1nvsjMo9dIteUKim6Gj?mute
-https://api.trace.moe/video/s5ev1nvsjMo9dIteUKim6Gj?size=l&mute
+https://api.trace.moe/video/s5ev1nvsjMo9dIteUKim6Gj?size=l&mute&minDuration=1&maxDuration=4
 ```
 
-It would detect boundaries of the scene and cut videos at the boundaries. You cannot specify the length of video preview.
+The video response also includes custom HTTP headers indicating scene bounds:
+
+- `x-video-start`: Start time of the detected scene in seconds
+- `x-video-end`: End time of the detected scene in seconds
+- `x-video-duration`: Total duration of the preview video in seconds
 
 > Do not attempt to parse and modify the urls except documented above. The urls are not permanent and may change without notice.
 
@@ -593,6 +600,115 @@ Example Response
 | concurrency | Number of parallel search requests you can make | number             |
 | quota       | Max quota you can use every 24 hours            | number             |
 | quotaUsed   | Quota you have used in last 24 hours            | number             |
+
+### Usage History
+
+You can query your search history broken down by time period by adding `?period=minute` (past 60 minutes), `?period=hour` (past 72 hours), or `?period=day` (past 60 days).
+
+```bash
+curl "https://api.trace.moe/me?period=hour"
+```
+
+Example Response:
+
+```json
+[
+  {
+    "time": "2026-08-21T12:00:00.000Z",
+    "200": 24,
+    "400": 1,
+    "402": 0,
+    "405": 0,
+    "500": 0,
+    "503": 0,
+    "total": 25
+  }
+]
+```
+
+## /anilist (Unofficial)
+
+Search anime entries and metadata by title or synonym query.
+
+<!-- tabs:start -->
+
+#### **cURL**
+
+```bash
+curl "https://api.trace.moe/anilist?q=Cowboy%20Bebop"
+```
+
+#### **javascript**
+
+```javascript
+await fetch("https://api.trace.moe/anilist?q=Cowboy%20Bebop").then((e) => e.json());
+```
+
+<!-- tabs:end -->
+
+Example Response:
+
+```json
+[
+  {
+    "id": 1,
+    "title": "Cowboy Bebop",
+    "similarity": 1,
+    "anilist": {
+      "id": 1,
+      "idMal": 1,
+      "title": {
+        "native": "カウボーイビバップ",
+        "romaji": "Cowboy Bebop",
+        "english": "Cowboy Bebop"
+      },
+      "synonyms": [],
+      "isAdult": false
+    }
+  }
+]
+```
+
+## /status (Unofficial)
+
+Get server index status, total frame counts, Milvus vector row counts, memory and disk usage.
+
+```bash
+curl "https://api.trace.moe/status"
+```
+
+Example Response:
+
+```json
+{
+  "updated": "2026-08-21T05:00:00.000Z",
+  "rowCount": 52314500,
+  "memory": 67108864000,
+  "memoryUsage": 34108864000,
+  "storage": 2000398934016,
+  "storageFree": 823485002496,
+  "storageAvailable": 723485002496,
+  "mediaCount": 18240,
+  "mediaFramesTotal": 52314500,
+  "mediaDurationTotal": 2092580
+}
+```
+
+You can also list all indexed files for a specific Anilist ID by appending `?id={anilist_id}`:
+
+```bash
+curl "https://api.trace.moe/status?id=1"
+```
+
+## /stats (Unofficial)
+
+Query system-wide metrics over time (`traffic`, `speed` latency percentiles, or `accuracy`). Requires `type` and `period` (`minute`, `hour`, `day`).
+
+```bash
+curl "https://api.trace.moe/stats?type=traffic&period=hour"
+curl "https://api.trace.moe/stats?type=speed&period=day"
+curl "https://api.trace.moe/stats?type=accuracy&period=day"
+```
 
 ## Using the API with API Keys
 
