@@ -74,6 +74,24 @@ try {
     WHERE
       id = ${id}
   `;
+
+  if (TELEGRAM_ID && TELEGRAM_URL) {
+    fetch(TELEGRAM_URL, {
+      method: "POST",
+      body: new URLSearchParams([
+        ["chat_id", TELEGRAM_ID],
+        ["parse_mode", "Markdown"],
+        ["text", "`" + path.basename(filePath) + "`"],
+      ]),
+    });
+  }
+
+  if (DISCORD_URL) {
+    fetch(DISCORD_URL, {
+      method: "POST",
+      body: new URLSearchParams([["content", path.basename(filePath)]]),
+    });
+  }
 } catch (error) {
   console.error(`[milvus-load][error] ${error}`);
   await sql`
@@ -90,21 +108,3 @@ await milvus.closeConnection();
 await sql.end();
 
 console.info(`[milvus-load][done]  ${filePath}`);
-
-if (TELEGRAM_ID && TELEGRAM_URL) {
-  fetch(TELEGRAM_URL, {
-    method: "POST",
-    body: new URLSearchParams([
-      ["chat_id", TELEGRAM_ID],
-      ["parse_mode", "Markdown"],
-      ["text", "`" + path.basename(filePath) + "`"],
-    ]),
-  });
-}
-
-if (DISCORD_URL) {
-  fetch(DISCORD_URL, {
-    method: "POST",
-    body: new URLSearchParams([["content", path.basename(filePath)]]),
-  });
-}
