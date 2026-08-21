@@ -1,0 +1,17 @@
+quotaAndLimits:
+  enabled: false
+  limitWriting:
+    memProtection:
+      enabled: false
+      dataNodeMemoryLowWaterLevel: 0.99
+      dataNodeMemoryHighWaterLevel: 1.0
+      queryNodeMemoryLowWaterLevel: 0.99
+      queryNodeMemoryHighWaterLevel: 1.0
+    diskProtection:
+      enabled: false
+      diskQuota: -1
+    forceDeny:
+      reading: false
+      writing: false
+    ttProtection:
+      enabled: false
