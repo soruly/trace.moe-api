@@ -142,3 +142,45 @@ const server = app.listen(SERVER_PORT, SERVER_ADDR, () => {
     app.locals.taskManager.runScanTask(scanInterval).catch(console.error);
   }
 });
+
+let isShuttingDown = false;
+
+const shutdown = async (signal: string) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`Received ${signal}, shutting down gracefully...`);
+
+  const forceExitTimeout = setTimeout(() => {
+    console.error("Shutdown timed out after 10s, forcing exit.");
+    process.exit(1);
+  }, 10000);
+  forceExitTimeout.unref();
+
+  server.closeIdleConnections?.();
+
+  server.close(async (err) => {
+    if (err) {
+      console.error("Error closing HTTP server:", err);
+    }
+
+    try {
+      console.log("Closing Milvus connection...");
+      await milvus.closeConnection();
+    } catch (milvusErr) {
+      console.error("Error closing Milvus connection:", milvusErr);
+    }
+
+    try {
+      console.log("Closing database connection...");
+      await sql.end({ timeout: 5 });
+    } catch (sqlErr) {
+      console.error("Error closing PostgreSQL connection:", sqlErr);
+    }
+
+    console.log("Graceful shutdown completed.");
+    process.exit(0);
+  });
+};
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
