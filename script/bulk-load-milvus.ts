@@ -116,10 +116,15 @@ try {
       try {
         for (let i = 0; i < batchData.length; i += MAX_VECTORS_PER_INSERT) {
           const chunk = batchData.slice(i, i + MAX_VECTORS_PER_INSERT);
-          await milvus.insert({
+          const result = await milvus.insert({
             collection_name: "frame_color_layout",
             data: chunk,
           });
+          if (result?.status?.error_code && result.status.error_code !== "Success") {
+            throw new Error(
+              result.status.reason || result.status.detail || `Milvus error: ${result.status.error_code}`,
+            );
+          }
         }
 
         await sql`
