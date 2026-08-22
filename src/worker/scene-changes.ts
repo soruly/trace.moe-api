@@ -38,7 +38,8 @@ let currentPtsTime: number | null = null;
 
 ffmpeg.stderr.on("data", (data) => {
   const str = data.toString();
-  if (str.includes("Error") || str.includes("error")) console.error(`[scene-changes][error] ${str}`);
+  if (str.includes("Error") || str.includes("error"))
+    console.error(`[scene-changes][error] ${str}`);
   stderrBuffer += str;
   const lines = stderrBuffer.split("\n");
   stderrBuffer = lines.pop() ?? "";
