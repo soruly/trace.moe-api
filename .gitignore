@@ -62,3 +62,9 @@ typings/
 
 # sqlite db file
 db/
+
+# Native build artifacts
+*.o
+trace-moe-colorlayout
+trace-moe-colorlayout.exe
+*.dSYM/

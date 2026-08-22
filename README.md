@@ -18,6 +18,7 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 - serve index and database status
 - store and serve compressed hash files
 - distribute hash jobs to workers
+- high-performance native C media extractor on Linux (with automatic JavaScript fallback)
 
 ### Prerequisites
 
@@ -26,15 +27,19 @@ API server for [trace.moe](https://github.com/soruly/trace.moe)
 - Milvus 3.0.0+
 - FFmpeg
 - Docker
+- _(Optional for Linux native extractor)_: `gcc`, `make`, `pkg-config`, `libavcodec-dev`, `libavformat-dev`, `libswscale-dev`, `libavutil-dev`, `libzstd-dev` (or `ffmpeg-devel` / `libzstd-devel` on Fedora, `ffmpeg` / `zstd` on Arch)
 
 ### Install
 
 Install Prerequisites first, then:
 
-```
+```bash
 git clone https://github.com/soruly/trace.moe-api.git
 cd trace.moe-api
 npm install
+
+# (Optional on Linux) Compile high-performance native extractor
+npm run build:native
 ```
 
 ### Getting Started
@@ -52,7 +57,7 @@ On every start, it will scan the `VIDEO_PATH` for new video files (.mp4, .mkv, o
 
 Put this file to `/etc/systemd/system/trace.moe-api.service`
 
-```
+```ini
 [Unit]
 Description=trace.moe-api
 Wants=network-online.target

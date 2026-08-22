@@ -1,4 +1,6 @@
 import { exec } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
@@ -29,5 +31,26 @@ async function checkFfmpegTools(): Promise<boolean> {
       "Install FFmpeg and ensure both 'ffmpeg' and 'ffprobe' are accessible from your terminal.",
     );
     process.exit(1);
+  }
+
+  if (process.platform === "linux") {
+    const nativeBinaryPath = path.resolve(import.meta.dirname, "trace-moe-colorlayout");
+    if (!fs.existsSync(nativeBinaryPath)) {
+      console.info("[dependency-check] Note: Native 'trace-moe-colorlayout' binary not found.");
+      console.info("[dependency-check] Running in JavaScript fallback mode.");
+      console.info(
+        "[dependency-check] To enable high-performance native extraction, run 'make' after installing dev packages:",
+      );
+      console.info(
+        "  - Fedora:        sudo dnf install gcc make pkgconf-pkg-config ffmpeg-devel libzstd-devel",
+      );
+      console.info("  - Arch Linux:    sudo pacman -S gcc make pkgconf ffmpeg zstd");
+      console.info(
+        "  - Debian/Ubuntu: sudo apt install gcc make pkg-config libavcodec-dev libavformat-dev libswscale-dev libavutil-dev libzstd-dev",
+      );
+      console.info();
+    } else {
+      console.info("[dependency-check] Native 'trace-moe-colorlayout' binary is available.");
+    }
   }
 }

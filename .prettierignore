@@ -6,3 +6,5 @@ docs/.nojekyll
 .prettierignore
 .dockerignore
 .nvmrc
+*.c
+*.h

@@ -1,5 +1,7 @@
 import child_process from "node:child_process";
+import fs from "node:fs";
 import os from "node:os";
+import path from "node:path";
 import { promisify } from "node:util";
 import { workerData } from "node:worker_threads";
 import zlib from "node:zlib";
@@ -13,84 +15,133 @@ const { id, filePath } = workerData;
 
 console.info(`[color-layout][doing] ${filePath}`);
 
-interface FrameData {
-  time: number;
-  vector: number[];
-}
+const nativeBinaryPath = path.resolve(import.meta.dirname, "../../trace-moe-colorlayout");
+const useNative = process.platform === "linux" && fs.existsSync(nativeBinaryPath);
 
-const frameData: FrameData[] = [];
+if (useNative) {
+  // Native C extractor on Linux
+  const stdoutChunks: Buffer[] = [];
+  let frameCount = 0;
 
-const VIDEO_WIDTH = 320;
-const VIDEO_HEIGHT = 180;
-const FRAME_SIZE = VIDEO_WIDTH * VIDEO_HEIGHT * 3; // RGB
+  const extractor = child_process.spawn(nativeBinaryPath, [filePath]);
+  os.setPriority(extractor.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
 
-let stdoutBuffer = Buffer.alloc(0);
-const timeCodes: number[] = [];
+  extractor.stdout.on("data", (chunk: Buffer) => {
+    stdoutChunks.push(chunk);
+  });
 
-const processFrames = () => {
-  while (stdoutBuffer.length >= FRAME_SIZE && timeCodes.length > 0) {
-    const frameBuffer = stdoutBuffer.subarray(0, FRAME_SIZE);
-    stdoutBuffer = stdoutBuffer.subarray(FRAME_SIZE);
-    frameData.push({
-      time: timeCodes.shift(),
-      vector: colorLayout(frameBuffer, VIDEO_WIDTH, VIDEO_HEIGHT),
-    });
+  extractor.stderr.on("data", (data: Buffer) => {
+    const str = data.toString();
+    if (str.includes("Error") || str.includes("error")) {
+      console.error(`[color-layout][error] ${str}`);
+    }
+    const match = str.match(/frames:\s*(\d+)/);
+    if (match) {
+      frameCount = parseInt(match[1], 10);
+    }
+  });
+
+  extractor.on("close", async (code) => {
+    if (code !== 0) console.error(`[color-layout][error] extractor exited with code ${code}`);
+
+    const compressedBuffer = code === 0 ? Buffer.concat(stdoutChunks) : Buffer.alloc(0);
+
+    await sql`
+      UPDATE files
+      SET
+        updated = now(),
+        frame_count = ${code === 0 ? frameCount : 0},
+        color_layout = ${compressedBuffer}
+      WHERE
+        id = ${id}
+    `;
+
+    await sql.end();
+
+    console.info(`[color-layout][done]  ${filePath}`);
+  });
+} else {
+  // Fallback: FFmpeg + JavaScript implementation (macOS / Windows / non-compiled environments)
+  interface FrameData {
+    time: number;
+    vector: number[];
   }
-};
 
-const ffmpeg = child_process.spawn("ffmpeg", [
-  "-hide_banner",
-  "-loglevel",
-  "info",
-  "-nostats",
-  "-i",
-  filePath,
-  "-fps_mode",
-  "passthrough",
-  "-an",
-  "-vf",
-  `scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT},showinfo`,
-  "-c:v",
-  "rawvideo",
-  "-f",
-  "rawvideo",
-  "-pix_fmt",
-  "rgb24",
-  "-",
-]);
+  const frameData: FrameData[] = [];
 
-os.setPriority(ffmpeg.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
+  const VIDEO_WIDTH = 320;
+  const VIDEO_HEIGHT = 180;
+  const FRAME_SIZE = VIDEO_WIDTH * VIDEO_HEIGHT * 3; // RGB
 
-ffmpeg.stdout.on("data", (data) => {
-  stdoutBuffer = Buffer.concat([stdoutBuffer, data]);
-  processFrames();
-});
+  let stdoutBuffer = Buffer.alloc(0);
+  const timeCodes: number[] = [];
 
-ffmpeg.stderr.on("data", (data) => {
-  const str = data.toString();
-  if (str.includes("Error") || str.includes("error")) console.error(`[color-layout][error] ${str}`);
-  let match;
-  const timecodeRegex = /pts_time:\s*(\d+\.?\d*)/g;
-  while ((match = timecodeRegex.exec(str))) timeCodes.push(parseFloat(match[1]));
-  processFrames();
-});
+  const processFrames = () => {
+    while (stdoutBuffer.length >= FRAME_SIZE && timeCodes.length > 0) {
+      const frameBuffer = stdoutBuffer.subarray(0, FRAME_SIZE);
+      stdoutBuffer = stdoutBuffer.subarray(FRAME_SIZE);
+      frameData.push({
+        time: timeCodes.shift(),
+        vector: colorLayout(frameBuffer, VIDEO_WIDTH, VIDEO_HEIGHT),
+      });
+    }
+  };
 
-ffmpeg.on("close", async (code) => {
-  if (code !== 0) console.error(`[color-layout][error] ffmpeg exited with code ${code}`);
+  const ffmpeg = child_process.spawn("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "info",
+    "-nostats",
+    "-i",
+    filePath,
+    "-fps_mode",
+    "passthrough",
+    "-an",
+    "-vf",
+    `scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT},showinfo`,
+    "-c:v",
+    "rawvideo",
+    "-f",
+    "rawvideo",
+    "-pix_fmt",
+    "rgb24",
+    "-",
+  ]);
 
-  await sql`
-    UPDATE files
-    SET
-      updated = now(),
-      frame_count = ${code === 0 ? frameData.length : 0},
-      color_layout = ${await zstdCompress(JSON.stringify(code === 0 ? frameData : []), {
-        params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
-      })}
-    WHERE
-      id = ${id}
-  `;
+  os.setPriority(ffmpeg.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
 
-  await sql.end();
+  ffmpeg.stdout.on("data", (data) => {
+    stdoutBuffer = Buffer.concat([stdoutBuffer, data]);
+    processFrames();
+  });
 
-  console.info(`[color-layout][done]  ${filePath}`);
-});
+  ffmpeg.stderr.on("data", (data) => {
+    const str = data.toString();
+    if (str.includes("Error") || str.includes("error"))
+      console.error(`[color-layout][error] ${str}`);
+    let match;
+    const timecodeRegex = /pts_time:\s*(\d+\.?\d*)/g;
+    while ((match = timecodeRegex.exec(str))) timeCodes.push(parseFloat(match[1]));
+    processFrames();
+  });
+
+  ffmpeg.on("close", async (code) => {
+    if (code !== 0) console.error(`[color-layout][error] ffmpeg exited with code ${code}`);
+
+    await sql`
+      UPDATE files
+      SET
+        updated = now(),
+        frame_count = ${code === 0 ? frameData.length : 0},
+        color_layout = ${await zstdCompress(JSON.stringify(code === 0 ? frameData : []), {
+          params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
+        })}
+      WHERE
+        id = ${id}
+    `;
+
+    await sql.end();
+
+    console.info(`[color-layout][done]  ${filePath}`);
+  });
+}
