@@ -15,3 +15,21 @@ quotaAndLimits:
       writing: false
     ttProtection:
       enabled: false
+
+streaming:
+  flush:
+    memoryThreshold: 0.99
+    growingSegmentBytesHwmThreshold: 0.99
+    growingSegmentBytesLwmThreshold: 0.95
+  walWriteAheadBuffer:
+    capacity: 512m
+    keepalive: 60s
+  walReadAheadBuffer:
+    length: 1024
+
+woodpecker:
+  client:
+    segmentAppend:
+      queueSize: 100000
+      maxRetries: 10
+
