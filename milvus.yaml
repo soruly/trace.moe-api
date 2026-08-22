@@ -1,35 +1,46 @@
+# Disable proxy-level quotas and resource-protection limits to allow unrestricted ingestion and queries
 quotaAndLimits:
+  # Master switch for Quota Center (disables artificial DML MB/s and DQL QPS caps)
   enabled: false
   limitWriting:
+    # Memory protection: prevent Milvus from throttling (low watermark: default 85%)
+    # or rejecting writes (high watermark: default 95%) on servers with large RAM
     memProtection:
       enabled: false
       dataNodeMemoryLowWaterLevel: 0.99
       dataNodeMemoryHighWaterLevel: 1.0
       queryNodeMemoryLowWaterLevel: 0.99
       queryNodeMemoryHighWaterLevel: 1.0
+    # Disk protection: disable artificial storage cap (-1 = unlimited, bound only by physical disk)
     diskProtection:
       enabled: false
       diskQuota: -1
+    # Manual emergency lockdown: keep false to allow normal read & write operations
     forceDeny:
       reading: false
       writing: false
+    # Time-tick lag protection: disable write rejection when background flush/sync is temporarily lagging
     ttProtection:
       enabled: false
 
+# Milvus 3.0 Streaming WAL / backpressure tuning
+# Prevents "reach the limit of request ... rate limit exceeded[rate=0]" errors
+# caused by default conservative memory (60%) and growing segment (20%) thresholds
 streaming:
   flush:
     memoryThreshold: 0.99
     growingSegmentBytesHwmThreshold: 0.99
     growingSegmentBytesLwmThreshold: 0.95
+  # Expand WAL buffers to accommodate large batch ingestion without blocking
   walWriteAheadBuffer:
     capacity: 512m
     keepalive: 60s
   walReadAheadBuffer:
     length: 1024
 
+# Woodpecker WAL client queue and retry limits for high-concurrency writes
 woodpecker:
   client:
     segmentAppend:
       queueSize: 100000
       maxRetries: 10
-
