@@ -26,16 +26,27 @@ for (const row of rows) {
   } catch {
     console.log(row.path);
 
-    await milvus.delete({
-      collection_name: "frame_color_layout",
-      filter: `file_id == ${row.id}`,
-    });
+    try {
+      const result = await milvus.delete({
+        collection_name: "frame_color_layout",
+        filter: `file_id == ${row.id}`,
+      });
+      if (result?.status?.error_code && result.status.error_code !== "Success") {
+        throw new Error(
+          result.status.reason ||
+            result.status.detail ||
+            `Milvus error: ${result.status.error_code}`,
+        );
+      }
 
-    await sql`
-      DELETE FROM files
-      WHERE
-        id = ${row.id}
-    `;
+      await sql`
+        DELETE FROM files
+        WHERE
+          id = ${row.id}
+      `;
+    } catch (milvusErr) {
+      console.error(`Failed to delete vectors for file ID ${row.id} from Milvus:`, milvusErr);
+    }
   }
 }
 

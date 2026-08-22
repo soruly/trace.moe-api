@@ -122,7 +122,9 @@ try {
           });
           if (result?.status?.error_code && result.status.error_code !== "Success") {
             throw new Error(
-              result.status.reason || result.status.detail || `Milvus error: ${result.status.error_code}`,
+              result.status.reason ||
+                result.status.detail ||
+                `Milvus error: ${result.status.error_code}`,
             );
           }
         }

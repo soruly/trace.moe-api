@@ -54,23 +54,42 @@ export default async (req, res) => {
     lastUpdate = row.updated;
   }
 
-  const collectionStatistics = await req.app.locals.milvus.getCollectionStatistics({
-    collection_name: "frame_color_layout",
-  });
+  let rowCount = 0;
+  let memory = 0;
+  let memoryUsage = 0;
 
-  const metric = await req.app.locals.milvus.getMetric({
-    request: {
-      metric_type: "system_info",
-    },
-  });
+  try {
+    const collectionStatistics = await req.app.locals.milvus.getCollectionStatistics({
+      collection_name: "frame_color_layout",
+    });
+    if (collectionStatistics?.data?.row_count) {
+      rowCount = Number(collectionStatistics.data.row_count);
+    }
+  } catch (err) {
+    console.error("[get-status] Failed to get Milvus collection statistics:", err);
+  }
+
+  try {
+    const metric = await req.app.locals.milvus.getMetric({
+      request: {
+        metric_type: "system_info",
+      },
+    });
+    if (metric?.response?.nodes_info?.[0]?.infos?.hardware_infos) {
+      memory = metric.response.nodes_info[0].infos.hardware_infos.memory ?? 0;
+      memoryUsage = metric.response.nodes_info[0].infos.hardware_infos.memory_usage ?? 0;
+    }
+  } catch (err) {
+    console.error("[get-status] Failed to get Milvus metrics:", err);
+  }
 
   const stats = await fs.statfs(process.env.VIDEO_PATH);
 
   return res.json({
     updated: row.updated,
-    rowCount: Number(collectionStatistics.data.row_count),
-    memory: metric.response.nodes_info[0].infos.hardware_infos.memory,
-    memoryUsage: metric.response.nodes_info[0].infos.hardware_infos.memory_usage,
+    rowCount,
+    memory,
+    memoryUsage,
     storage: Number(stats.blocks * stats.bsize),
     storageFree: Number(stats.bfree * stats.bsize),
     storageAvailable: Number(stats.bavail * stats.bsize),

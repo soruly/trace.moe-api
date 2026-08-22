@@ -60,14 +60,17 @@ if (process.argv.slice(2).includes("--enable")) {
   console.log("Enable: (default) use less memory but slower query speed");
   console.log("Disable: store everything in memory for faster query speed");
   console.log();
-  console.log(
-    "Current setting:",
-    (
-      await milvus.describeCollection({
-        collection_name: "frame_color_layout",
-      })
-    ).properties.find((prop) => prop.key === "mmap.enabled"),
-  );
+  const desc = await milvus.describeCollection({
+    collection_name: "frame_color_layout",
+  });
+  if (desc?.status?.error_code && desc.status.error_code !== "Success") {
+    console.error("Failed to describe collection:", desc.status.reason || desc.status.error_code);
+  } else {
+    console.log(
+      "Current setting:",
+      desc.properties?.find((prop) => prop.key === "mmap.enabled"),
+    );
+  }
 }
 
 await milvus.closeConnection();

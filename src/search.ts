@@ -353,16 +353,34 @@ export default async (req, res) => {
   }
 
   const startTime = performance.now();
+  let searchResult;
+  let searchTime = 0;
 
-  const searchResult = await locals.milvus.search({
-    collection_name: "frame_color_layout",
-    data: isMultiple ? vectors : vectors[0],
-    limit: 1000,
-    expr,
-    exprValues,
-    output_fields: ["file_id", "time"],
-  });
-  const searchTime = (performance.now() - startTime) | 0;
+  try {
+    searchResult = await locals.milvus.search({
+      collection_name: "frame_color_layout",
+      data: isMultiple ? vectors : vectors[0],
+      limit: 1000,
+      expr,
+      exprValues,
+      output_fields: ["file_id", "time"],
+    });
+    searchTime = (performance.now() - startTime) | 0;
+
+    if (searchResult?.status?.error_code && searchResult.status.error_code !== "Success") {
+      throw new Error(
+        searchResult.status.reason ||
+          searchResult.status.detail ||
+          `Milvus error: ${searchResult.status.error_code}`,
+      );
+    }
+  } catch (searchError) {
+    console.error("[search] Milvus search failed:", searchError);
+    await logAndDequeue(locals, req.ip, userId, concurrentId, priority, 500);
+    return res.status(500).json({
+      error: "Search failed. Database temporarily unavailable.",
+    });
+  }
 
   const processRawResults = (results: any[]) => {
     const list = [];

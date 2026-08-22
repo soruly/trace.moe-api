@@ -5,18 +5,21 @@ const { MILVUS_ADDR, MILVUS_TOKEN } = process.env;
 
 const milvus = new MilvusClient({ address: MILVUS_ADDR, token: MILVUS_TOKEN });
 
-console.log("Triggering compaction for frame_color_layout...");
 const res = await milvus.compact({
   collection_name: "frame_color_layout",
 });
 
-console.log("Compaction initiated:", res);
+if (res?.status?.error_code && res.status.error_code !== "Success") {
+  console.error("Failed to initiate compaction:", res.status.reason || res.status.error_code);
+} else {
+  console.log("Compaction initiated:", res);
 
-if (res.compactionID) {
-  const state = await milvus.getCompactionState({
-    compactionID: res.compactionID,
-  });
-  console.log("Compaction state:", state);
+  if (res.compactionID) {
+    const state = await milvus.getCompactionState({
+      compactionID: res.compactionID,
+    });
+    console.log("Compaction state:", state);
+  }
 }
 
 await milvus.closeConnection();

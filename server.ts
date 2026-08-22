@@ -53,50 +53,60 @@ await milvus.connectPromise;
 
 console.log("Checking milvus collection");
 const milvusCollection = await milvus.listCollections();
-if (milvusCollection.data.find((e) => e.name === "frame_color_layout")) {
+if (milvusCollection?.status?.error_code && milvusCollection.status.error_code !== "Success") {
+  throw new Error(
+    milvusCollection.status.reason ||
+      milvusCollection.status.detail ||
+      `Failed to list Milvus collections: ${milvusCollection.status.error_code}`,
+  );
+}
+if (milvusCollection.data?.find((e) => e.name === "frame_color_layout")) {
   console.log("Using milvus collection frame_color_layout");
 } else {
-  console.log("Creating milvus collection frame_color_layout");
-  console.log(
-    await milvus.createCollection({
-      collection_name: "frame_color_layout",
-      properties: { "mmap.enabled": true },
-      fields: [
-        {
-          name: "id",
-          data_type: DataType.Int64,
-          is_primary_key: true,
-          autoID: true,
-        },
-        {
-          name: "file_id",
-          data_type: DataType.Int32,
-        },
-        {
-          name: "time",
-          data_type: DataType.Float,
-        },
-        {
-          name: "vector",
-          data_type: DataType.Float16Vector,
-          dim: 33,
-        },
-      ],
-      index_params: [
-        {
-          field_name: "file_id",
-          index_type: IndexType.AUTOINDEX,
-        },
-        {
-          field_name: "vector",
-          index_type: IndexType.IVF_SQ8,
-          metric_type: MetricType.L2,
-          params: { nlist: 16384 },
-        },
-      ],
-      shards_num: 1,
-    }),
-  );
+  const createResult = await milvus.createCollection({
+    collection_name: "frame_color_layout",
+    properties: { "mmap.enabled": true },
+    fields: [
+      {
+        name: "id",
+        data_type: DataType.Int64,
+        is_primary_key: true,
+        autoID: true,
+      },
+      {
+        name: "file_id",
+        data_type: DataType.Int32,
+      },
+      {
+        name: "time",
+        data_type: DataType.Float,
+      },
+      {
+        name: "vector",
+        data_type: DataType.Float16Vector,
+        dim: 33,
+      },
+    ],
+    index_params: [
+      {
+        field_name: "file_id",
+        index_type: IndexType.AUTOINDEX,
+      },
+      {
+        field_name: "vector",
+        index_type: IndexType.IVF_SQ8,
+        metric_type: MetricType.L2,
+        params: { nlist: 16384 },
+      },
+    ],
+    shards_num: 1,
+  });
+  if (createResult?.error_code && createResult.error_code !== "Success") {
+    throw new Error(
+      createResult.reason || `Failed to create Milvus collection: ${createResult.error_code}`,
+    );
+  }
+  console.log(createResult);
 }
 app.locals.milvus = milvus;
 app.locals.sqids = new Sqids({
