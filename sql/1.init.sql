@@ -117,9 +117,11 @@ CREATE TABLE IF NOT EXISTS files (
   ) STORED,
   frame_count integer,
   scene_count integer GENERATED ALWAYS AS (1 + jsonb_array_length(scene_changes)) STORED,
+  video_hash text GENERATED ALWAYS AS (stream_hash -> 0 ->> 'hash') STORED,
   media_info jsonb,
   scene_changes jsonb,
-  color_layout bytea
+  color_layout bytea,
+  stream_hash jsonb
 );
 
 CREATE INDEX IF NOT EXISTS files_anilist_id_idx ON files (anilist_id);
@@ -133,6 +135,10 @@ CREATE INDEX IF NOT EXISTS files_anilist_ep_range_idx ON files (anilist_id, epis
 CREATE UNIQUE INDEX IF NOT EXISTS files_path_idx ON files (path);
 
 CREATE INDEX IF NOT EXISTS files_crc32_idx ON files (crc32);
+
+CREATE INDEX IF NOT EXISTS files_stream_hash_idx ON files USING gin (stream_hash);
+
+CREATE INDEX IF NOT EXISTS files_video_hash_idx ON files (video_hash);
 
 CREATE INDEX IF NOT EXISTS files_loaded_idx ON files (loaded);
 

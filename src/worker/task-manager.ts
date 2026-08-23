@@ -69,6 +69,7 @@ export default class TaskManager {
       this.runAnilistTask();
       this.runCrc32Task();
       this.runMediaInfoTask();
+      this.runVideoAnalysisTask();
       this.runSceneChangesTask();
       this.runColorLayoutTask();
       this.runMilvusLoadTask();
@@ -156,6 +157,46 @@ export default class TaskManager {
     }
   }
 
+  videoAnalysisTaskList = new Map<number, any>();
+  videoAnalysisTaskListMax = MAX_WORKER;
+
+  async runVideoAnalysisTask() {
+    if (this.videoAnalysisTaskList.size >= this.videoAnalysisTaskListMax) return;
+    try {
+      for (const { id, path: relativePath } of await sql`
+        SELECT
+          id,
+          path
+        FROM
+          files
+        WHERE
+          scene_changes IS NULL
+          AND color_layout IS NULL
+        ORDER BY
+          id DESC
+        LIMIT
+          ${this.videoAnalysisTaskListMax}
+      `) {
+        const filePath = path.join(VIDEO_PATH, relativePath);
+        if (this.videoAnalysisTaskList.has(id)) continue;
+        const worker = new Worker("./src/worker/video-analysis.ts", {
+          workerData: { id, filePath },
+        });
+        worker.on("error", (error) => console.error(error));
+        worker.on("exit", () => {
+          this.videoAnalysisTaskList.delete(id);
+          this.publish();
+          this.runVideoAnalysisTask();
+          this.runMilvusLoadTask();
+        });
+        this.videoAnalysisTaskList.set(id, { id, filePath, worker });
+        this.publish();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   sceneChangesTaskList = new Map<number, any>();
   sceneChangesTaskListMax = MAX_WORKER;
 
@@ -170,6 +211,7 @@ export default class TaskManager {
           files
         WHERE
           scene_changes IS NULL
+          AND color_layout IS NOT NULL
         ORDER BY
           id DESC
         LIMIT
@@ -209,6 +251,7 @@ export default class TaskManager {
           files
         WHERE
           color_layout IS NULL
+          AND scene_changes IS NOT NULL
         ORDER BY
           id DESC
         LIMIT
@@ -339,6 +382,7 @@ export default class TaskManager {
     const tasks = {
       crc32TaskList: Array.from(this.crc32TaskList.values()).map((e) => e.filePath),
       mediaInfoTaskList: Array.from(this.mediaInfoTaskList.values()).map((e) => e.filePath),
+      videoAnalysisTaskList: Array.from(this.videoAnalysisTaskList.values()).map((e) => e.filePath),
       sceneChangesTaskList: Array.from(this.sceneChangesTaskList.values()).map((e) => e.filePath),
       colorLayoutTaskList: Array.from(this.colorLayoutTaskList.values()).map((e) => e.filePath),
       milvusLoadTaskList: Array.from(this.milvusLoadTaskList.values()).map((e) => e.filePath),
