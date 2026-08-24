@@ -144,6 +144,8 @@ requests.post("https://api.trace.moe/search",
 
 If you already have extracted the 33-dimensional color layout vector of the image, you can search by vector directly. This is much faster and saves bandwidth compared to sending images.
 
+You can extract the MPEG-7 ColorLayout vector using the official [trace.moe-id](https://github.com/soruly/trace.moe-id) library (`npm install trace.moe-id`), which supports both Node.js and web browsers.
+
 You can perform search for a single vector, or a batch search for multiple vectors (up to 10 vectors).
 
 Your search quota will be reduced by 1 for each vector.
@@ -175,31 +177,54 @@ Invoke-RestMethod -Method Post -ContentType "application/json" -Body $body https
 #### **javascript**
 
 ```javascript
-await fetch("https://api.trace.moe/search", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    vector: [
-      "IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ",
-      "IBgHEw0NExYYDw4QDw8NERARDg0TIwwaERMRGhMIDAsJ",
-    ],
-  }),
-}).then((e) => e.json());
+// In Node.js (with sharp and trace.moe-id)
+import sharp from "sharp";
+import { ColorLayout } from "trace.moe-id";
+
+const { data, info } = await sharp("demo.jpg").raw().toBuffer({ resolveWithObject: true });
+const cl = ColorLayout.extract({
+  data: new Uint8Array(data),
+  width: info.width,
+  height: info.height,
+  channels: info.channels,
+});
 
 await fetch("https://api.trace.moe/search", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ vector: cl.base64 }), // or vector: cl.featureVector
+}).then((e) => e.json());
+```
+
+```javascript
+// In Web Browser (with canvas and trace.moe-id)
+import { ColorLayout } from "trace.moe-id";
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+const cl = ColorLayout.extract({
+  data: imageData.data,
+  width: imageData.width,
+  height: imageData.height,
+  channels: 4,
+});
+
+await fetch("https://api.trace.moe/search", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ vector: cl.base64 }), // or vector: cl.featureVector
+}).then((e) => e.json());
+```
+
+```javascript
+// Batch search (up to 10 vectors)
+await fetch("https://api.trace.moe/search", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    vector: [
-      [
-        32, 24, 7, 19, 13, 13, 19, 22, 24, 15, 14, 16, 15, 15, 13, 18, 16, 17, 14, 13, 19, 34, 12,
-        26, 17, 19, 17, 26, 19, 8, 12, 11, 9,
-      ],
-      [
-        32, 24, 7, 19, 13, 13, 19, 22, 24, 15, 14, 16, 15, 15, 13, 17, 16, 17, 14, 13, 19, 35, 12,
-        26, 17, 19, 17, 26, 19, 8, 12, 11, 9,
-      ],
-    ],
+    vector: [cl1.base64, cl2.base64], // or [cl1.featureVector, cl2.featureVector]
   }),
 }).then((e) => e.json());
 ```
