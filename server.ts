@@ -90,7 +90,7 @@ if (milvusCollection.data?.find((e) => e.name === "frame_color_layout")) {
     index_params: [
       {
         field_name: "file_id",
-        index_type: IndexType.AUTOINDEX,
+        index_type: IndexType.INVERTED,
       },
       {
         field_name: "vector",
