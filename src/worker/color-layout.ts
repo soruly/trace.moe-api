@@ -5,7 +5,7 @@ import { workerData } from "node:worker_threads";
 import zlib from "node:zlib";
 
 import sql from "../../sql.ts";
-import colorLayout from "../lib/color-layout.ts";
+import { ColorLayout } from "trace.moe-id";
 
 const zstdCompress = promisify(zlib.zstdCompress);
 
@@ -33,7 +33,12 @@ const processFrames = () => {
     stdoutBuffer = stdoutBuffer.subarray(FRAME_SIZE);
     frameData.push({
       time: timeCodes.shift(),
-      vector: colorLayout(frameBuffer, VIDEO_WIDTH, VIDEO_HEIGHT),
+      vector: ColorLayout.extract({
+        data: frameBuffer,
+        width: VIDEO_WIDTH,
+        height: VIDEO_HEIGHT,
+        channels: 3,
+      }),
     });
   }
 };

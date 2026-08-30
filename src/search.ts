@@ -5,7 +5,7 @@ import { performance } from "node:perf_hooks";
 import aniep from "aniep";
 
 import sql from "../sql.ts";
-import colorLayout from "./lib/color-layout.ts";
+import { ColorLayout } from "trace.moe-id";
 import prepareSearchImage from "./lib/prepare-search-image.ts";
 import safeFetch from "./lib/safe-fetch.ts";
 
@@ -64,12 +64,20 @@ let tier9UserKeyBuffer;
 const parseSingleVector = (item: any): number[] | null => {
   if (typeof item === "string") {
     try {
-      const parsed = [...Uint8Array.from(Buffer.from(item, "base64"))];
-      if (parsed.length === 33 && parsed.every((n: any) => typeof n === "number")) {
-        return parsed;
+      const decoded = ColorLayout.decode(item);
+      if (decoded.length === 33 && decoded.every((n: any) => typeof n === "number")) {
+        return decoded;
       }
     } catch (e) {
-      return null;
+      // Fallback for legacy 33-byte base64 string
+      try {
+        const parsed = [...Uint8Array.from(Buffer.from(item, "base64"))];
+        if (parsed.length === 33 && parsed.every((n: any) => typeof n === "number")) {
+          return parsed;
+        }
+      } catch {
+        return null;
+      }
     }
   }
   if (Array.isArray(item)) {
@@ -322,7 +330,12 @@ export default async (req, res) => {
       });
     }
 
-    const parsed = colorLayout(searchImage.data, searchImage.info.width, searchImage.info.height);
+    const parsed = ColorLayout.extract({
+      data: searchImage.data,
+      width: searchImage.info.width,
+      height: searchImage.info.height,
+      channels: 3,
+    });
     vectors = [parsed];
     isMultiple = false;
   }

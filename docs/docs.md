@@ -153,24 +153,24 @@ Your search quota will be reduced by 1 for each vector.
 The payload is a JSON object with a `vector` field:
 
 - **Single Vector**:
-  - A base64-encoded string: `"IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ"`
   - An array of 33 numbers: `[32, 24, 7, 19, 13, 13, 19, 22, 24, 15, 14, 16, 15, 15, 13, 18, 16, 17, 14, 13, 19, 34, 12, 26, 17, 19, 17, 26, 19, 8, 12, 11, 9]`
+  - base64 hash string (from `ColorLayout.encode(vector)`): `"gwebWzth7oPe2UIubOJmozi1NDFp"`
 - **Multiple Vectors (Batch search, max 10)**:
-  - An array of base64-encoded strings: `["IBgHEw0N...", "IBgHEw0N..."]`
   - A 2D array of numbers: `[[32, 24, ...], [32, 24, ...]]`
+  - An array of base64 hash strings: `["gwebWzth...", "gwebWzth..."]`
 
 <!-- tabs:start -->
 
 #### **cURL**
 
 ```bash
-curl -X POST -H "Content-Type: application/json" -d '{"vector": "IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ"}' https://api.trace.moe/search
+curl -X POST -H "Content-Type: application/json" -d '{"vector": "gwebWzth7oPe2UIubOJmozi1NDFp"}' https://api.trace.moe/search
 ```
 
 #### **PowerShell**
 
 ```powershell
-$body = @{ vector = "IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ" } | ConvertTo-Json
+$body = @{ vector = "gwebWzth7oPe2UIubOJmozi1NDFp" } | ConvertTo-Json
 Invoke-RestMethod -Method Post -ContentType "application/json" -Body $body https://api.trace.moe/search
 ```
 
@@ -192,7 +192,7 @@ const cl = ColorLayout.extract({
 await fetch("https://api.trace.moe/search", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ vector: cl.base64 }), // or vector: cl.featureVector
+  body: JSON.stringify({ vector: cl }),
 }).then((e) => e.json());
 ```
 
@@ -214,7 +214,7 @@ const cl = ColorLayout.extract({
 await fetch("https://api.trace.moe/search", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ vector: cl.base64 }), // or vector: cl.featureVector
+  body: JSON.stringify({ vector: cl }),
 }).then((e) => e.json());
 ```
 
@@ -224,7 +224,7 @@ await fetch("https://api.trace.moe/search", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    vector: [cl1.base64, cl2.base64], // or [cl1.featureVector, cl2.featureVector]
+    vector: [cl1, cl2],
   }),
 }).then((e) => e.json());
 ```
@@ -234,7 +234,7 @@ await fetch("https://api.trace.moe/search", {
 ```python
 import requests
 requests.post("https://api.trace.moe/search",
-  json={"vector": "IBgHEw0NExYYDw4QDw8NEhARDg0TIgwaERMRGhMIDAsJ"}
+  json={"vector": "gwebWzth7oPe2UIubOJmozi1NDFp"}
 ).json()
 ```
 
@@ -418,6 +418,10 @@ The recommended resolution is 640 x 360px. Higher resolution doesn't yield bette
 - Results are sorted from most similar to least similar
 - Similarity lower than 90% are most likely incorrect results. It's up to you to judge what is a match and what is just visually similar.
 - `episode` can be null because it is just a result of parsing the `filename` with [aniep](https://github.com/soruly/aniep)
+- `episode_start` and `episode_end` represents the actual episode range of the file. This is useful for files that contain multiple episodes (e.g., EP01-02, EP07-12). If it's just one episode (usually), `episode_start` and `episode_end` is set to the same number.
+- `episode_start` and `episode_end` are always integers (no x.5 episodes). They are never 0 and always start with 1.
+- `episode_start` and `episode_end` follows the episode order from anilist. Even if the filename suggest it's EP13, `episode_start` and `episode_end` will still be 1 if anilist suggest that the first season only has 12 episodes. This is managed by database maintainer manually.
+- `episode_start` and `episode_end` are both null when the episode is unknown or invalid (e.g. specials, trailers, etc.)
 
 By default, it only returns Anilist ID for search results. To get more anime info, make a second query to [AniList API](https://github.com/AniList/ApiV2-GraphQL-Docs). If you need Chinese-translated titles, take a look at [anilist-chinese](https://github.com/soruly/anilist-chinese)
 

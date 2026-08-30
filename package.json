@@ -33,7 +33,8 @@
     "nodemailer": "^9.0.5",
     "postgres": "^3.4.9",
     "sharp": "^0.35.3",
-    "sqids": "^0.3.0"
+    "sqids": "^0.3.0",
+    "trace.moe-id": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
