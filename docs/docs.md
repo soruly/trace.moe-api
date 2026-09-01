@@ -150,26 +150,34 @@ You can perform search for a single vector, or a batch search for multiple vecto
 
 Your search quota will be reduced by 1 for each vector.
 
-The payload is a JSON object with a `vector` field:
+You can send the base64 hash string via query string (`?vector=...`), or send a JSON payload with a `vector` field:
 
 - **Single Vector**:
+  - Base64 hash string (from `ColorLayout.encode(vector)`): `"gwebWzth7oPe2UIubOJmozi1NDFp"`
   - An array of 33 numbers: `[32, 24, 7, 19, 13, 13, 19, 22, 24, 15, 14, 16, 15, 15, 13, 18, 16, 17, 14, 13, 19, 34, 12, 26, 17, 19, 17, 26, 19, 8, 12, 11, 9]`
-  - base64 hash string (from `ColorLayout.encode(vector)`): `"gwebWzth7oPe2UIubOJmozi1NDFp"`
 - **Multiple Vectors (Batch search, max 10)**:
-  - A 2D array of numbers: `[[32, 24, ...], [32, 24, ...]]`
   - An array of base64 hash strings: `["gwebWzth...", "gwebWzth..."]`
+  - A 2D array of numbers: `[[32, 24, ...], [32, 24, ...]]`
 
 <!-- tabs:start -->
 
 #### **cURL**
 
 ```bash
+# via query string (GET)
+curl "https://api.trace.moe/search?vector=gwebWzth7oPe2UIubOJmozi1NDFp"
+
+# via JSON payload (POST)
 curl -X POST -H "Content-Type: application/json" -d '{"vector": "gwebWzth7oPe2UIubOJmozi1NDFp"}' https://api.trace.moe/search
 ```
 
 #### **PowerShell**
 
 ```powershell
+# via query string (GET)
+Invoke-RestMethod "https://api.trace.moe/search?vector=gwebWzth7oPe2UIubOJmozi1NDFp"
+
+# via JSON payload (POST)
 $body = @{ vector = "gwebWzth7oPe2UIubOJmozi1NDFp" } | ConvertTo-Json
 Invoke-RestMethod -Method Post -ContentType "application/json" -Body $body https://api.trace.moe/search
 ```

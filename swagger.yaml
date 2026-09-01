@@ -19,7 +19,15 @@ components:
       name: url
       description: Image URL
       in: query
-      required: true
+      required: false
+      allowEmptyValue: false
+      schema:
+        type: string
+    vector:
+      name: vector
+      description: Base64 hash string of Color Layout vector
+      in: query
+      required: false
       allowEmptyValue: false
       schema:
         type: string
@@ -403,6 +411,7 @@ paths:
         - $ref: "#/components/parameters/anilistInfo"
         - $ref: "#/components/parameters/cutBorders"
         - $ref: "#/components/parameters/url"
+        - $ref: "#/components/parameters/vector"
         - $ref: "#/components/parameters/anilistID"
       responses:
         "200":

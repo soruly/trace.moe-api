@@ -216,8 +216,10 @@ export default async (req, res) => {
   let vectors: number[][] = [];
   let isMultiple = false;
 
-  if (req.body?.vector) {
-    const input = req.body.vector;
+  const vectorInput = req.body?.vector ?? req.query.vector;
+
+  if (vectorInput) {
+    const input = vectorInput;
     if (typeof input === "string") {
       const parsed = parseSingleVector(input);
       if (!parsed) {
