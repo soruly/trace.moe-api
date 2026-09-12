@@ -3,9 +3,9 @@ import os from "node:os";
 import { performance } from "node:perf_hooks";
 
 import aniep from "aniep";
+import { ColorLayout } from "trace.moe-id";
 
 import sql from "../sql.ts";
-import { ColorLayout } from "trace.moe-id";
 import prepareSearchImage from "./lib/prepare-search-image.ts";
 import safeFetch from "./lib/safe-fetch.ts";
 
@@ -475,7 +475,10 @@ export default async (req, res) => {
         const fileRecord = filesMap.get(file_id);
         const { anilist_id, path, duration, episode_start, episode_end } = fileRecord;
 
-        const time = (((from + to) / 2) * 10000) | 0; // convert 4dp time code to integer
+        // Nudge away from boundaries by up to 0.2s, without exceeding the mid-point
+        const margin = Math.min(0.2, (to - from) / 2);
+        const clampedAt = Math.min(Math.max(at, from + margin), to - margin);
+        const time = (clampedAt * 10000) | 0; // convert 4dp time code to integer
         const buf = Buffer.allocUnsafe(saltBuffer.length);
         saltBuffer.copy(buf);
         buf.writeUInt32LE(Math.abs(time ^ expire ^ file_id), 0);
