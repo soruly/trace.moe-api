@@ -475,7 +475,7 @@ export default async (req, res) => {
         const fileRecord = filesMap.get(file_id);
         const { anilist_id, path, duration, episode_start, episode_end } = fileRecord;
 
-        const time = (at * 10000) | 0; // convert 4dp time code to integer
+        const time = (((from + to) / 2) * 10000) | 0; // convert 4dp time code to integer
         const buf = Buffer.allocUnsafe(saltBuffer.length);
         saltBuffer.copy(buf);
         buf.writeUInt32LE(Math.abs(time ^ expire ^ file_id), 0);
