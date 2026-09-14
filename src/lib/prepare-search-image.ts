@@ -166,6 +166,8 @@ const resizeAndCropImage = async (imageBuffer: Buffer, cutBorders: boolean): Pro
         .raw()
         .toBuffer({ resolveWithObject: true });
 
+      // Only cut borders if the original image is not in good aspect ratio
+      // because the black areas may be part of the original video frame which we need to keep
       const targetRatios = [4 / 3, 16 / 9, 21 / 9];
       const matchedRatio = getNearestAspectRatio(info.width, info.height, targetRatios);
       if (matchedRatio === null) {
@@ -187,6 +189,60 @@ const resizeAndCropImage = async (imageBuffer: Buffer, cutBorders: boolean): Pro
     .flatten({ background: "#000000" })
     .raw()
     .toBuffer({ resolveWithObject: true });
+};
+
+const resizeAndCropImagePair = async (
+  imageBuffer: Buffer,
+): Promise<{ original: any; cut: any }> => {
+  const resizedImage = await sharp(imageBuffer)
+    .resize({ width: 320, height: 320, fit: "inside" })
+    .toBuffer();
+
+  const original = await sharp(resizedImage)
+    .flatten({ background: "#000000" })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  let croppedImage = sharp(resizedImage);
+  let wasCropped = false;
+  try {
+    const { data, info } = await sharp(resizedImage)
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    const targetRatios = [4 / 3, 16 / 9, 21 / 9];
+    const matchedRatio = getNearestAspectRatio(info.width, info.height, targetRatios);
+    if (matchedRatio === null) {
+      const detected = getVideoFrameRect(data, info.width, info.height, 3, 10);
+      const snapped = snapRectToNearestAspectRatio(detected, info.width, info.height);
+      if (
+        snapped.x !== 0 ||
+        snapped.y !== 0 ||
+        snapped.width !== info.width ||
+        snapped.height !== info.height
+      ) {
+        croppedImage = sharp(resizedImage).extract({
+          left: snapped.x,
+          top: snapped.y,
+          width: snapped.width,
+          height: snapped.height,
+        });
+        wasCropped = true;
+      }
+    }
+  } catch {
+    croppedImage = sharp(resizedImage);
+  }
+
+  const cut = wasCropped
+    ? await croppedImage
+        .flatten({ background: "#000000" })
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+    : original;
+
+  return { original, cut };
 };
 
 const extractImageByFFmpeg = async (searchFile: Buffer): Promise<Buffer> => {
@@ -232,7 +288,24 @@ const extractImageByFFmpeg = async (searchFile: Buffer): Promise<Buffer> => {
   });
 };
 
-export default async (searchFile: Buffer, cutBorders: boolean): Promise<any> => {
+export const prepareSearchImagePair = async (
+  searchFile: Buffer,
+): Promise<{ original: any; cut: any } | null> => {
+  try {
+    return await resizeAndCropImagePair(searchFile);
+  } catch (e) {
+    console.log(e);
+    const extractedImage = await extractImageByFFmpeg(searchFile);
+    if (!extractedImage.length) return null;
+    try {
+      return await resizeAndCropImagePair(extractedImage);
+    } catch {
+      return null;
+    }
+  }
+};
+
+export const prepareSearchImage = async (searchFile: Buffer, cutBorders: boolean): Promise<any> => {
   try {
     return await resizeAndCropImage(searchFile, cutBorders);
   } catch (e) {
@@ -241,8 +314,10 @@ export default async (searchFile: Buffer, cutBorders: boolean): Promise<any> => 
     if (!extractedImage.length) return null;
     try {
       return await resizeAndCropImage(extractedImage, cutBorders);
-    } catch (e) {
+    } catch {
       return null;
     }
   }
 };
+
+export default prepareSearchImage;

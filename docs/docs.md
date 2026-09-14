@@ -283,27 +283,34 @@ When a batch of multiple vectors is requested, the `result` field in the JSON re
 
 trace.moe can detect black borders automatically and cut away unnecessary parts of the images that would affect search result accuracy. This is useful if your image is a screencap from a smartphone or iPad that contains black bars.
 
-To enable black border crop, add `cutBorders` to the query string. e.g.
+The `cutBorders` query parameter supports the following options:
+
+- `cutBorders=0`: Original image only (same as omitting `cutBorders`).
+- `cutBorders=1` or `cutBorders`: Cropped image only (same as `cutBorders` without a number).
+- `cutBorders=2`: Searches with **both** the original image and the cropped image at the same time. The top results from both are merged and deduplicated. If black borders are detected (resulting in two different vectors), it consumes 2 search credits; otherwise, it consumes 1 credit.
+
+e.g.
 
 <!-- tabs:start -->
 
 #### **cURL**
 
 ```bash
-curl "https://api.trace.moe/search?cutBorders&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+# Dual vector search (both original and cut)
+curl "https://api.trace.moe/search?cutBorders=2&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
 #### **PowerShell**
 
 ```powershell
-Invoke-RestMethod "https://api.trace.moe/search?cutBorders&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
+Invoke-RestMethod "https://api.trace.moe/search?cutBorders=2&url=https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"
 ```
 
 #### **javascript**
 
 ```javascript
 await fetch(
-  `https://api.trace.moe/search?cutBorders&url=${encodeURIComponent(
+  `https://api.trace.moe/search?cutBorders=2&url=${encodeURIComponent(
     "https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg",
   )}`,
 ).then((e) => e.json());
@@ -314,9 +321,10 @@ await fetch(
 ```python
 import requests
 import urllib.parse
-requests
-.get("https://api.trace.moe/search?cutBorders&url={}"
-  .format(urllib.parse.quote_plus("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg"))
+requests.get(
+  "https://api.trace.moe/search?cutBorders=2&url={}".format(
+    urllib.parse.quote_plus("https://images.plurk.com/32B15UXxymfSMwKGTObY5e.jpg")
+  )
 ).json()
 ```
 

@@ -6,8 +6,30 @@ import aniep from "aniep";
 import { ColorLayout } from "trace.moe-id";
 
 import sql from "../sql.ts";
-import prepareSearchImage from "./lib/prepare-search-image.ts";
+import prepareSearchImage, { prepareSearchImagePair } from "./lib/prepare-search-image.ts";
 import safeFetch from "./lib/safe-fetch.ts";
+
+const combineSearchResults = (resultLists: any[][]): any[] => {
+  const allItems = resultLists.flat();
+  allItems.sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
+
+  const merged: any[] = [];
+  for (const item of allItems) {
+    const isDuplicate = merged.some((existing) => {
+      if (existing.filename !== item.filename) return false;
+      if (String(existing.episode ?? "") !== String(item.episode ?? "")) return false;
+      const atDiff = Math.abs((existing.at ?? 0) - (item.at ?? 0));
+      const fromDiff = Math.abs((existing.from ?? 0) - (item.from ?? 0));
+      return atDiff < 5 || fromDiff < 5;
+    });
+
+    if (!isDuplicate) {
+      merged.push(item);
+    }
+  }
+
+  return merged.slice(0, 10);
+};
 
 const { TRACE_API_SALT, SEARCH_QUEUE, IMAGE_PROXY_URL = "" } = process.env;
 
@@ -215,6 +237,8 @@ export default async (req, res) => {
 
   let vectors: number[][] = [];
   let isMultiple = false;
+  let isDual = false;
+  let isDiff = false;
 
   const vectorInput = req.body?.vector ?? req.query.vector;
 
@@ -323,23 +347,73 @@ export default async (req, res) => {
       });
     }
 
-    const searchImage = await prepareSearchImage(searchFile, "cutBorders" in req.query);
+    const cutBordersValue = req.query.cutBorders;
+    const cutBordersMode =
+      cutBordersValue === "2" ? 2 : cutBordersValue === "0" ? 0 : "cutBorders" in req.query ? 1 : 0;
 
-    if (!searchImage) {
-      logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
-      return res.status(400).json({
-        error: "Failed to process image",
+    if (cutBordersMode === 2) {
+      isDual = true;
+      const pair = await prepareSearchImagePair(searchFile);
+
+      if (!pair) {
+        logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+        return res.status(400).json({
+          error: "Failed to process image",
+        });
+      }
+
+      const origVector = ColorLayout.extract({
+        data: pair.original.data,
+        width: pair.original.info.width,
+        height: pair.original.info.height,
+        channels: 3,
       });
-    }
 
-    const parsed = ColorLayout.extract({
-      data: searchImage.data,
-      width: searchImage.info.width,
-      height: searchImage.info.height,
-      channels: 3,
-    });
-    vectors = [parsed];
-    isMultiple = false;
+      const cutVector =
+        pair.original === pair.cut
+          ? origVector
+          : ColorLayout.extract({
+              data: pair.cut.data,
+              width: pair.cut.info.width,
+              height: pair.cut.info.height,
+              channels: 3,
+            });
+
+      isDiff = cutVector.some((v, i) => v !== origVector[i]);
+
+      if (isDiff) {
+        if (quotaUsed + 2 > quota) {
+          logAndDequeue(locals, req.ip, userId, concurrentId, priority, 402);
+          return res.status(402).json({
+            quota,
+            quotaUsed,
+            error: `Search quota depleted (quota per 24 hours: ${quota}, used: ${quotaUsed})`,
+          });
+        }
+        vectors = [cutVector, origVector];
+      } else {
+        vectors = [cutVector];
+      }
+      isMultiple = false;
+    } else {
+      const searchImage = await prepareSearchImage(searchFile, cutBordersMode === 1);
+
+      if (!searchImage) {
+        logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+        return res.status(400).json({
+          error: "Failed to process image",
+        });
+      }
+
+      const parsed = ColorLayout.extract({
+        data: searchImage.data,
+        width: searchImage.info.width,
+        height: searchImage.info.height,
+        channels: 3,
+      });
+      vectors = [parsed];
+      isMultiple = false;
+    }
   }
 
   let expr = null;
@@ -374,7 +448,7 @@ export default async (req, res) => {
   try {
     searchResult = await locals.milvus.search({
       collection_name: "frame_color_layout",
-      data: isMultiple ? vectors : vectors[0],
+      data: isMultiple || (isDual && isDiff) ? vectors : vectors[0],
       limit: 1000,
       expr,
       exprValues,
@@ -440,9 +514,10 @@ export default async (req, res) => {
       .slice(0, 10); // return only top 10 results
   };
 
-  const rawResultsList: any[][] = isMultiple
-    ? searchResult.results.map((r: any) => processRawResults(r))
-    : [processRawResults(searchResult.results)];
+  const rawResultsList: any[][] =
+    isMultiple || (isDual && isDiff)
+      ? searchResult.results.map((r: any) => processRawResults(r))
+      : [processRawResults(searchResult.results)];
 
   const allFileIds = Array.from(new Set(rawResultsList.flat().map((e) => e.file_id)));
 
@@ -533,7 +608,7 @@ export default async (req, res) => {
     priority,
     200,
     searchTime,
-    isMultiple
+    isMultiple || (isDual && isDiff)
       ? formattedResultsList.map((list) => list[0]?.similarity ?? 0)
       : (formattedResultsList[0]?.[0]?.similarity ?? 0),
   );
@@ -543,6 +618,10 @@ export default async (req, res) => {
     quotaUsed,
     frameCount: Number(searchResult.all_search_count),
     error: "",
-    result: isMultiple ? formattedResultsList : formattedResultsList[0],
+    result: isMultiple
+      ? formattedResultsList
+      : isDual && isDiff
+        ? combineSearchResults(formattedResultsList)
+        : formattedResultsList[0],
   });
 };

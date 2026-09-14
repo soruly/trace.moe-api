@@ -33,13 +33,17 @@ components:
         type: string
     cutBorders:
       name: cutBorders
-      description: Cut black borders
+      description: "Cut black borders: 0 = original image, 1 = cropped image (same as cutBorders without number), 2 = both original and cropped image (merged top results, consumes 2 credits if two vectors differ)"
       in: query
       required: false
       allowEmptyValue: true
       schema:
         type: string
-        pattern: ^$
+        enum:
+          - ""
+          - "0"
+          - "1"
+          - "2"
     anilistInfo:
       name: anilistInfo
       description: Include Anilist info
