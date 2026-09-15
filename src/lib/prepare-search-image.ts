@@ -211,25 +211,21 @@ const resizeAndCropImagePair = async (
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    const targetRatios = [4 / 3, 16 / 9, 21 / 9];
-    const matchedRatio = getNearestAspectRatio(info.width, info.height, targetRatios);
-    if (matchedRatio === null) {
-      const detected = getVideoFrameRect(data, info.width, info.height, 3, 10);
-      const snapped = snapRectToNearestAspectRatio(detected, info.width, info.height);
-      if (
-        snapped.x !== 0 ||
-        snapped.y !== 0 ||
-        snapped.width !== info.width ||
-        snapped.height !== info.height
-      ) {
-        croppedImage = sharp(resizedImage).extract({
-          left: snapped.x,
-          top: snapped.y,
-          width: snapped.width,
-          height: snapped.height,
-        });
-        wasCropped = true;
-      }
+    const detected = getVideoFrameRect(data, info.width, info.height, 3, 10);
+    const snapped = snapRectToNearestAspectRatio(detected, info.width, info.height);
+    if (
+      snapped.x !== 0 ||
+      snapped.y !== 0 ||
+      snapped.width !== info.width ||
+      snapped.height !== info.height
+    ) {
+      croppedImage = sharp(resizedImage).extract({
+        left: snapped.x,
+        top: snapped.y,
+        width: snapped.width,
+        height: snapped.height,
+      });
+      wasCropped = true;
     }
   } catch {
     croppedImage = sharp(resizedImage);
