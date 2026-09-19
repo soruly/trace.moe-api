@@ -22,6 +22,7 @@ SELECT
   nullif((anilist.json -> 'popularity'), 'null')::int AS popularity,
   anilist.json -> 'title' ->> 'native' AS title_native,
   anilist.json -> 'title' ->> 'chinese' AS title_chinese,
+  anilist.json -> 'title' ->> 'english' AS title_english,
   anilist.json -> 'title' ->> 'romaji' AS title_romaji,
   anilist.json -> 'coverImage' ->> 'color' AS cover_image_color,
   anilist.json -> 'coverImage' ->> 'large' AS cover_image_large
@@ -51,6 +52,8 @@ CREATE INDEX IF NOT EXISTS anilist_view_popularity_idx ON anilist_view (populari
 CREATE INDEX IF NOT EXISTS anilist_view_title_native_idx ON anilist_view (title_native);
 
 CREATE INDEX IF NOT EXISTS anilist_view_title_chinese_idx ON anilist_view (title_chinese);
+
+CREATE INDEX IF NOT EXISTS anilist_view_title_english_idx ON anilist_view (title_english);
 
 CREATE INDEX IF NOT EXISTS anilist_view_title_romaji_idx ON anilist_view (title_romaji);
 
