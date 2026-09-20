@@ -23,23 +23,23 @@
     "test": "prettier --check \"**/*.*\""
   },
   "dependencies": {
-    "@zilliz/milvus2-sdk-node": "^3.0.5",
+    "@zilliz/milvus2-sdk-node": "^3.0.6",
     "aniep": "^0.6.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "ipaddr.js": "^2.5.0",
-    "multer": "^2.3.0",
-    "nodemailer": "^10.0.8",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.10",
     "postgres": "^3.4.9",
     "sharp": "^0.35.4",
     "sqids": "^0.3.0",
     "trace.moe-id": "^2.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
-    "oxfmt": "^0.67.0",
-    "prettier": "^3.9.6",
+    "@types/node": "^26.6.2",
+    "oxfmt": "^0.68.0",
+    "prettier": "^3.9.8",
     "prettier-plugin-embed": "^0.5.1",
     "prettier-plugin-sql": "^0.20.0"
   },
