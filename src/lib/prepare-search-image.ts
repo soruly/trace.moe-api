@@ -244,9 +244,10 @@ const resizeAndCropImagePair = async (
 const extractImageByFFmpeg = async (searchFile: Buffer): Promise<Buffer> => {
   // must use file input because input file buffer may be unseekable
   // ffmpeg cannot determine the video format for such stream
-  const tempFilePath = path.join(os.tmpdir(), `trace.moe-search-${process.hrtime().join("")}`);
+  await using tempDir = await fs.mkdtempDisposable(path.join(os.tmpdir(), "trace.moe-search-"));
+  const tempFilePath = path.join(tempDir.path, "input");
   await fs.writeFile(tempFilePath, searchFile);
-  return new Promise((resolve) => {
+  return await new Promise((resolve) => {
     const ffmpeg = child_process.spawn("ffmpeg", [
       "-hide_banner",
       "-loglevel",
@@ -279,7 +280,6 @@ const extractImageByFFmpeg = async (searchFile: Buffer): Promise<Buffer> => {
     ffmpeg.on("close", (code) => {
       if (code !== 0) chunks.push(Buffer.alloc(0));
       resolve(Buffer.concat(chunks));
-      fs.rm(tempFilePath, { force: true }).catch(() => {});
     });
   });
 };
