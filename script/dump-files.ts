@@ -5,19 +5,19 @@ import zlib from "node:zlib";
 import "../env.ts";
 import sql from "../sql.ts";
 
-const gzip = promisify(zlib.gzip);
+const zstdCompress = promisify(zlib.zstdCompress);
 
 const sinceIdArg = process.argv[2] ?? process.env.SINCE_ID;
 
 if (sinceIdArg === undefined) {
   console.error("Error: Please specify the starting ID (SINCE_ID).");
-  console.error("Usage: node script/dump-files.ts <SINCE_ID> [output_file.sql.gz]");
+  console.error("Usage: node script/dump-files.ts <SINCE_ID> [output_file.sql.zst]");
   console.error("Example: node script/dump-files.ts 12345");
   process.exit(1);
 }
 
 const sinceId = Number(sinceIdArg);
-const outputFile = process.argv[3] ?? process.env.OUTPUT_FILE ?? `${sinceId}.sql.gz`;
+const outputFile = process.argv[3] ?? process.env.OUTPUT_FILE ?? `${sinceId}.sql.zst`;
 
 try {
   console.log(`Querying production database for files with id > ${sinceId}...`);
@@ -112,7 +112,7 @@ try {
   lines.push("COMMIT;");
 
   const sqlContent = lines.join("\n\n") + "\n";
-  const compressed = await gzip(sqlContent);
+  const compressed = await zstdCompress(sqlContent);
 
   await fs.writeFile(outputFile, compressed);
   console.log(`Successfully generated ${outputFile} (${prodFiles.length} records exported).`);
