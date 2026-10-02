@@ -39,7 +39,7 @@ export default class TaskManager {
                 (e) =>
                   e.isFile() &&
                   path.relative(VIDEO_PATH, e.parentPath).match(/^\d+$/) &&
-                  [".webm", ".mkv", ".mp4"].includes(path.extname(e.name)),
+                  [".webm", ".mkv", ".mp4", ".ts"].includes(path.extname(e.name)),
               )
               .map((e) => path.join(path.relative(VIDEO_PATH, e.parentPath), e.name)),
           ),
