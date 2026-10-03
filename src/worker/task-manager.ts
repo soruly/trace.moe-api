@@ -69,7 +69,6 @@ export default class TaskManager {
       this.runAnilistTask();
       this.runCrc32Task();
       this.runMediaInfoTask();
-      this.runSceneChangesTask();
       this.runColorLayoutTask();
       this.runMilvusLoadTask();
     } catch (error) {
@@ -156,45 +155,6 @@ export default class TaskManager {
     }
   }
 
-  sceneChangesTaskList = new Map<number, any>();
-  sceneChangesTaskListMax = MAX_WORKER;
-
-  async runSceneChangesTask() {
-    if (this.sceneChangesTaskList.size >= this.sceneChangesTaskListMax) return;
-    try {
-      for (const { id, path: relativePath } of await sql`
-        SELECT
-          id,
-          path
-        FROM
-          files
-        WHERE
-          scene_changes IS NULL
-        ORDER BY
-          id DESC
-        LIMIT
-          ${this.sceneChangesTaskListMax}
-      `) {
-        const filePath = path.join(VIDEO_PATH, relativePath);
-        if (this.sceneChangesTaskList.has(id)) continue;
-        const worker = new Worker("./src/worker/scene-changes.ts", {
-          workerData: { id, filePath },
-        });
-        worker.on("error", (error) => console.error(error));
-        worker.on("exit", () => {
-          this.sceneChangesTaskList.delete(id);
-          this.publish();
-          this.runSceneChangesTask();
-          this.runMilvusLoadTask();
-        });
-        this.sceneChangesTaskList.set(id, { id, filePath, worker });
-        this.publish();
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
   colorLayoutTaskList = new Map<number, any>();
   colorLayoutTaskListMax = MAX_WORKER;
 
@@ -209,6 +169,7 @@ export default class TaskManager {
           files
         WHERE
           color_layout IS NULL
+          OR scene_changes IS NULL
         ORDER BY
           id DESC
         LIMIT
@@ -339,7 +300,6 @@ export default class TaskManager {
     const tasks = {
       crc32TaskList: Array.from(this.crc32TaskList.values()).map((e) => e.filePath),
       mediaInfoTaskList: Array.from(this.mediaInfoTaskList.values()).map((e) => e.filePath),
-      sceneChangesTaskList: Array.from(this.sceneChangesTaskList.values()).map((e) => e.filePath),
       colorLayoutTaskList: Array.from(this.colorLayoutTaskList.values()).map((e) => e.filePath),
       milvusLoadTaskList: Array.from(this.milvusLoadTaskList.values()).map((e) => e.filePath),
     };

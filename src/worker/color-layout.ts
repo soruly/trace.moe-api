@@ -43,24 +43,60 @@ const processFrames = () => {
   }
 };
 
+const sceneChanges: [number, number][] = [];
+let currentScenePtsTime: number | null = null;
+let stderrBuffer = "";
+
+const parseStderrLine = (line: string) => {
+  if (line.includes("showinfo@clr")) {
+    const match = line.match(/pts_time:\s*(\d+\.?\d*)/);
+    if (match) timeCodes.push(parseFloat(match[1]));
+  } else if (line.includes("metadata@scn")) {
+    const ptsMatch = line.match(/pts_time:\s*(\d+\.?\d*)/);
+    if (ptsMatch) {
+      currentScenePtsTime = parseFloat(ptsMatch[1]);
+    }
+    const scoreMatch = line.match(/scene_score\s*=\s*(\d+\.?\d*)/);
+    if (scoreMatch && currentScenePtsTime !== null) {
+      sceneChanges.push([currentScenePtsTime, parseFloat(scoreMatch[1])]);
+      currentScenePtsTime = null;
+    }
+  }
+};
+
 const ffmpeg = child_process.spawn("ffmpeg", [
   "-hide_banner",
   "-loglevel",
   "info",
   "-nostats",
+  "-y",
   "-i",
   filePath,
+  "-filter_complex",
+  `[0:v:0]split=2[v_color][v_scene];[v_color]scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT},showinfo@clr[out_raw];[v_scene]select='gt(scene,0.2)',metadata@scn=print[out_null]`,
+  "-map",
+  "[out_raw]",
   "-fps_mode",
   "passthrough",
   "-an",
-  "-vf",
-  `scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT},showinfo`,
+  "-sn",
+  "-dn",
   "-c:v",
   "rawvideo",
   "-f",
   "rawvideo",
   "-pix_fmt",
   "rgb24",
+  "-",
+  "-map",
+  "[out_null]",
+  "-fps_mode",
+  "passthrough",
+  "-an",
+  "-sn",
+  "-dn",
+  "-f",
+  "null",
   "-",
 ]);
 
@@ -74,14 +110,23 @@ ffmpeg.stdout.on("data", (data) => {
 ffmpeg.stderr.on("data", (data) => {
   const str = data.toString();
   if (str.includes("Error") || str.includes("error")) console.error(`[color-layout][error] ${str}`);
-  let match;
-  const timecodeRegex = /pts_time:\s*(\d+\.?\d*)/g;
-  while ((match = timecodeRegex.exec(str))) timeCodes.push(parseFloat(match[1]));
+  stderrBuffer += str;
+  const lines = stderrBuffer.split("\n");
+  stderrBuffer = lines.pop() ?? "";
+
+  for (const line of lines) {
+    parseStderrLine(line);
+  }
   processFrames();
 });
 
 ffmpeg.on("close", async (code) => {
   if (code !== 0) console.error(`[color-layout][error] ffmpeg exited with code ${code}`);
+
+  if (stderrBuffer) {
+    parseStderrLine(stderrBuffer);
+    processFrames();
+  }
 
   await sql`
     UPDATE files
@@ -90,7 +135,8 @@ ffmpeg.on("close", async (code) => {
       frame_count = ${code === 0 ? frameData.length : 0},
       color_layout = ${await zstdCompress(JSON.stringify(code === 0 ? frameData : []), {
         params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 },
-      })}
+      })},
+      scene_changes = ${code === 0 ? sceneChanges : []}
     WHERE
       id = ${id}
   `;
