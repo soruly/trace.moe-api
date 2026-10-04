@@ -13,6 +13,24 @@ SELECT
   nullif((anilist.json -> 'id'), 'null')::int AS id,
   nullif((anilist.json -> 'seasonYear'), 'null')::int AS season_year,
   nullif((anilist.json ->> 'season'), 'null')::text AS season,
+  CASE
+    WHEN anilist.json -> 'startDate' ->> 'year' IS NOT NULL THEN concat_ws(
+      '-',
+      lpad(anilist.json -> 'startDate' ->> 'year', 4, '0'),
+      lpad(anilist.json -> 'startDate' ->> 'month', 2, '0'),
+      lpad(anilist.json -> 'startDate' ->> 'day', 2, '0')
+    )
+    ELSE NULL
+  END AS start_date,
+  CASE
+    WHEN anilist.json -> 'endDate' ->> 'year' IS NOT NULL THEN concat_ws(
+      '-',
+      lpad(anilist.json -> 'endDate' ->> 'year', 4, '0'),
+      lpad(anilist.json -> 'endDate' ->> 'month', 2, '0'),
+      lpad(anilist.json -> 'endDate' ->> 'day', 2, '0')
+    )
+    ELSE NULL
+  END AS end_date,
   nullif((anilist.json ->> 'status'), 'null')::text AS status,
   nullif((anilist.json ->> 'countryOfOrigin'), 'null')::text AS country_of_origin,
   nullif((anilist.json ->> 'format'), 'null')::text AS format,
@@ -34,6 +52,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS anilist_view_id_idx ON anilist_view (id);
 CREATE INDEX IF NOT EXISTS anilist_view_season_year_idx ON anilist_view (season_year);
 
 CREATE INDEX IF NOT EXISTS anilist_view_season_idx ON anilist_view (season);
+
+CREATE INDEX IF NOT EXISTS anilist_view_start_date_idx ON anilist_view (start_date);
+
+CREATE INDEX IF NOT EXISTS anilist_view_end_date_idx ON anilist_view (end_date);
 
 CREATE INDEX IF NOT EXISTS anilist_view_status_idx ON anilist_view (status);
 
