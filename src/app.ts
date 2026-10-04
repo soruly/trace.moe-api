@@ -84,7 +84,7 @@ app.get("/anilist", anilist);
 app.get("/status", getStatus);
 app.get("/stats", getStats);
 app.all("/tasks", tasks);
-app.all("/scan", scan);
+app.all(["/scan", "/scan/:id"], scan);
 app.all("/webhook/github", github);
 app.all("/webhook/patreon", patreon);
 app.all(

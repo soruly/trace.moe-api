@@ -16,43 +16,85 @@ export default class TaskManager {
 
   isScanTaskRunning = false;
 
-  isScanTaskPending = false;
+  isFullScanPending = false;
+
+  pendingAnilistIds = new Set<number>();
 
   scanInterval = Number(process.env.SCAN_INTERVAL ?? 60);
 
-  async runScanTask(interval?: number) {
+  async runScanTask(interval?: number, anilistId?: number) {
     if (interval !== undefined && Number.isFinite(interval) && interval >= 0) {
       this.scanInterval = interval;
     }
-    clearTimeout(this.scanTimer);
     if (this.isScanTaskRunning) {
-      this.isScanTaskPending = true;
+      if (anilistId) {
+        this.pendingAnilistIds.add(anilistId);
+      } else {
+        this.isFullScanPending = true;
+      }
       return;
     }
     this.isScanTaskRunning = true;
     try {
-      console.info(`[scan][doing] ${VIDEO_PATH}`);
+      const targetDir = anilistId ? path.join(VIDEO_PATH, String(anilistId)) : VIDEO_PATH;
+      console.info(`[scan][doing] ${targetDir}`);
 
-      const [dbSet, fileList] = await Promise.all([
-        sql`
-          SELECT
-            path
-          FROM
-            files
-        `.then((e) => new Set(e.map((e) => e.path))),
-        fs
-          .readdir(VIDEO_PATH, { recursive: true, withFileTypes: true })
-          .then((e) =>
-            e
+      let fileList: string[] = [];
+      let dbSet: Set<string>;
+
+      if (anilistId) {
+        try {
+          const stat = await fs.stat(targetDir);
+          if (stat.isDirectory()) {
+            const [dbSetResult, entries] = await Promise.all([
+              sql`
+                SELECT
+                  path
+                FROM
+                  files
+                WHERE
+                  anilist_id = ${anilistId}
+              `.then((e) => new Set(e.map((e) => e.path))),
+              fs.readdir(targetDir, { withFileTypes: true }),
+            ]);
+            dbSet = dbSetResult;
+            fileList = entries
               .filter(
                 (e) =>
-                  e.isFile() &&
-                  path.relative(VIDEO_PATH, e.parentPath).match(/^\d+$/) &&
-                  [".webm", ".mkv", ".mp4", ".ts"].includes(path.extname(e.name)),
+                  e.isFile() && [".webm", ".mkv", ".mp4", ".ts"].includes(path.extname(e.name)),
               )
-              .map((e) => path.join(path.relative(VIDEO_PATH, e.parentPath), e.name)),
-          ),
-      ]);
+              .map((e) => path.join(String(anilistId), e.name));
+          } else {
+            dbSet = new Set();
+          }
+        } catch {
+          console.warn(`[scan][skip] Directory does not exist: ${targetDir}`);
+          dbSet = new Set();
+        }
+      } else {
+        const [dbSetResult, fullList] = await Promise.all([
+          sql`
+            SELECT
+              path
+            FROM
+              files
+          `.then((e) => new Set(e.map((e) => e.path))),
+          fs
+            .readdir(VIDEO_PATH, { recursive: true, withFileTypes: true })
+            .then((e) =>
+              e
+                .filter(
+                  (e) =>
+                    e.isFile() &&
+                    path.relative(VIDEO_PATH, e.parentPath).match(/^\d+$/) &&
+                    [".webm", ".mkv", ".mp4", ".ts"].includes(path.extname(e.name)),
+                )
+                .map((e) => path.join(path.relative(VIDEO_PATH, e.parentPath), e.name)),
+            ),
+        ]);
+        dbSet = dbSetResult;
+        fileList = fullList;
+      }
 
       const newFileList = fileList.filter((e) => !dbSet.has(e));
 
@@ -73,7 +115,7 @@ export default class TaskManager {
         `;
       }
 
-      console.info(`[scan][done]  ${VIDEO_PATH}`);
+      console.info(`[scan][done]  ${targetDir}`);
 
       this.runAnilistTask();
       this.runCrc32Task();
@@ -84,10 +126,16 @@ export default class TaskManager {
       console.error(error);
     } finally {
       this.isScanTaskRunning = false;
-      if (this.isScanTaskPending) {
-        this.isScanTaskPending = false;
+      if (this.isFullScanPending) {
+        this.isFullScanPending = false;
+        this.pendingAnilistIds.clear();
         this.runScanTask();
-      } else if (this.scanInterval > 0 && Number.isFinite(this.scanInterval)) {
+      } else if (this.pendingAnilistIds.size > 0) {
+        const nextId = this.pendingAnilistIds.values().next().value;
+        this.pendingAnilistIds.delete(nextId);
+        this.runScanTask(undefined, nextId);
+      } else if (!anilistId && this.scanInterval > 0 && Number.isFinite(this.scanInterval)) {
+        clearTimeout(this.scanTimer);
         this.scanTimer = setTimeout(() => this.runScanTask(), this.scanInterval * 1000);
       }
     }

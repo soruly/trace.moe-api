@@ -23,16 +23,31 @@ export default async (req, res) => {
     });
   }
 
+  let anilistId: number | undefined;
+  if (req.params?.id) {
+    if (!/^\d+$/.test(req.params.id)) {
+      return res.status(400).json({ error: "Invalid anilist id: must be a number" });
+    }
+    anilistId = Number(req.params.id);
+  }
+
   const taskManager = req.app.locals.taskManager;
   if (!taskManager) {
     return res.status(500).json({ error: "Task manager not initialized" });
   }
 
   const isRunning = taskManager.isScanTaskRunning;
-  taskManager.runScanTask().catch(console.error);
+  taskManager.runScanTask(undefined, anilistId).catch(console.error);
 
   return res.json({
     status: "ok",
-    message: isRunning ? "Scan already running; next scan queued" : "Scan started",
+    message: isRunning
+      ? anilistId
+        ? `Scan already running; folder ${anilistId} queued`
+        : "Scan already running; next scan queued"
+      : anilistId
+        ? `Scan started for ${anilistId}`
+        : "Scan started",
+    ...(anilistId ? { anilist_id: anilistId } : {}),
   });
 };
