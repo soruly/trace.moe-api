@@ -10,6 +10,7 @@ import getMe from "./get-me.ts";
 import getStats from "./get-stats.ts";
 import getStatus from "./get-status.ts";
 import image from "./image.ts";
+import scan from "./scan.ts";
 import search from "./search.ts";
 import tasks from "./tasks.ts";
 import create from "./user/create.ts";
@@ -83,6 +84,7 @@ app.get("/anilist", anilist);
 app.get("/status", getStatus);
 app.get("/stats", getStats);
 app.all("/tasks", tasks);
+app.all("/scan", scan);
 app.all("/webhook/github", github);
 app.all("/webhook/patreon", patreon);
 app.all(

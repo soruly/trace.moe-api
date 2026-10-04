@@ -16,12 +16,21 @@ export default class TaskManager {
 
   isScanTaskRunning = false;
 
-  async runScanTask(interval: number) {
-    if (!interval || !Number.isFinite(interval) || interval <= 0) return;
-    if (this.isScanTaskRunning) return;
+  isScanTaskPending = false;
+
+  scanInterval = Number(process.env.SCAN_INTERVAL ?? 60);
+
+  async runScanTask(interval?: number) {
+    if (interval !== undefined && Number.isFinite(interval) && interval >= 0) {
+      this.scanInterval = interval;
+    }
+    clearTimeout(this.scanTimer);
+    if (this.isScanTaskRunning) {
+      this.isScanTaskPending = true;
+      return;
+    }
     this.isScanTaskRunning = true;
     try {
-      clearTimeout(this.scanTimer);
       console.info(`[scan][doing] ${VIDEO_PATH}`);
 
       const [dbSet, fileList] = await Promise.all([
@@ -75,7 +84,12 @@ export default class TaskManager {
       console.error(error);
     } finally {
       this.isScanTaskRunning = false;
-      if (interval) this.scanTimer = setTimeout(() => this.runScanTask(interval), interval * 1000);
+      if (this.isScanTaskPending) {
+        this.isScanTaskPending = false;
+        this.runScanTask();
+      } else if (this.scanInterval > 0 && Number.isFinite(this.scanInterval)) {
+        this.scanTimer = setTimeout(() => this.runScanTask(), this.scanInterval * 1000);
+      }
     }
   }
 
