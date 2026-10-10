@@ -37,7 +37,7 @@
     "trace.moe-id": "^2.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "oxfmt": "^0.71.0",
     "prettier": "^3.9.9",
     "prettier-plugin-embed": "^0.5.1",
