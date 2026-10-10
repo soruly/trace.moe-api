@@ -30,7 +30,7 @@
     "express-rate-limit": "^8.7.0",
     "ipaddr.js": "^2.5.0",
     "multer": "^2.4.0",
-    "nodemailer": "^10.0.13",
+    "nodemailer": "^10.0.15",
     "postgres": "^3.4.9",
     "sharp": "^0.35.5",
     "sqids": "^0.3.0",
