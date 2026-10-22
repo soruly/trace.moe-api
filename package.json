@@ -30,7 +30,7 @@
     "express-rate-limit": "^8.7.1",
     "ipaddr.js": "^2.5.0",
     "multer": "^2.4.0",
-    "nodemailer": "^10.1.1",
+    "nodemailer": "^10.2.0",
     "postgres": "^3.4.9",
     "sharp": "^0.35.5",
     "sqids": "^0.3.0",
@@ -38,9 +38,9 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
-    "oxfmt": "^0.73.0",
+    "oxfmt": "^0.74.0",
     "prettier": "^3.9.10",
-    "prettier-plugin-embed": "^0.7.1",
+    "prettier-plugin-embed": "^0.8.1",
     "prettier-plugin-sql": "^0.20.0"
   },
   "allowScripts": {
