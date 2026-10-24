@@ -34,7 +34,8 @@
     "postgres": "^3.4.9",
     "sharp": "^0.35.5",
     "sqids": "^0.3.0",
-    "trace.moe-id": "^2.0.0"
+    "trace.moe-id": "^2.0.0",
+    "undici": "^8.12.3"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
