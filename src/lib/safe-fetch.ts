@@ -1,14 +1,24 @@
-import dns from "node:dns/promises";
+import dns from "node:dns";
 import ipaddr from "ipaddr.js";
+import { Agent, buildConnector, fetch as undiciFetch } from "undici";
 
-function isPrivateIP(str: string) {
+function isPrivateIP(str: string): boolean {
   try {
-    const addr = ipaddr.parse(str);
-    return (
-      addr.range() === "loopback" || addr.range() === "private" || addr.range() === "linkLocal"
-    );
-  } catch (error) {
-    return false;
+    const addr = ipaddr.process(str);
+    const range = addr.range();
+    const unsafeRanges = [
+      "loopback",
+      "private",
+      "uniqueLocal",
+      "linkLocal",
+      "unspecified",
+      "carrierGradeNat",
+      "reserved",
+      "broadcast",
+    ];
+    return unsafeRanges.includes(range);
+  } catch {
+    return true;
   }
 }
 
@@ -21,7 +31,7 @@ async function isSafeURL(urlString: string): Promise<boolean> {
 
     if (ipaddr.isValid(hostname)) return !isPrivateIP(hostname);
 
-    for (const { address } of await dns.lookup(hostname, { all: true })) {
+    for (const { address } of await dns.promises.lookup(hostname, { all: true })) {
       if (isPrivateIP(address)) return false;
     }
 
@@ -31,8 +41,32 @@ async function isSafeURL(urlString: string): Promise<boolean> {
   }
 }
 
+const safeConnector = buildConnector({
+  lookup: (hostname, options, callback) => {
+    dns.lookup(hostname, options, (err, address, family) => {
+      if (err) return callback(err, address, family);
+      const addresses = Array.isArray(address) ? address : [{ address, family: family ?? 4 }];
+      for (const entry of addresses) {
+        if (isPrivateIP(entry.address)) {
+          return callback(new Error(`Blocked private IP: ${entry.address}`), address, family);
+        }
+      }
+      callback(null, address, family);
+    });
+  },
+});
+
+const safeDispatcher = new Agent({
+  connect: (opts, cb) => {
+    if (ipaddr.isValid(opts.hostname) && isPrivateIP(opts.hostname)) {
+      return cb(new Error(`Blocked private IP: ${opts.hostname}`), null);
+    }
+    return safeConnector(opts, cb);
+  },
+});
+
 export async function getBoundedBuffer(
-  response: Response,
+  response: Response | any,
   maxBytes = 25 * 1024 * 1024,
 ): Promise<Buffer> {
   const contentLength = Number(response.headers.get("content-length"));
@@ -68,9 +102,9 @@ export async function getBoundedBuffer(
 
 export default async function safeFetch(
   url: string,
-  options: RequestInit = {},
+  options: any = {},
   timeoutMs = 10000,
-): Promise<Response> {
+): Promise<any> {
   let currentURL = url;
   let redirects = 0;
 
@@ -83,7 +117,12 @@ export default async function safeFetch(
   }
 
   while (redirects < 5) {
-    const response = await fetch(currentURL, { ...options, signal, redirect: "manual" });
+    const response = await undiciFetch(currentURL, {
+      ...options,
+      signal,
+      dispatcher: safeDispatcher,
+      redirect: "manual",
+    });
 
     if (response.status >= 300 && response.status < 400 && response.headers.get("location")) {
       redirects++;
