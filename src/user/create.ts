@@ -10,7 +10,8 @@ export default async (req, res) => {
 
   const rows = await sql`
     SELECT
-      id
+      id,
+      tier
     FROM
       users
     WHERE
@@ -23,15 +24,21 @@ export default async (req, res) => {
       error: "Invalid API key",
     });
   }
-  if (rows[0].id >= 1000) {
+  if (rows[0].tier !== 9) {
     return res.status(403).json({
       error: "Forbidden",
     });
   }
 
+  if (!req.body?.email || req.body?.tier === undefined) {
+    return res.status(400).json({
+      error: "Missing email or tier",
+    });
+  }
+
   const result = await createNewUser(
     req.body.email,
-    req.body.tier,
+    Number(req.body.tier),
     req.body.email.split("@").shift(),
   );
 
