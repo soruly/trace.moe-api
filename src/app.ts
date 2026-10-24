@@ -60,7 +60,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({ credentials: true, origin: true }));
+app.use(cors({ origin: true }));
 app.use(
   express.raw({
     type: ["application/octet-stream", "application/x-www-form-urlencoded", "image/*", "video/*"],
