@@ -7,7 +7,7 @@ import { ColorLayout } from "trace.moe-id";
 
 import sql from "../sql.ts";
 import prepareSearchImage, { prepareSearchImagePair } from "./lib/prepare-search-image.ts";
-import safeFetch from "./lib/safe-fetch.ts";
+import safeFetch, { getBoundedBuffer } from "./lib/safe-fetch.ts";
 
 const combineSearchResults = (resultLists: any[][]): any[] => {
   const allItems = resultLists.flat();
@@ -328,7 +328,15 @@ export default async (req, res) => {
           error: `Failed to fetch image ${imageURL}`,
         });
       }
-      searchFile = Buffer.from(await response.arrayBuffer());
+      try {
+        searchFile = await getBoundedBuffer(response, 25 * 1024 * 1024);
+      } catch (e) {
+        console.error(e);
+        logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
+        return res.status(400).json({
+          error: `Failed to fetch image ${imageURL}: ${e instanceof Error ? e.message : "File too large"}`,
+        });
+      }
     } else if (req.files?.length) {
       searchFile = req.files[0].buffer;
     } else if (req.rawBody?.length) {

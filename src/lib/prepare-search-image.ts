@@ -248,34 +248,49 @@ const extractImageByFFmpeg = async (searchFile: Buffer): Promise<Buffer> => {
   const tempFilePath = path.join(tempDir.path, "input");
   await fs.writeFile(tempFilePath, searchFile);
   return await new Promise((resolve) => {
-    const ffmpeg = child_process.spawn("ffmpeg", [
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-nostats",
-      "-y",
-      "-i",
-      tempFilePath,
-      "-ss",
-      "00:00:00",
-      "-map_metadata",
-      "-1",
-      "-vf",
-      "scale=320:-2",
-      "-c:v",
-      "png",
-      "-vframes",
-      "1",
-      "-f",
-      "image2pipe",
-      "pipe:1",
-    ]);
+    const ffmpeg = child_process.spawn(
+      "ffmpeg",
+      [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-nostats",
+        "-y",
+        "-i",
+        tempFilePath,
+        "-ss",
+        "00:00:00",
+        "-map_metadata",
+        "-1",
+        "-vf",
+        "scale=320:-2",
+        "-c:v",
+        "png",
+        "-vframes",
+        "1",
+        "-f",
+        "image2pipe",
+        "pipe:1",
+      ],
+      { timeout: 10000 },
+    );
     ffmpeg.stderr.on("data", (data) => {
       console.log(data.toString());
     });
     const chunks = [];
+    let totalLength = 0;
+    const maxOutput = 10 * 1024 * 1024;
     ffmpeg.stdout.on("data", (data) => {
-      chunks.push(data);
+      if (totalLength < maxOutput) {
+        chunks.push(data);
+        totalLength += data.length;
+      } else {
+        ffmpeg.kill("SIGKILL");
+      }
+    });
+    ffmpeg.on("error", (err) => {
+      console.error("[ffmpeg][error]", err);
+      resolve(Buffer.alloc(0));
     });
     ffmpeg.on("close", (code) => {
       if (code !== 0) chunks.push(Buffer.alloc(0));
