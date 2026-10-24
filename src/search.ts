@@ -303,8 +303,12 @@ export default async (req, res) => {
     let searchFile;
     if (req.query.url) {
       const imageURL = String(req.query.url);
+      let parsedURL: URL;
       try {
-        new URL(imageURL);
+        parsedURL = new URL(imageURL);
+        if (parsedURL.protocol !== "http:" && parsedURL.protocol !== "https:") {
+          throw new Error("Invalid protocol");
+        }
       } catch (e) {
         logAndDequeue(locals, req.ip, userId, concurrentId, priority, 400);
         return res.status(400).json({
@@ -312,7 +316,7 @@ export default async (req, res) => {
         });
       }
 
-      const useProxy = IMAGE_PROXY_URL && !TRUSTED_PROXY_HOSTS.has(new URL(imageURL).hostname);
+      const useProxy = IMAGE_PROXY_URL && !TRUSTED_PROXY_HOSTS.has(parsedURL.hostname);
 
       console.log(`Fetching image ${useProxy ? "with proxy" : "directly"} ${imageURL}`);
 
