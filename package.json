@@ -31,7 +31,7 @@
     "ipaddr.js": "^2.5.0",
     "multer": "^2.5.0",
     "nodemailer": "^10.5.0",
-    "postgres": "^3.4.9",
+    "postgres": "^4.1.1",
     "sharp": "^0.35.5",
     "sqids": "^0.3.0",
     "trace.moe-id": "^2.0.0",
